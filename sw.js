@@ -2,7 +2,7 @@
 const CACHE_NAME = '4engr-v1';
 const ASSETS = [
   '/',
-  '/index.html',
+  '/4engr-app/index.html',
   'https://fonts.googleapis.com/css2?family=Noto+Serif+Bengali:wght@400;600;700&family=Rajdhani:wght@400;600;700&display=swap',
 ];
 
