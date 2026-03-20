@@ -1187,6 +1187,41 @@ body {
 
     <!-- ── PAGE: Settings ── -->
     <div class="page" id="page-settings">
+
+      <!-- ওয়েবসাইট লিংক — শুধু admin ও superadmin দেখতে পাবে -->
+      <div id="rosterLinkCard" style="
+        display: none;
+        background: linear-gradient(135deg, rgba(200,169,74,0.15), rgba(200,169,74,0.05));
+        border: 1px solid rgba(200,169,74,0.35);
+        border-radius: 14px;
+        padding: 16px;
+        margin-bottom: 14px;
+        align-items: center;
+        gap: 14px;
+        cursor: pointer;
+        transition: all 0.2s;
+      "
+      onclick="window.open('https://dynamicfourdatabase-ux.github.io/4engr-app/roster.html','_blank')"
+      onmouseover="this.style.background='linear-gradient(135deg,rgba(200,169,74,0.25),rgba(200,169,74,0.1))'"
+      onmouseout="this.style.background='linear-gradient(135deg,rgba(200,169,74,0.15),rgba(200,169,74,0.05))'">
+        <div style="
+          width: 48px; height: 48px; border-radius: 12px;
+          background: linear-gradient(135deg, var(--gold), #9a7a20);
+          display: flex; align-items: center; justify-content: center;
+          font-size: 22px; flex-shrink: 0;
+          box-shadow: 0 4px 12px rgba(200,169,74,0.3);
+        ">🌐</div>
+        <div style="flex:1">
+          <div style="font-size: 0.95rem; font-weight: 700; color: var(--gold); margin-bottom: 3px;">
+            সদস্য তালিকা ওয়েবসাইট
+          </div>
+          <div style="font-size: 0.75rem; color: var(--text2); font-family:'Rajdhani',sans-serif; letter-spacing:1px;">
+            সকল সদস্যের তথ্য অনুসন্ধান করুন
+          </div>
+        </div>
+        <div style="font-size: 18px; color: var(--gold); opacity: 0.7;">↗</div>
+      </div>
+
       <div class="settings-item" onclick="openChangePassword()">
         <div class="settings-icon">🔒</div>
         <div class="settings-info">
@@ -1565,6 +1600,9 @@ async function loadMemberData(uid) {
       // অ্যাডমিনের জন্য পারিবারিক তথ্য কার্ড লুকাও
       const familyCard = document.getElementById('familyFields')?.closest('.card');
       if (familyCard) familyCard.style.display = 'none';
+      // শুধু admin ও superadmin এর জন্য ওয়েবসাইট লিংক দেখাও
+      const rosterCard = document.getElementById('rosterLinkCard');
+      if (rosterCard) rosterCard.style.display = 'flex';
     }
   } catch(e) {
     console.error('Load error:', e);
