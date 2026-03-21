@@ -1152,91 +1152,153 @@ body {
 
             <!-- Create New Admin Tab -->
             <div id="superTabCreate" style="display:none">
-              <!-- Auto-fill status bar -->
-              <div id="adminAutoFillStatus" style="display:none;border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:0.8rem;font-family:'Rajdhani',sans-serif;letter-spacing:1px;transition:all 0.2s"></div>
 
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-                <div class="form-group">
-                  <label class="form-label">সেনা নম্বর *
-                    <span id="adminAutoFillSpinner" style="display:none;margin-left:6px;font-size:10px;color:var(--gold)">⏳</span>
-                  </label>
-                  <input type="text" class="form-input" id="newAdminArmyNo"
-                    placeholder="যেমন: 32273"
-                    oninput="scheduleAdminAutoFill(this.value)"
-                    autocomplete="off">
+              <!-- Mode Toggle -->
+              <div style="display:flex;gap:6px;margin-bottom:14px;background:var(--dark3);border-radius:10px;padding:4px">
+                <button id="createModeBtn" onclick="switchCreateMode('create')"
+                  style="flex:1;padding:8px;border:none;border-radius:8px;background:linear-gradient(135deg,var(--gold),#9a7a20);color:#0a0c10;font-family:'Rajdhani',sans-serif;font-size:0.75rem;font-weight:700;letter-spacing:1px;cursor:pointer">
+                  ➕ নতুন User তৈরি
+                </button>
+                <button id="promoteModeBtn" onclick="switchCreateMode('promote')"
+                  style="flex:1;padding:8px;border:none;border-radius:8px;background:transparent;color:var(--text2);font-family:'Rajdhani',sans-serif;font-size:0.75rem;font-weight:700;letter-spacing:1px;cursor:pointer">
+                  🔼 বিদ্যমান User → Admin
+                </button>
+              </div>
+
+              <!-- ══ MODE A: বিদ্যমান User → Admin (Promote) ══ -->
+              <div id="promoteExistingSection" style="display:none">
+                <div style="background:rgba(56,139,253,0.08);border:1px solid rgba(56,139,253,0.2);border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:0.82rem;color:var(--text2);line-height:1.7">
+                  ℹ️ যে সদস্য ইতিমধ্যে <strong style="color:var(--info)">অ্যাকাউন্ট তৈরি করেছেন</strong>, তাঁকে সেনা নম্বর বা নাম দিয়ে খুঁজে Admin করুন।
+                </div>
+                <div style="display:flex;gap:8px;margin-bottom:12px">
+                  <input type="text" id="promoteSearchInput" class="form-input"
+                    placeholder="সেনা নম্বর বা নাম লিখুন..."
+                    style="flex:1" oninput="searchPromoteCandidate(this.value)">
+                </div>
+                <div id="promoteSearchResults"></div>
+
+                <!-- নির্বাচিত user -->
+                <div id="promoteSelectedSection" style="display:none;margin-top:10px">
+                  <div id="promoteSelectedInfo" style="background:var(--dark3);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:12px"></div>
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+                    <div class="form-group">
+                      <label class="form-label">ভূমিকা</label>
+                      <select class="form-input" id="promoteRoleSelect" style="background:var(--dark3)">
+                        <option value="admin">Admin</option>
+                        <option value="superadmin">Super Admin</option>
+                      </select>
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label">কোম্পানী</label>
+                      <select class="form-input" id="promoteCompanySelect" style="background:var(--dark3)">
+                        <option value="">সব (Super Admin)</option>
+                        <option value="৪৮ ফিল্ড কোম্পানী">৪৮ ফিল্ড কোম্পানী</option>
+                        <option value="৪৯ ফিল্ড কোম্পানী">৪৯ ফিল্ড কোম্পানী</option>
+                        <option value="৫০ ফিল্ড কোম্পানী">৫০ ফিল্ড কোম্পানী</option>
+                        <option value="প্লান্ট কোম্পানী">প্লান্ট কোম্পানী</option>
+                        <option value="ব্রীজ কোম্পানী">ব্রীজ কোম্পানী</option>
+                        <option value="সদর কোম্পানী">সদর কোম্পানী</option>
+                        <option value="ইএমই">ইএমই</option>
+                      </select>
+                    </div>
+                  </div>
+                  <button class="btn-save" id="btnPromoteExisting" onclick="promoteExistingToAdmin()"
+                    style="width:100%;padding:13px;border-radius:10px">
+                    🔼 Admin হিসেবে নিয়োগ করুন
+                  </button>
+                </div>
+                <div id="promoteResult" style="display:none;margin-top:12px;border-radius:8px;padding:12px 14px;font-size:0.82rem;white-space:pre-line;line-height:1.6"></div>
+              </div>
+
+              <!-- ══ MODE B: নতুন User তৈরি ══ -->
+              <div id="createNewSection">
+                <!-- Auto-fill status bar -->
+                <div id="adminAutoFillStatus" style="display:none;border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:0.8rem;font-family:'Rajdhani',sans-serif;letter-spacing:1px;transition:all 0.2s"></div>
+
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                  <div class="form-group">
+                    <label class="form-label">সেনা নম্বর *
+                      <span id="adminAutoFillSpinner" style="display:none;margin-left:6px;font-size:10px;color:var(--gold)">⏳</span>
+                    </label>
+                    <input type="text" class="form-input" id="newAdminArmyNo"
+                      placeholder="যেমন: 32273"
+                      oninput="scheduleAdminAutoFill(this.value)"
+                      autocomplete="off">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">পদবী *</label>
+                    <select class="form-input" id="newAdminRank" style="background:var(--dark3)">
+                      <option value="">নির্বাচন করুন</option>
+                      <option value='লেঃ কর্নেল'>লেঃ কর্নেল</option>
+                      <option value='মেজর'>মেজর</option>
+                      <option value='ক্যাপ্টেন'>ক্যাপ্টেন</option>
+                      <option value='লেফটেন্যান্ট'>লেফটেন্যান্ট</option>
+                      <option value='মাস্টাঃ ওয়াঃ অফিঃ'>মাস্টাঃ ওয়াঃ অফিঃ</option>
+                      <option value='সিনিঃ ওয়াঃ অফিঃ'>সিনিঃ ওয়াঃ অফিঃ</option>
+                      <option value='ওয়ারেন্ট অফিসার'>ওয়ারেন্ট অফিসার</option>
+                      <option value='সার্জেন্ট'>সার্জেন্ট</option>
+                      <option value='কর্পোরাল'>কর্পোরাল</option>
+                      <option value='ল্যান্স কর্পোরাল'>ল্যান্স কর্পোরাল</option>
+                      <option value='সৈনিক'>সৈনিক</option>
+                      <option value='এনসি (ই)'>এনসি (ই)</option>
+                    </select>
+                  </div>
                 </div>
                 <div class="form-group">
-                  <label class="form-label">পদবী *</label>
-                  <select class="form-input" id="newAdminRank" style="background:var(--dark3)">
-                    <option value="">নির্বাচন করুন</option>
-                    <option value='লেঃ কর্নেল'>লেঃ কর্নেল</option>
-                  <option value='মেজর'>মেজর</option>
-                  <option value='ক্যাপ্টেন'>ক্যাপ্টেন</option>
-                  <option value='লেফটেন্যান্ট'>লেফটেন্যান্ট</option>
-                  <option value='মাস্টাঃ ওয়াঃ অফিঃ'>মাস্টাঃ ওয়াঃ অফিঃ</option>
-                  <option value='সিনিঃ ওয়াঃ অফিঃ'>সিনিঃ ওয়াঃ অফিঃ</option>
-                  <option value='ওয়ারেন্ট অফিসার'>ওয়ারেন্ট অফিসার</option>
-                  <option value='সার্জেন্ট'>সার্জেন্ট</option>
-                  <option value='কর্পোরাল'>কর্পোরাল</option>
-                  <option value='ল্যান্স কর্পোরাল'>ল্যান্স কর্পোরাল</option>
-                  <option value='সৈনিক'>সৈনিক</option>
-                  <option value='এনসি (ই)'>এনসি (ই)</option>
-                  </select>
-                </div>
-              </div>
-              <div class="form-group">
-                <label class="form-label">বাংলা নাম *</label>
-                <input type="text" class="form-input" id="newAdminName" placeholder="পূর্ণ নাম বাংলায়">
-              </div>
-              <div class="form-group">
-                <label class="form-label">ইংরেজি নাম</label>
-                <input type="text" class="form-input" id="newAdminNameEn" placeholder="Full name in English">
-              </div>
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-                <div class="form-group">
-                  <label class="form-label">মোবাইল নম্বর</label>
-                  <input type="text" class="form-input" id="newAdminMobile" placeholder="01XXXXXXXXX">
+                  <label class="form-label">বাংলা নাম *</label>
+                  <input type="text" class="form-input" id="newAdminName" placeholder="পূর্ণ নাম বাংলায়">
                 </div>
                 <div class="form-group">
-                  <label class="form-label">হোয়াটসঅ্যাপ</label>
-                  <input type="text" class="form-input" id="newAdminWA" placeholder="01XXXXXXXXX">
+                  <label class="form-label">ইংরেজি নাম</label>
+                  <input type="text" class="form-input" id="newAdminNameEn" placeholder="Full name in English">
                 </div>
-              </div>
-              <div class="form-group">
-                <label class="form-label">নিয়োগ</label>
-                <input type="text" class="form-input" id="newAdminNiyog" placeholder="যেমন: ক্লার্ক, স্টোরকিপার">
-              </div>
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-                <div class="form-group">
-                  <label class="form-label">ভূমিকা *</label>
-                  <select class="form-input" id="newAdminRole" style="background:var(--dark3)">
-                    <option value="admin">Admin</option>
-                    <option value="superadmin">Super Admin</option>
-                  </select>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                  <div class="form-group">
+                    <label class="form-label">মোবাইল নম্বর</label>
+                    <input type="text" class="form-input" id="newAdminMobile" placeholder="01XXXXXXXXX">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">হোয়াটসঅ্যাপ</label>
+                    <input type="text" class="form-input" id="newAdminWA" placeholder="01XXXXXXXXX">
+                  </div>
                 </div>
                 <div class="form-group">
-                  <label class="form-label">কোম্পানী *</label>
-                  <select class="form-input" id="newAdminCompany" style="background:var(--dark3)">
-                    <option value="">সব (Super Admin)</option>
-                    <option value="৪৮ ফিল্ড কোম্পানী">৪৮ ফিল্ড কোম্পানী</option>
-                    <option value="৪৯ ফিল্ড কোম্পানী">৪৯ ফিল্ড কোম্পানী</option>
-                    <option value="৫০ ফিল্ড কোম্পানী">৫০ ফিল্ড কোম্পানী</option>
-                    <option value="প্লান্ট কোম্পানী">প্লান্ট কোম্পানী</option>
-                    <option value="ব্রীজ কোম্পানী">ব্রীজ কোম্পানী</option>
-                    <option value="সদর কোম্পানী">সদর কোম্পানী</option>
-                    <option value="ইএমই">ইএমই</option>
-                  </select>
+                  <label class="form-label">নিয়োগ</label>
+                  <input type="text" class="form-input" id="newAdminNiyog" placeholder="যেমন: ক্লার্ক, স্টোরকিপার">
                 </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                  <div class="form-group">
+                    <label class="form-label">ভূমিকা *</label>
+                    <select class="form-input" id="newAdminRole" style="background:var(--dark3)">
+                      <option value="admin">Admin</option>
+                      <option value="superadmin">Super Admin</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">কোম্পানী *</label>
+                    <select class="form-input" id="newAdminCompany" style="background:var(--dark3)">
+                      <option value="">সব (Super Admin)</option>
+                      <option value="৪৮ ফিল্ড কোম্পানী">৪৮ ফিল্ড কোম্পানী</option>
+                      <option value="৪৯ ফিল্ড কোম্পানী">৪৯ ফিল্ড কোম্পানী</option>
+                      <option value="৫০ ফিল্ড কোম্পানী">৫০ ফিল্ড কোম্পানী</option>
+                      <option value="প্লান্ট কোম্পানী">প্লান্ট কোম্পানী</option>
+                      <option value="ব্রীজ কোম্পানী">ব্রীজ কোম্পানী</option>
+                      <option value="সদর কোম্পানী">সদর কোম্পানী</option>
+                      <option value="ইএমই">ইএমই</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">পাসওয়ার্ড *</label>
+                  <input type="password" class="form-input" id="newAdminPass" placeholder="কমপক্ষে ৬ অক্ষর">
+                </div>
+                <button class="btn-save" id="btnCreateAdmin" onclick="createNewAdmin()"
+                  style="width:100%;padding:13px;border-radius:10px;margin-top:4px">
+                  ➕ Create Admin
+                </button>
+                <div id="createAdminResult" style="display:none;margin-top:12px;border-radius:8px;padding:12px 14px;font-size:0.82rem"></div>
               </div>
-              <div class="form-group">
-                <label class="form-label">পাসওয়ার্ড *</label>
-                <input type="password" class="form-input" id="newAdminPass" placeholder="কমপক্ষে ৬ অক্ষর">
-              </div>
-              <button class="btn-save" id="btnCreateAdmin" onclick="createNewAdmin()"
-                style="width:100%;padding:13px;border-radius:10px;margin-top:4px">
-                ➕ Create Admin
-              </button>
-              <div id="createAdminResult" style="display:none;margin-top:12px;border-radius:8px;padding:12px 14px;font-size:0.82rem"></div>
+
             </div>
 
           </div>
@@ -3297,6 +3359,233 @@ function _setAdminAutoFillStatus(msg, type) {
   el.textContent = msg;
 }
 
+/* ══════════════════════════════════════════
+   CREATE ADMIN — MODE SWITCH
+══════════════════════════════════════════ */
+function switchCreateMode(mode) {
+  const isCreate = mode === 'create';
+  document.getElementById('createNewSection').style.display      = isCreate ? 'block' : 'none';
+  document.getElementById('promoteExistingSection').style.display = isCreate ? 'none'  : 'block';
+
+  const cBtn = document.getElementById('createModeBtn');
+  const pBtn = document.getElementById('promoteModeBtn');
+  const gold = 'linear-gradient(135deg,var(--gold),#9a7a20)';
+  const none = 'transparent';
+
+  cBtn.style.background = isCreate ? gold : none;
+  cBtn.style.color      = isCreate ? '#0a0c10' : 'var(--text2)';
+  pBtn.style.background = isCreate ? none : gold;
+  pBtn.style.color      = isCreate ? 'var(--text2)' : '#0a0c10';
+
+  // result clear
+  const r1 = document.getElementById('createAdminResult');
+  const r2 = document.getElementById('promoteResult');
+  if (r1) r1.style.display = 'none';
+  if (r2) r2.style.display = 'none';
+}
+
+/* ══════════════════════════════════════════
+   PROMOTE EXISTING USER → ADMIN
+══════════════════════════════════════════ */
+let _promoteSelectedUser = null;
+
+async function searchPromoteCandidate(q) {
+  const resBox = document.getElementById('promoteSearchResults');
+  const selSection = document.getElementById('promoteSelectedSection');
+  if (!q || q.trim().length < 2) {
+    resBox.innerHTML = '';
+    selSection.style.display = 'none';
+    _promoteSelectedUser = null;
+    return;
+  }
+
+  resBox.innerHTML = '<div style="color:var(--text2);font-size:0.8rem;padding:6px 0">🔍 খোঁজা হচ্ছে...</div>';
+  await new Promise(r => setTimeout(r, 200));
+
+  // Input পরিবর্তন হয়ে গেলে skip
+  const cur = document.getElementById('promoteSearchInput');
+  if (cur && cur.value.trim().toLowerCase() !== q.trim().toLowerCase()) return;
+
+  const lq = q.trim().toLowerCase();
+
+  try {
+    // users collection এ সার্চ করো — শুধু member role
+    const snap = await db.collection('users').get();
+    const all = snap.docs.map(d => ({ uid: d.id, ...d.data() }));
+
+    const matched = all.filter(u => {
+      const hay = [(u.name||''), (u.armyNo||''), (u.role||'')].join(' ').toLowerCase();
+      return hay.includes(lq);
+    }).slice(0, 10);
+
+    if (!matched.length) {
+      resBox.innerHTML = '<div style="color:var(--text2);font-size:0.82rem;padding:8px 0">কোনো user পাওয়া যায়নি</div>';
+      return;
+    }
+
+    const roleColors = { member: 'var(--text2)', admin: 'var(--info)', superadmin: 'var(--danger)' };
+    const roleLabels = { member: 'সদস্য', admin: 'Admin', superadmin: 'Super Admin' };
+
+    resBox.innerHTML = matched.map(u => {
+      const ini = (u.name || u.armyNo || '?')[0].toUpperCase();
+      const rColor = roleColors[u.role] || 'var(--text2)';
+      const rLabel = roleLabels[u.role] || u.role;
+      return `<div class="search-result-item" onclick="selectPromoteUser('${u.uid}')"
+        style="cursor:pointer">
+        <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--gold),#7a5a10);
+          display:flex;align-items:center;justify-content:center;font-weight:700;color:#0a0c10;font-size:13px;flex-shrink:0">${ini}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:0.88rem;font-weight:600">${u.name || '—'}</div>
+          <div style="font-size:0.72rem;color:var(--text2)"># ${u.armyNo || '—'}</div>
+        </div>
+        <span style="font-family:'Rajdhani',sans-serif;font-size:0.65rem;font-weight:700;
+          color:${rColor};border:1px solid ${rColor}40;border-radius:10px;padding:2px 8px">${rLabel}</span>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    resBox.innerHTML = `<div style="color:var(--danger);font-size:0.8rem">সার্চ ব্যর্থ: ${e.message}</div>`;
+  }
+}
+
+async function selectPromoteUser(uid) {
+  document.getElementById('promoteSearchResults').innerHTML = '';
+  showLoading('তথ্য লোড হচ্ছে...');
+
+  try {
+    const userDoc = await db.collection('users').doc(uid).get();
+    if (!userDoc.exists) { hideLoading(); showToast('User পাওয়া যায়নি', 'error'); return; }
+
+    _promoteSelectedUser = { uid, ...userDoc.data() };
+    const u = _promoteSelectedUser;
+
+    // members collection থেকে বিস্তারিত তথ্য আনো
+    let memberInfo = '';
+    try {
+      const armyNoClean = String(u.armyNo || '').replace(/[^A-Z0-9]/gi, '');
+      const mDoc = await db.collection('members').doc(armyNoClean).get();
+      if (mDoc.exists) {
+        const m = mDoc.data();
+        memberInfo = `<div style="font-size:0.75rem;color:var(--text2);margin-top:4px">${m.r_bn||''} · ${m.co_bn||''} · ${m.tr_bn||''}</div>`;
+        // কোম্পানী auto-set করো
+        _setSelectField('promoteCompanySelect', m.co_bn || '');
+      }
+    } catch(_) {}
+
+    const roleColors = { member: 'var(--text2)', admin: 'var(--info)', superadmin: 'var(--danger)' };
+    const roleLabels = { member: 'সদস্য', admin: 'Admin ✓', superadmin: 'Super Admin ✓' };
+    const rColor = roleColors[u.role] || 'var(--text2)';
+    const rLabel = roleLabels[u.role] || u.role;
+    const ini = (u.name || u.armyNo || '?')[0].toUpperCase();
+
+    document.getElementById('promoteSelectedInfo').innerHTML = `
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--gold),#7a5a10);
+          display:flex;align-items:center;justify-content:center;font-weight:700;color:#0a0c10;font-size:16px;flex-shrink:0">${ini}</div>
+        <div style="flex:1">
+          <div style="font-weight:700;font-size:0.95rem">${u.name || '—'}</div>
+          <div style="font-size:0.75rem;color:var(--text2)"># ${u.armyNo || '—'}</div>
+          ${memberInfo}
+        </div>
+        <span style="font-family:'Rajdhani',sans-serif;font-size:0.68rem;font-weight:700;
+          color:${rColor};border:1px solid ${rColor}40;border-radius:10px;padding:3px 10px">${rLabel}</span>
+        <button onclick="clearPromoteSelection()"
+          style="background:transparent;border:none;color:var(--text2);cursor:pointer;font-size:16px;padding:4px">✕</button>
+      </div>`;
+
+    document.getElementById('promoteSelectedSection').style.display = 'block';
+    document.getElementById('promoteSearchInput').value = u.name || u.armyNo || '';
+    hideLoading();
+  } catch(e) {
+    hideLoading();
+    showToast('লোড ব্যর্থ: ' + e.message, 'error');
+  }
+}
+
+function clearPromoteSelection() {
+  _promoteSelectedUser = null;
+  document.getElementById('promoteSelectedSection').style.display = 'none';
+  document.getElementById('promoteSearchInput').value = '';
+  document.getElementById('promoteSearchResults').innerHTML = '';
+  document.getElementById('promoteResult').style.display = 'none';
+}
+
+async function promoteExistingToAdmin() {
+  const u = _promoteSelectedUser;
+  const res = document.getElementById('promoteResult');
+
+  const showRes = (msg, ok) => {
+    res.style.cssText = `display:block;background:rgba(${ok?'63,185,80':'224,85,85'},0.1);border:1px solid rgba(${ok?'63,185,80':'224,85,85'},0.3);color:${ok?'var(--success)':'var(--danger)'};border-radius:8px;padding:12px 14px;font-size:0.82rem;white-space:pre-line;line-height:1.6`;
+    res.textContent = msg;
+  };
+
+  if (!u) { showRes('❌ কোনো user নির্বাচন করা হয়নি।', false); return; }
+
+  const newRole    = document.getElementById('promoteRoleSelect').value;
+  const newCompany = document.getElementById('promoteCompanySelect').value;
+  const roleLabel  = newRole === 'superadmin' ? 'Super Admin' : 'Admin';
+
+  if (!confirm(`"${u.name||u.armyNo}" কে ${roleLabel} হিসেবে নিয়োগ করবেন?`)) return;
+
+  const btn = document.getElementById('btnPromoteExisting');
+  btn.disabled = true;
+  showRes('আপডেট হচ্ছে...', true);
+
+  try {
+    // ১. users collection এ role update করো
+    await db.collection('users').doc(u.uid).update({
+      role: newRole,
+      updatedBy: currentUser.uid,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+
+    // ২. adminProfiles তৈরি বা update করো
+    const profileData = {
+      armyNo:  u.armyNo || '',
+      no:      u.armyNo || '',
+      bn:      u.name   || u.armyNo || '',
+      en:      u.name   || u.armyNo || '',
+      co_bn:   newCompany,
+      co_en:   newCompany,
+      role:    newRole,
+      updatedBy: currentUser.uid,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    };
+
+    // members collection থেকে বাকি তথ্য merge করো
+    try {
+      const armyNoClean = String(u.armyNo || '').replace(/[^A-Z0-9]/gi, '');
+      const mDoc = await db.collection('members').doc(armyNoClean).get();
+      if (mDoc.exists) {
+        const m = mDoc.data();
+        Object.assign(profileData, {
+          bn: m.bn || profileData.bn,
+          en: m.en || profileData.en,
+          r_bn: m.r_bn || '', r_en: m.r_en || '',
+          mb: m.mb || '', wa: m.wa || '',
+          niyog: m.niyog || '',
+          co_bn: newCompany || m.co_bn || '',
+          co_en: newCompany || m.co_en || '',
+        });
+      }
+    } catch(_) {}
+
+    await db.collection('adminProfiles').doc(u.uid).set(profileData, { merge: true });
+
+    showRes(
+      `✅ সফলভাবে নিয়োগ সম্পন্ন!\n\nনাম: ${u.name || u.armyNo}\nসেনা নম্বর: ${u.armyNo || '—'}\nনতুন ভূমিকা: ${roleLabel}\nকোম্পানী: ${newCompany || 'সব'}`,
+      true
+    );
+
+    // cache invalidate
+    _adminMemberCache = null;
+    clearPromoteSelection();
+
+  } catch(e) {
+    showRes('❌ ব্যর্থ: ' + (e.code || e.message), false);
+  }
+  btn.disabled = false;
+}
+
 async function createNewAdmin() {
   const armyNo = document.getElementById('newAdminArmyNo').value.trim();
   const name = document.getElementById('newAdminName').value.trim();
@@ -3381,7 +3670,20 @@ async function createNewAdmin() {
 
   } catch(e) {
     let msg = 'তৈরি ব্যর্থ: ' + (e.code || e.message);
-    if (e.code === 'auth/email-already-in-use') msg = '⚠️ এই সেনা নম্বরে ইতিমধ্যে অ্যাকাউন্ট আছে।';
+    if (e.code === 'auth/email-already-in-use') {
+      msg = '⚠️ এই সেনা নম্বরে ইতিমধ্যে অ্যাকাউন্ট আছে।\n\n👆 "বিদ্যমান User → Admin" ট্যাবে গিয়ে তাঁকে সার্চ করে Admin করুন।';
+      // auto-switch to promote mode
+      setTimeout(() => {
+        switchCreateMode('promote');
+        const armyNo = document.getElementById('newAdminArmyNo')?.value || '';
+        const nameVal = document.getElementById('newAdminName')?.value || '';
+        const inp = document.getElementById('promoteSearchInput');
+        if (inp) {
+          inp.value = armyNo || nameVal;
+          searchPromoteCandidate(inp.value);
+        }
+      }, 800);
+    }
     if (e.code === 'auth/weak-password') msg = 'পাসওয়ার্ড আরও শক্তিশালী করুন।';
     showRes(msg, false);
   }
