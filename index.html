@@ -2181,6 +2181,7 @@ function renderProfile() {
     { key: 'pu',         label: 'পূর্বের ইউনিট',          editable: false },
     { key: 'li',         label: 'লাইসেন্স',               editable: true, type: 'select', opts: VEHICLES },
     { key: 'pn',         label: 'সাজা',                   editable: false },
+    { key: 'pd',         label: 'পেনশন তারিখ',            editable: false },
   ];
   renderFields('militaryFields', militaryDef);
   _lastMilitaryDef = militaryDef;
@@ -2230,7 +2231,7 @@ function renderProfile() {
 }
 
 // তারিখ field keys — এগুলোর পাশে বছর/মাস/দিন দেখাবে
-const DATE_FIELDS      = new Set(['dob','jd','od','promo_date','sd','wd','c1d','c2d','c3d','c4d','c5d','c6d','c7d','c8d','c9d']);
+const DATE_FIELDS      = new Set(['dob','jd','od','promo_date','sd','wd','c1d','c2d','c3d','c4d','c5d','c6d','c7d','c8d','c9d','pd']);
 const DATE_PAST_FIELDS = new Set(['dob','jd','od','promo_date','sd','wd','c1d','c2d','c3d','c4d','c5d']); // "আগে" suffix
 
 function renderFields(containerId, fields) {
@@ -2264,7 +2265,7 @@ function renderFields(containerId, fields) {
         // পেনশন — countdown
         sub = _pensionCountdown(raw);
       } else if (DATE_FIELDS.has(f.key)) {
-        sub = _dateAgeStr(raw, 'পরে');
+        sub = _dateAgeStr(raw, DATE_PAST_FIELDS.has(f.key) ? 'আগে' : 'পরে');
       }
     }
 
