@@ -635,18 +635,7 @@ function initials(m){
   if(n.length>=2)return(n[n.length-2][0]||'')+(n[n.length-1][0]||'');
   return(m.bn||'').trim()[0]||'?';
 }
-function avatarHtml(m,size='sm'){
-  const cls=size==='lg'?'modal-photo':'avatar';
-  const icls=size==='lg'?'minit':'';
-  const ini=initials(m).toUpperCase();
-  const img=m.ph?`<img src="${m.ph}" alt="" onerror="this.style.display='none'">`:'';
-  return `<div class="${cls}">${img}<span class="${icls}">${ini}</span></div>`;
-}
-function listAvatarHtml(m){
-  const ini=initials(m).toUpperCase();
-  const img=m.ph?`<img src="${m.ph}" alt="" onerror="this.style.display='none'">`:'';
-  return `<div class="list-avatar">${img}<span>${ini}</span></div>`;
-}
+// avatarHtml ও listAvatarHtml — photo-click সহ নতুন version ফাইলের শেষের দিকে আছে
 
 /* ─── Field helpers ─── */
 function R(m,k){ return lang==='bn'?m[k+'_bn']:m[k+'_en']; }
@@ -976,6 +965,7 @@ function showModal(idx){
       <button class="tab-btn" onclick="switchTab(1)">${L('সামরিক','Military')}</button>
       <button class="tab-btn" onclick="switchTab(2)">${L('কোর্স ও লাইসেন্স','Courses')}</button>
       <button class="tab-btn" onclick="switchTab(3)">${L('পরিবার','Family')}</button>
+      <button class="tab-btn" onclick="switchTab(4);loadRosterLeave('${(m._id||String(m.no||'')).replace(/[^A-Z0-9]/gi,'')}')">${L('ছুটি','Leave')}</button>
     </div>
 
     <!-- TAB 0: PERSONAL -->
@@ -1061,10 +1051,21 @@ function showModal(idx){
             <tbody>${kRowsDyn}</tbody>
           </table></div>` : '';
       })()}
+    </div>
+
+    <!-- TAB 4: LEAVE -->
+    <div class="tab-content" id="tab4">
+      <div class="sec">
+        <div class="sec-title">${L('ছুটির তথ্য','Leave Information')}</div>
+        <div id="rosterLeaveBody" style="color:var(--text2);font-size:0.85rem;padding:10px 0">${L('ছুটি ট্যাবে ক্লিক করুন...','Click Leave tab to load...')}</div>
+      </div>
     </div>`;
 
   document.getElementById('overlay').classList.add('open');
   document.body.style.overflow='hidden';
+
+  // Photo modal click handler
+  setTimeout(() => _injectModalPhotoClick(m), 50);
 
   // Admin হলে Edit বাটন যোগ করো
   if (webCurrentUser && (webUserRole === 'admin' || webUserRole === 'superadmin')) {
@@ -1081,7 +1082,7 @@ function switchTab(n){
   document.querySelectorAll('.tab-content').forEach((c,i)=>c.classList.toggle('active',i===n));
 }
 function closeModal(e){if(e.target===document.getElementById('overlay'))closeModalBtn();}
-function closeModalBtn(){document.getElementById('overlay').classList.remove('open');document.body.style.overflow='';}
+// closeModalBtn — leave reset সহ নতুন version ফাইলের শেষের দিকে আছে
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModalBtn();});
 
 /* ══════════════════════════════════════
@@ -1909,8 +1910,123 @@ async function loadMembersFromFirebase() {
   }
 }
 
-/* ─── INIT ─── */
-document.getElementById('searchInput').addEventListener('input',applyFilters);
+/* ══════════════════════════════════════════
+   (৪) LEAVE SYNC — roster.html modal এ ছুটির tab
+══════════════════════════════════════════ */
+let _rosterLeaveCache = {};
+
+async function loadRosterLeave(docId) {
+  const box = document.getElementById('rosterLeaveBody');
+  if (!box) return;
+  if (!docId) { box.innerHTML = '<span style="color:var(--text3)">সদস্য ID পাওয়া যায়নি</span>'; return; }
+
+  // Cache check
+  if (_rosterLeaveCache[docId]) {
+    box.innerHTML = _rosterLeaveCache[docId];
+    return;
+  }
+
+  box.innerHTML = '<span style="color:var(--text2)">⏳ লোড হচ্ছে...</span>';
+
+  try {
+    // orderBy index না থাকলে unsorted fallback
+    let snap;
+    try {
+      snap = await db.collection('members').doc(docId)
+        .collection('leaves').orderBy('from_date', 'desc').get();
+    } catch(idxErr) {
+      snap = await db.collection('members').doc(docId)
+        .collection('leaves').get();
+    }
+
+    if (snap.empty) {
+      const html = `<span style="color:var(--text3);font-size:0.85rem">${lang==='bn'?'কোনো ছুটির তথ্য নেই':'No leave records found'}</span>`;
+      _rosterLeaveCache[docId] = html;
+      box.innerHTML = html;
+      return;
+    }
+
+    const leaves = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    // client-side sort — index ছাড়াও কাজ করে
+    leaves.sort((a, b) => (b.from_date || '').localeCompare(a.from_date || ''));
+
+    // সারাংশ
+    const summary = {};
+    let totalDays = 0;
+    leaves.forEach(l => {
+      const t = l.leave_type || (lang==='bn'?'অন্যান্য':'Other');
+      summary[t] = (summary[t] || 0) + (parseInt(l.total_days) || 0);
+      totalDays += parseInt(l.total_days) || 0;
+    });
+
+    const LEAVE_COLOR = {
+      'বার্ষিক ছুটি': 'var(--accent3)',
+      'অসুস্থতা ছুটি': 'var(--danger)',
+      'নৈমিত্তিক ছুটি': 'var(--accent2)',
+      'মাতৃত্বকালীন ছুটি': 'var(--accent)',
+      'পিতৃত্বকালীন ছুটি': 'var(--accent)',
+    };
+
+    const summaryHtml = Object.entries(summary).map(([type, days]) =>
+      `<span style="background:rgba(0,0,0,0.06);border:1px solid var(--border);border-radius:20px;padding:3px 10px;font-family:'Rajdhani',sans-serif;font-size:0.68rem;font-weight:700;color:${LEAVE_COLOR[type]||'var(--accent)'}">
+        ${type}: ${days} ${lang==='bn'?'দিন':'days'}
+      </span>`
+    ).join('');
+
+    const rowsHtml = leaves.map(l =>
+      `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border2)">
+        <span style="font-family:'Rajdhani',sans-serif;font-size:0.65rem;font-weight:700;color:${LEAVE_COLOR[l.leave_type]||'var(--accent)'};min-width:90px;flex-shrink:0">${l.leave_type||'—'}</span>
+        <span style="font-size:0.8rem;color:var(--text2);flex:1">${l.from_date||'—'} → ${l.to_date||'—'}</span>
+        <span style="font-family:'Rajdhani',sans-serif;font-size:0.78rem;font-weight:700;color:var(--text);flex-shrink:0">${l.total_days||0} ${lang==='bn'?'দিন':'d'}</span>
+      </div>`
+    ).join('');
+
+    const html = `
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">${summaryHtml}</div>
+      <div style="font-family:'Rajdhani',sans-serif;font-size:0.72rem;color:var(--text2);margin-bottom:10px;letter-spacing:1px">
+        ${lang==='bn'?'মোট':'Total'}: <strong style="color:var(--text)">${totalDays} ${lang==='bn'?'দিন':'days'}</strong> &nbsp;·&nbsp; ${leaves.length} ${lang==='bn'?'এন্ট্রি':'entries'}
+      </div>
+      <div style="max-height:220px;overflow-y:auto">${rowsHtml}</div>`;
+
+    _rosterLeaveCache[docId] = html;
+    box.innerHTML = html;
+  } catch(e) {
+    box.innerHTML = `<span style="color:var(--danger);font-size:0.82rem">❌ ${e.message}</span>`;
+  }
+}
+
+// Modal বন্ধ হলে rosterLeaveBody reset করো পরের member এর জন্য
+function closeModalBtn() {
+  document.getElementById('overlay').classList.remove('open');
+  document.body.style.overflow = '';
+  const box = document.getElementById('rosterLeaveBody');
+  if (box) box.innerHTML = lang==='bn'?'ছুটি ট্যাবে ক্লিক করুন...':'Click Leave tab to load...';
+}
+
+/* ══════════════════════════════════════════
+   (৫) PHOTO BASE64 — সব member এর ph field
+   roster.html এ avatarHtml already handles ph.
+   নিচে photo preload করার optimization যোগ করা হলো।
+══════════════════════════════════════════ */
+// loadMembersFromFirebase এর পরে photo preload করো (lazy — on demand)
+// avatarHtml ইতিমধ্যে m.ph থেকে img দেখায়।
+// নতুন: modal photo click করলে বড় দেখাবে (ইতিমধ্যে showImageModal আছে)
+// Extra: modal header photo তে click handler যোগ করি
+function _injectModalPhotoClick(m) {
+  if (!m || !m.ph) return;
+  const photoEl = document.querySelector('.modal-photo');
+  if (photoEl && !photoEl.dataset.clickBound) {
+    photoEl.style.cursor = 'pointer';
+    photoEl.title = lang==='bn'?'ছবি বড় করুন':'Click to enlarge';
+    photoEl.addEventListener('click', (e) => {
+      e.stopPropagation();
+      showImageModal(m.ph);
+    });
+    photoEl.dataset.clickBound = '1';
+  }
+}
+
+
 document.getElementById('companyFilter').addEventListener('change',applyFilters);
 document.getElementById('rankFilter').addEventListener('change',applyFilters);
 document.getElementById('bloodFilter').addEventListener('change',applyFilters);

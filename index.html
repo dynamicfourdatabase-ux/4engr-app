@@ -777,6 +777,15 @@ body {
         </div>
         <div class="card-body" id="familyFields"></div>
       </div>
+
+      <!-- Promotion History -->
+      <div class="card" id="promotionHistoryCard" style="display:none">
+        <div class="card-header">
+          <span class="card-header-icon">⭐</span>
+          <span class="card-header-title">পদোন্নতির ইতিহাস</span>
+        </div>
+        <div class="card-body" id="promotionHistoryBody"></div>
+      </div>
     </div>
 
     <!-- ── PAGE: Courses ── -->
@@ -1143,10 +1152,18 @@ body {
 
             <!-- Create New Admin Tab -->
             <div id="superTabCreate" style="display:none">
+              <!-- Auto-fill status bar -->
+              <div id="adminAutoFillStatus" style="display:none;border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:0.8rem;font-family:'Rajdhani',sans-serif;letter-spacing:1px;transition:all 0.2s"></div>
+
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
                 <div class="form-group">
-                  <label class="form-label">সেনা নম্বর *</label>
-                  <input type="text" class="form-input" id="newAdminArmyNo" placeholder="যেমন: 32273">
+                  <label class="form-label">সেনা নম্বর *
+                    <span id="adminAutoFillSpinner" style="display:none;margin-left:6px;font-size:10px;color:var(--gold)">⏳</span>
+                  </label>
+                  <input type="text" class="form-input" id="newAdminArmyNo"
+                    placeholder="যেমন: 32273"
+                    oninput="scheduleAdminAutoFill(this.value)"
+                    autocomplete="off">
                 </div>
                 <div class="form-group">
                   <label class="form-label">পদবী *</label>
@@ -1350,6 +1367,7 @@ let currentUser = null;
 let currentMemberData = null;
 let currentEditField = null;
 let userRole = 'member'; // 'member' | 'admin' | 'superadmin'
+let _lastPersonalDef = [];
 
 function getStoredConfig() {
   try { return JSON.parse(localStorage.getItem('4engr_fb_config') || 'null'); }
@@ -1626,84 +1644,6 @@ function doLogout() {
 }
 
 /* ══════════════════════════════════════════
-   USER MANAGEMENT — Promote / Demote / Delete / Password Reset
-══════════════════════════════════════════ */
-async function promoteUser(uid, newRole, name, armyNo) {
-  const roleLabel = newRole === 'admin' ? 'Admin' : 'সাধারণ সদস্য';
-  const dirLabel = newRole === 'admin' ? 'প্রমোট' : 'ডিমোট';
-  if (!confirm(`${name} (${armyNo}) কে ${roleLabel} হিসেবে ${dirLabel} করবেন?`)) return;
-  showLoading('আপডেট হচ্ছে...');
-  try {
-    await db.collection('users').doc(uid).update({
-      role: newRole,
-      updatedBy: currentUser.uid,
-      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
-    showToast(`✅ ${name} কে ${roleLabel} করা হয়েছে`, 'success');
-    hideLoading();
-    showStatDetail('admins'); // রিফ্রেশ
-  } catch(e) {
-    hideLoading();
-    showToast('ব্যর্থ: ' + e.message, 'error');
-  }
-}
-
-async function adminResetPassword(uid, armyNo) {
-  const newPass = prompt(`${armyNo} এর নতুন পাসওয়ার্ড দিন (কমপক্ষে ৬ অক্ষর):`);
-  if (!newPass || newPass.length < 6) {
-    if (newPass !== null) showToast('পাসওয়ার্ড কমপক্ষে ৬ অক্ষর হতে হবে', 'error');
-    return;
-  }
-  showLoading('পাসওয়ার্ড রিসেট হচ্ছে...');
-  try {
-    const docId = armyNo.replace(/[^A-Z0-9]/gi, '');
-    await db.collection('passwordResets').doc(docId).set({
-      newPassword: newPass,
-      used: false,
-      resetBy: currentUser.uid,
-      resetAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
-    hideLoading();
-    showToast(`✅ ${armyNo} এর পাসওয়ার্ড রিসেট করা হয়েছে। পরের লগইনে কার্যকর হবে।`, 'success');
-  } catch(e) {
-    hideLoading();
-    showToast('ব্যর্থ: ' + e.message, 'error');
-  }
-}
-
-async function deleteUser(uid, name) {
-  if (uid === currentUser.uid) {
-    showToast('নিজের অ্যাকাউন্ট ডিলিট করা যাবে না', 'error');
-    return;
-  }
-  if (!confirm(`⚠️ সতর্কতা!\n\n"${name}" এর অ্যাকাউন্ট স্থায়ীভাবে ডিলিট করবেন?\n\nএই কাজ পূর্বাবস্থায় ফেরানো যাবে না।`)) return;
-  if (!confirm(`দ্বিতীয়বার নিশ্চিত করুন — "${name}" ডিলিট করবেন?`)) return;
-
-  showLoading('ডিলিট হচ্ছে...');
-  try {
-    // Firestore থেকে user document ডিলিট
-    await db.collection('users').doc(uid).delete();
-    // adminProfiles থেকেও ডিলিট করো যদি থাকে
-    try { await db.collection('adminProfiles').doc(uid).delete(); } catch(e) {}
-    // deletedUsers এ রেকর্ড রাখো — members collection অক্ষত থাকবে
-    // ফলে ইউজার পুনরায় নিবন্ধন করলে সব তথ্য ফিরে আসবে
-    try {
-      await db.collection('deletedUsers').doc(uid).set({
-        name:      name,
-        deletedBy: currentUser.uid,
-        deletedAt: firebase.firestore.FieldValue.serverTimestamp(),
-      });
-    } catch(e) {}
-    hideLoading();
-    showToast(`✅ "${name}" এর অ্যাকাউন্ট ডিলিট হয়েছে`, 'success');
-    showStatDetail('admins'); // রিফ্রেশ
-  } catch(e) {
-    hideLoading();
-    showToast('ডিলিট ব্যর্থ: ' + e.message, 'error');
-  }
-}
-
-/* ══════════════════════════════════════════
    LOAD MEMBER DATA
 ══════════════════════════════════════════ */
 async function loadMemberData(uid) {
@@ -1891,6 +1831,7 @@ function renderProfile() {
     { key: 'ed_bn', label: 'শিক্ষাগত যোগ্যতা',  editable: true },
   ];
   renderFields('personalFields', personalDef);
+  _lastPersonalDef = personalDef;
 
   // Military fields — keys match roster.html
   const militaryDef = isAdminUser ? [
@@ -1948,6 +1889,7 @@ function renderProfile() {
   // Check pending edits
   checkPendingStatus();
   renderCourses();
+  renderPromotionHistory();
   // ভাষা প্রয়োগ করো
   setTimeout(() => {
     const btn = document.getElementById('langToggleBtn');
@@ -1960,9 +1902,15 @@ function renderFields(containerId, fields) {
   const m = currentMemberData;
   const html = fields.map(f => {
     const val = m[f.key] || '—';
-    const editBtn = f.editable
-      ? `<button class="field-edit-btn" onclick="openEdit('${f.key}','${f.label}','${f.type||'text'}','${(f.opts||[]).join(',')}')">✏️</button>`
-      : '';
+    const locked = isFieldLocked(f.key);
+    let editBtn = '';
+    if (f.editable) {
+      if (locked) {
+        editBtn = `<span title="এই তথ্য একবার পরিবর্তন করা হয়েছে। Admin এর সাথে যোগাযোগ করুন।" style="font-size:13px;color:var(--text3);cursor:help">🔒</span>`;
+      } else {
+        editBtn = `<button class="field-edit-btn" onclick="openEdit('${f.key}','${f.label}','${f.type||'text'}','${(f.opts||[]).join(',')}')">✏️</button>`;
+      }
+    }
     return `<div class="field-row">
       <span class="field-label">${f.label}</span>
       <span class="field-value" id="fv-${f.key}">${val}</span>
@@ -1975,34 +1923,6 @@ function renderFields(containerId, fields) {
 /* ══════════════════════════════════════════
    EDIT MODAL
 ══════════════════════════════════════════ */
-function openEdit(key, label, type='text', optsStr='') {
-  currentEditField = { key, label, type, opts: optsStr ? optsStr.split(',') : [] };
-  document.getElementById('modalTitle').textContent = label + ' সম্পাদনা';
-  const val = currentMemberData[key] || '';
-  let input = '';
-
-  if (type === 'select') {
-    input = `<select class="form-input" id="editInput" style="background:var(--dark3)">
-      ${currentEditField.opts.map(o => `<option value="${o}" ${val===o?'selected':''}>${o}</option>`).join('')}
-    </select>`;
-  } else if (type === 'textarea') {
-    input = `<textarea class="form-input" id="editInput" rows="4" style="resize:vertical">${val}</textarea>`;
-  } else {
-    input = `<input type="text" class="form-input" id="editInput" value="${val}" placeholder="${label} লিখুন">`;
-  }
-
-  document.getElementById('modalBody').innerHTML = `
-    <div class="form-group">
-      <label class="form-label">${label}</label>
-      ${input}
-    </div>
-    <div style="font-size:0.78rem;color:var(--text2);margin-top:8px;">
-      ℹ️ এই পরিবর্তন Admin এর অনুমোদনের পরে কার্যকর হবে।
-    </div>
-  `;
-  document.getElementById('editModal').classList.add('open');
-}
-
 async function saveModal() {
   if (!currentEditField) return;
   const input = document.getElementById('editInput');
@@ -2232,9 +2152,11 @@ async function saveModal() {
       status: 'pending',
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
     });
+    _markFieldSelfEdited(currentEditField.key);
     closeModal();
     showToast('✅ অনুমোদনের জন্য জমা দেওয়া হয়েছে', 'success');
     checkPendingStatus();
+    renderFields('personalFields', _lastPersonalDef || []);
   } catch(e) {
     console.error(e);
     showToast('সংরক্ষণ ব্যর্থ: ' + e.message, 'error');
@@ -2948,13 +2870,28 @@ async function selectAdminMember(docId) {
 
     const m = adminSelectedMember;
     const ini = (m.bn || m.en || '?')[0];
-    document.getElementById('adminEditAvatar').textContent = ini;
+    // পুরানো leave tab মুছে দাও (নতুন member এর জন্য fresh)
+    const oldLeaveTab = document.getElementById('adminTabLeave');
+    if (oldLeaveTab) oldLeaveTab.remove();
+
+    // Photo দেখাও
+    const avatarEl = document.getElementById('adminEditAvatar');
+    if (avatarEl) {
+      if (m.ph) {
+        avatarEl.innerHTML = `<img src="${m.ph}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
+      } else {
+        avatarEl.innerHTML = '';
+        avatarEl.textContent = ini;
+      }
+    }
+
     document.getElementById('adminEditName').textContent = m.bn || m.en || '—';
     document.getElementById('adminEditMeta').textContent = `# ${m.no||'—'} · ${m.r_bn||'—'} · ${m.co_bn||'—'}`;
     document.getElementById('adminEditSection').style.display = 'block';
 
     renderAdminFields();
     hideLoading();
+    setTimeout(() => addLeaveTabToAdminEdit(), 120);
     document.getElementById('adminEditSection').scrollIntoView({ behavior: 'smooth' });
   } catch(e) {
     hideLoading();
@@ -3240,6 +3177,126 @@ async function doMemberPasswordReset() {
   }
 }
 
+/* ══════════════════════════════════════════
+   CREATE ADMIN — AUTO-FILL FROM FIREBASE
+══════════════════════════════════════════ */
+let _adminAutoFillTimer = null;
+
+function scheduleAdminAutoFill(val) {
+  clearTimeout(_adminAutoFillTimer);
+  const trimmed = val.trim();
+  if (trimmed.length < 4) {
+    // ৪ অক্ষরের কম হলে status লুকিয়ে রাখো
+    _setAdminAutoFillStatus('', '');
+    return;
+  }
+  // Spinner দেখাও
+  const spinner = document.getElementById('adminAutoFillSpinner');
+  if (spinner) spinner.style.display = 'inline';
+  // ৭০০ms debounce — টাইপ থামলে তারপর fetch
+  _adminAutoFillTimer = setTimeout(() => autoFillAdminFromFirebase(trimmed), 700);
+}
+
+async function autoFillAdminFromFirebase(armyNo) {
+  const spinner = document.getElementById('adminAutoFillSpinner');
+  try {
+    const docId = armyNo.replace(/[^A-Z0-9]/gi, '').toUpperCase();
+    if (!docId) return;
+
+    // ১. সরাসরি doc ID দিয়ে খোঁজো
+    let memberData = null;
+    const directSnap = await db.collection('members').doc(docId).get();
+    if (directSnap.exists) {
+      memberData = directSnap.data();
+    } else {
+      // ২. 'no' field দিয়ে query
+      const q = await db.collection('members')
+        .where('no', '==', armyNo.toUpperCase())
+        .limit(1).get();
+      if (!q.empty) memberData = q.docs[0].data();
+    }
+
+    if (!memberData) {
+      _setAdminAutoFillStatus('⚠️ এই সেনা নম্বরে কোনো সদস্য পাওয়া যায়নি — তথ্য ম্যানুয়ালি পূরণ করুন', 'warn');
+      if (spinner) spinner.style.display = 'none';
+      return;
+    }
+
+    // ৩. Fields auto-fill করো
+    _setField('newAdminName',    memberData.bn || '');
+    _setField('newAdminNameEn',  memberData.en || '');
+    _setField('newAdminMobile',  memberData.mb || '');
+    _setField('newAdminWA',      memberData.wa || memberData.mb || '');
+    _setField('newAdminNiyog',   memberData.niyog || '');
+
+    // Rank select
+    _setSelectField('newAdminRank', memberData.r_bn || '');
+
+    // Company select
+    _setSelectField('newAdminCompany', memberData.co_bn || '');
+
+    // Auto password — default rule: সেনা নম্বর padded
+    const passEl = document.getElementById('newAdminPass');
+    if (passEl && !passEl.value) {
+      passEl.value = makeDefaultPassword(armyNo);
+    }
+
+    const displayName = memberData.bn || memberData.en || armyNo;
+    _setAdminAutoFillStatus(
+      `✅ "${displayName}" — ${memberData.r_bn||''} | ${memberData.co_bn||''} — তথ্য auto-fill হয়েছে`,
+      'success'
+    );
+
+  } catch(e) {
+    _setAdminAutoFillStatus('❌ Firebase error: ' + (e.message || e.code), 'error');
+  }
+  if (spinner) spinner.style.display = 'none';
+}
+
+function _setField(id, value) {
+  const el = document.getElementById(id);
+  if (el && !el.value) el.value = value; // খালি থাকলে fill করো, আগে কিছু লেখা থাকলে override করো না
+}
+
+function _setFieldForce(id, value) {
+  const el = document.getElementById(id);
+  if (el) el.value = value;
+}
+
+function _setSelectField(id, value) {
+  const el = document.getElementById(id);
+  if (!el || !value) return;
+  // exact match খোঁজো
+  for (let i = 0; i < el.options.length; i++) {
+    if (el.options[i].value === value || el.options[i].text === value) {
+      el.selectedIndex = i;
+      return;
+    }
+  }
+  // partial match
+  const lower = value.toLowerCase();
+  for (let i = 0; i < el.options.length; i++) {
+    if ((el.options[i].value || '').toLowerCase().includes(lower) ||
+        (el.options[i].text || '').toLowerCase().includes(lower)) {
+      el.selectedIndex = i;
+      return;
+    }
+  }
+}
+
+function _setAdminAutoFillStatus(msg, type) {
+  const el = document.getElementById('adminAutoFillStatus');
+  if (!el) return;
+  if (!msg) { el.style.display = 'none'; return; }
+  const styles = {
+    success: 'background:rgba(63,185,80,0.1);border:1px solid rgba(63,185,80,0.3);color:var(--success)',
+    warn:    'background:rgba(210,153,34,0.1);border:1px solid rgba(210,153,34,0.3);color:var(--warn)',
+    error:   'background:rgba(224,85,85,0.1);border:1px solid rgba(224,85,85,0.3);color:var(--danger)',
+  };
+  el.style.cssText = (styles[type] || styles.warn) + ';display:block;border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:0.8rem;font-family:"Rajdhani",sans-serif;letter-spacing:0.5px;line-height:1.5';
+  el.textContent = msg;
+}
+
 async function createNewAdmin() {
   const armyNo = document.getElementById('newAdminArmyNo').value.trim();
   const name = document.getElementById('newAdminName').value.trim();
@@ -3336,6 +3393,9 @@ function closeAdminEdit() {
   document.getElementById('adminEditSection').style.display = 'none';
   document.getElementById('adminSearchInput').value = '';
   document.getElementById('adminSearchResults').innerHTML = '';
+  // Leave tab মুছে দাও পরের member এর জন্য
+  const oldLeaveTab = document.getElementById('adminTabLeave');
+  if (oldLeaveTab) oldLeaveTab.remove();
 }
 
 function renderAdminFields() {
@@ -4118,6 +4178,298 @@ async function adminResetPassword(uid, armyNo) {
     showToast('রিসেট ব্যর্থ: ' + (e.code || e.message), 'error');
   }
   hideLoading();
+}
+
+/* ══════════════════════════════════════════
+   (১) PROMOTION HISTORY — renderPromotionHistory
+══════════════════════════════════════════ */
+const PROMO_LABELS_BN = [
+  'সৈনিক → ল্যান্স কর্পোরাল',
+  'ল্যান্স কর্পোরাল → কর্পোরাল',
+  'কর্পোরাল → সার্জেন্ট',
+  'সার্জেন্ট → ওয়ারেন্ট অফিসার',
+  'ওয়াঃ অফিঃ → সিনিঃ ওয়াঃ অফিঃ',
+];
+
+function renderPromotionHistory() {
+  const m = currentMemberData;
+  if (!m) return;
+
+  const pKeys = ['p1', 'p2', 'p3', 'p4', 'p5'];
+  const entries = pKeys
+    .map((k, i) => ({ date: m[k], label: PROMO_LABELS_BN[i], idx: i }))
+    .filter(e => e.date && e.date.trim());
+
+  const card = document.getElementById('promotionHistoryCard');
+  const body = document.getElementById('promotionHistoryBody');
+  if (!card || !body) return;
+
+  if (!entries.length) {
+    card.style.display = 'none';
+    return;
+  }
+
+  card.style.display = 'block';
+
+  const isAdmin = userRole === 'admin' || userRole === 'superadmin';
+
+  body.innerHTML = entries.map(e => {
+    const d = _parsePromoDate(e.date);
+    const yrsStr = d ? _yearsSince(d) + ' বছর আগে' : '';
+    const editBtn = isAdmin
+      ? `<button class="field-edit-btn" onclick="openPromoEdit('p${e.idx + 1}','${e.label}')">✏️</button>`
+      : '';
+    return `<div class="field-row">
+      <span style="font-size:16px">⭐</span>
+      <span class="field-label" style="min-width:unset;flex:1;color:var(--text)">${e.label}</span>
+      <span class="field-value" style="text-align:right">
+        <span style="color:var(--gold);font-weight:600">${e.date}</span>
+        ${yrsStr ? `<br><span style="font-size:0.7rem;color:var(--text2)">${yrsStr}</span>` : ''}
+      </span>
+      ${editBtn}
+    </div>`;
+  }).join('');
+
+  // Admin এর জন্য নতুন entry যোগ করার বাটন
+  if (isAdmin) {
+    const nextIdx = entries.length;
+    if (nextIdx < 5) {
+      body.innerHTML += `<div style="margin-top:10px">
+        <button onclick="openPromoEdit('p${nextIdx + 1}','${PROMO_LABELS_BN[nextIdx] || 'পদোন্নতি'}')"
+          style="background:rgba(200,169,74,0.1);border:1px dashed rgba(200,169,74,0.4);border-radius:8px;padding:8px 14px;color:var(--gold);font-family:'Rajdhani',sans-serif;font-size:0.75rem;font-weight:700;letter-spacing:1px;cursor:pointer;width:100%">
+          ⭐ পরবর্তী পদোন্নতি যোগ করুন
+        </button>
+      </div>`;
+    }
+  }
+}
+
+function openPromoEdit(key, label) {
+  const val = currentMemberData[key] || '';
+  currentEditField = { key, label };
+  document.getElementById('modalTitle').textContent = label + ' তারিখ';
+  document.getElementById('modalBody').innerHTML = `
+    <div class="form-group">
+      <label class="form-label">পদোন্নতির তারিখ (DD/MM/YYYY)</label>
+      <input type="text" class="form-input" id="editInput" value="${val}" placeholder="যেমন: 15/03/2022">
+    </div>
+    <div style="font-size:0.78rem;color:var(--text2);margin-top:8px">ℹ️ Admin সরাসরি সংরক্ষণ করতে পারবেন।</div>
+  `;
+  document.getElementById('editModal').classList.add('open');
+}
+
+function _parsePromoDate(str) {
+  if (!str) return null;
+  const parts = str.split('/');
+  if (parts.length === 3) {
+    const [d, mo, y] = parts.map(Number);
+    if (y > 1900 && mo >= 1 && mo <= 12 && d >= 1 && d <= 31) {
+      return new Date(y, mo - 1, d);
+    }
+  }
+  const dt = new Date(str);
+  return isNaN(dt) ? null : dt;
+}
+
+function _yearsSince(date) {
+  if (!date) return null;
+  const now = new Date();
+  return now.getFullYear() - date.getFullYear() -
+    (now < new Date(now.getFullYear(), date.getMonth(), date.getDate()) ? 1 : 0);
+}
+
+/* ══════════════════════════════════════════
+   (২) ONE-TIME FIELD EDIT LOCK
+   কিছু field সদস্য একবারই নিজে edit করতে পারবে।
+   Admin সবসময় edit করতে পারবে।
+══════════════════════════════════════════ */
+// এই field গুলো member নিজে একবার set করলে lock হয়ে যাবে
+const ONE_TIME_LOCK_FIELDS = ['dob', 'nid', 'bl', 'gn_bn'];
+
+function isFieldLocked(key) {
+  if (userRole === 'admin' || userRole === 'superadmin') return false;
+  if (!ONE_TIME_LOCK_FIELDS.includes(key)) return false;
+  const val = currentMemberData[key];
+  // Firebase থেকে আসা ডেটায় 'selfEdited_<key>' flag থাকলে locked
+  return !!currentMemberData['_selfEdited_' + key];
+}
+
+// openEdit — lock check সহ
+function openEdit(key, label, type = 'text', optsStr = '') {
+  if (isFieldLocked(key)) {
+    showToast('⛔ এই তথ্য আপনি একবারই পরিবর্তন করতে পেরেছিলেন। Admin এর সাথে যোগাযোগ করুন।', 'error');
+    return;
+  }
+  currentEditField = { key, label, type, opts: optsStr ? optsStr.split(',') : [] };
+  document.getElementById('modalTitle').textContent = label + ' সম্পাদনা';
+  const val = currentMemberData[key] || '';
+  let input = '';
+
+  if (type === 'select') {
+    input = `<select class="form-input" id="editInput" style="background:var(--dark3)">
+      ${currentEditField.opts.map(o => `<option value="${o}" ${val === o ? 'selected' : ''}>${o}</option>`).join('')}
+    </select>`;
+  } else if (type === 'textarea') {
+    input = `<textarea class="form-input" id="editInput" rows="4" style="resize:vertical">${val}</textarea>`;
+  } else {
+    input = `<input type="text" class="form-input" id="editInput" value="${val}" placeholder="${label} লিখুন">`;
+  }
+
+  const lockNote = ONE_TIME_LOCK_FIELDS.includes(key) && userRole === 'member'
+    ? `<div style="background:rgba(210,153,34,0.1);border:1px solid rgba(210,153,34,0.3);border-radius:8px;padding:8px 12px;margin-top:8px;font-size:0.78rem;color:var(--warn)">
+        ⚠️ এই তথ্য আপনি <strong>একবারই</strong> পরিবর্তন করতে পারবেন। পরবর্তীতে Admin এর সাহায্য নিতে হবে।
+       </div>`
+    : `<div style="font-size:0.78rem;color:var(--text2);margin-top:8px">ℹ️ এই পরিবর্তন Admin এর অনুমোদনের পরে কার্যকর হবে।</div>`;
+
+  document.getElementById('modalBody').innerHTML = `
+    <div class="form-group">
+      <label class="form-label">${label}</label>
+      ${input}
+    </div>
+    ${lockNote}
+  `;
+  document.getElementById('editModal').classList.add('open');
+}
+
+// saveModal এর পরে lock flag সেট করার hook — saveModal function এর ভেতরে inject করা হবে editRequests submit এর পরে
+function _markFieldSelfEdited(key) {
+  if (userRole === 'admin' || userRole === 'superadmin') return;
+  if (!ONE_TIME_LOCK_FIELDS.includes(key)) return;
+  const docId = currentMemberData.id || String(currentMemberData.no || '').replace(/[^A-Z0-9]/gi, '');
+  if (!docId) return;
+  // Firestore এ flag সেট করো
+  db.collection('members').doc(docId).set(
+    { ['_selfEdited_' + key]: true, updatedAt: firebase.firestore.FieldValue.serverTimestamp() },
+    { merge: true }
+  ).catch(e => console.warn('Lock flag set error:', e));
+  currentMemberData['_selfEdited_' + key] = true;
+}
+
+/* ══════════════════════════════════════════
+   (৩) CREATE ADMIN — AUTO-FILL: পুরানো block এ সম্পূর্ণ implementation আছে (line ~3258)
+══════════════════════════════════════════ */
+
+/* ══════════════════════════════════════════
+   (৪) LEAVE SYNC — roster.html এ ছুটির তথ্য
+   roster.html এ showModal() call এর পরে
+   ছুটি tab আলাদাভাবে লোড হবে (index4.html এর
+   জন্য admin panel এ leave export helper)
+══════════════════════════════════════════ */
+// index4.html এ admin view: selected member এর leave summary দেখাবে
+async function loadAdminMemberLeave(docId) {
+  const box = document.getElementById('adminLeaveSummary');
+  if (!box) return;
+  box.innerHTML = '<div style="color:var(--text2);font-size:0.82rem;padding:8px 0">লোড হচ্ছে...</div>';
+
+  try {
+    // orderBy index না থাকলে unsorted fallback
+    let snap;
+    try {
+      snap = await db.collection('members').doc(docId)
+        .collection('leaves').orderBy('from_date', 'desc').get();
+    } catch(idxErr) {
+      snap = await db.collection('members').doc(docId)
+        .collection('leaves').get();
+    }
+
+    if (snap.empty) {
+      box.innerHTML = '<div style="color:var(--text2);font-size:0.82rem;padding:8px 0">কোনো ছুটির তথ্য নেই</div>';
+      return;
+    }
+
+    const leaves = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    // client-side sort — index ছাড়াও কাজ করে
+    leaves.sort((a, b) => (b.from_date || '').localeCompare(a.from_date || ''));
+
+    const summary = {};
+    leaves.forEach(l => {
+      const t = l.leave_type || 'অন্যান্য';
+      summary[t] = (summary[t] || 0) + (parseInt(l.total_days) || 0);
+    });
+
+    const totalDays = Object.values(summary).reduce((a, b) => a + b, 0);
+
+    box.innerHTML = `
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+        ${Object.entries(summary).map(([type, days]) =>
+          `<span style="background:rgba(200,169,74,0.1);border:1px solid rgba(200,169,74,0.3);border-radius:20px;padding:3px 10px;font-family:'Rajdhani',sans-serif;font-size:0.7rem;color:var(--gold)">${type}: ${days} দিন</span>`
+        ).join('')}
+      </div>
+      <div style="font-family:'Rajdhani',sans-serif;font-size:0.75rem;color:var(--text2);margin-bottom:8px">
+        মোট: <strong style="color:var(--text)">${totalDays} দিন</strong> · ${leaves.length}টি এন্ট্রি
+      </div>
+      <div style="max-height:200px;overflow-y:auto">
+        ${leaves.slice(0, 15).map(l =>
+          `<div style="display:flex;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
+            <span style="font-family:'Rajdhani',sans-serif;font-size:0.65rem;color:var(--gold);flex-shrink:0;min-width:80px">${l.leave_type || '—'}</span>
+            <span style="font-size:0.78rem;color:var(--text2);flex:1">${l.from_date || '—'} → ${l.to_date || '—'}</span>
+            <span style="font-family:'Rajdhani',sans-serif;font-size:0.7rem;font-weight:700;color:var(--text)">${l.total_days || 0} দিন</span>
+          </div>`
+        ).join('')}
+      </div>
+    `;
+  } catch(e) {
+    box.innerHTML = `<div style="color:var(--danger);font-size:0.78rem">লোড ব্যর্থ: ${e.message}</div>`;
+  }
+}
+
+// renderAdminFields এর পরে leave tab যোগ করার function
+function addLeaveTabToAdminEdit() {
+  const m = adminSelectedMember;
+  if (!m) return;
+
+  // ইতিমধ্যে leave tab আছে কিনা চেক করো
+  if (document.getElementById('adminTabLeave')) return;
+
+  const tabContainer = document.querySelector('#adminEditSection .admin-tab-btn')?.parentElement;
+  if (!tabContainer) return;
+
+  // Tab button যোগ করো
+  const tabBtn = document.createElement('button');
+  tabBtn.className = 'admin-tab-btn';
+  tabBtn.textContent = '🏖️ ছুটি';
+  tabBtn.onclick = function() { switchAdminTab('leave', this); loadAdminMemberLeaveTab(); };
+  tabContainer.appendChild(tabBtn);
+
+  // Tab content যোগ করো
+  const tabContent = document.createElement('div');
+  tabContent.id = 'adminTabLeave';
+  tabContent.className = 'admin-tab-content';
+  tabContent.style.display = 'none';
+  tabContent.innerHTML = `<div id="adminLeaveSummary"><div style="color:var(--text2);font-size:0.82rem;padding:8px 0">ট্যাবে ক্লিক করুন</div></div>`;
+  tabContent.previousSibling?.after?.(tabContent);
+
+  // Courses tab এর পরে insert করো
+  const coursesTab = document.getElementById('adminTabCourses');
+  if (coursesTab) coursesTab.after(tabContent);
+  else document.getElementById('adminEditSection').appendChild(tabContent);
+}
+
+async function loadAdminMemberLeaveTab() {
+  const m = adminSelectedMember;
+  if (!m) return;
+  const docId = m.id || String(m.no || m.armyNo || '').replace(/[^A-Z0-9]/gi, '');
+  await loadAdminMemberLeave(docId);
+}
+
+/* ══════════════════════════════════════════
+   (৫) PHOTO BASE64 EMBED — সব user এর জন্য
+   photo upload হলে members collection এ ph ফিল্ডে
+   base64 save হয়। এই function টা batch করে
+   সব member এর photo ensure করে এবং
+   admin view তে photo দেখায়।
+══════════════════════════════════════════ */
+// Admin panel এ member select হলে তার ছবি দেখাবে (selectAdminMember এ integrate করা হয়েছে)
+function showAdminMemberPhoto(memberData) {
+  const avatarEl = document.getElementById('adminEditAvatar');
+  if (!avatarEl) return;
+  if (memberData && memberData.ph) {
+    avatarEl.innerHTML = `<img src="${memberData.ph}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
+  } else {
+    const name = memberData?.bn || memberData?.en || '?';
+    avatarEl.textContent = (name[0] || '?').toUpperCase();
+    avatarEl.style.removeProperty('overflow'); // reset
+  }
 }
 
 /* ══════════════════════════════════════════
