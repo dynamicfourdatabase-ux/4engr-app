@@ -1776,18 +1776,18 @@ async function doRegister() {
 
     // ── সফল বার্তা ──
     errEl.style.cssText = 'display:block;background:rgba(63,185,80,0.12);border:1px solid rgba(63,185,80,0.3);color:#3fb950;border-radius:10px;padding:16px;margin-top:14px;text-align:center;line-height:1.9';
-    errEl.innerHTML = \`
+    errEl.innerHTML = `
       <div style="font-size:2rem;margin-bottom:6px">✅</div>
       <div style="font-weight:700;font-size:1rem;margin-bottom:4px">নিবন্ধন সফল হয়েছে!</div>
       <div style="font-size:0.82rem;opacity:0.85;margin-bottom:14px">
         স্বাগতম, \${member.bn || member.en || armyNo}!<br>এখন লগইন করুন।
       </div>
-      <button onclick="showLoginAfterRegister('\${armyNo}')"
+      <button onclick="showLoginAfterRegister('${armyNo}')"
         style="background:linear-gradient(135deg,#3fb950,#2a8a40);border:none;border-radius:8px;
         padding:12px;color:#fff;font-family:'Rajdhani',sans-serif;font-weight:700;
         font-size:0.95rem;letter-spacing:2px;cursor:pointer;width:100%">
         🔐 লগইন করুন
-      </button>\`;
+      </button>`;
     if (btn) { btn.disabled = true; btn.textContent = '✅ নিবন্ধন সম্পন্ন'; }
 
   } catch(e) {
@@ -1810,10 +1810,10 @@ async function doRegister() {
     errEl.textContent = msg;
 
     if (e.code === 'auth/email-already-in-use') {
-      errEl.innerHTML += \`<br><button onclick="showLoginAfterRegister('\${armyNo}')"
+      errEl.innerHTML += `<br><button onclick="showLoginAfterRegister('${armyNo}')"
         style="background:#388bfd;border:none;border-radius:7px;padding:8px 16px;
         color:#fff;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:0.8rem;
-        cursor:pointer;margin-top:10px;letter-spacing:1px">🔐 লগইন করুন</button>\`;
+        cursor:pointer;margin-top:10px;letter-spacing:1px">🔐 লগইন করুন</button>`;
     }
   }
 }
