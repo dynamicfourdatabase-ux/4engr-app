@@ -1020,17 +1020,7 @@ body {
 
     <!-- ── PAGE: Courses ── -->
     <div class="page" id="page-courses">
-      <!-- ডিভিশন কোর্স -->
-      <div class="card" id="divisionCourseCard">
-        <div class="card-header">
-          <span class="card-header-icon">🎓</span>
-          <span class="card-header-title">ডিভিশন কোর্স</span>
-        </div>
-        <div class="card-body" id="divisionCourseBody">
-          <div style="color:var(--text2);text-align:center;padding:12px;font-size:0.85rem;">লোড হচ্ছে...</div>
-        </div>
-      </div>
-      <!-- কোর্স ও ক্যাডার -->
+      <!-- কোর্স ও ক্যাডার (dc_bn ডিভিশন কোর্স একই তালিকায়) -->
       <div class="card">
         <div class="card-header">
           <span class="card-header-icon">📚</span>
@@ -1642,7 +1632,7 @@ function navTo(page) {
   if (nav) nav.classList.add('active');
   if (page === 'admin') loadAdminData();
   if (page === 'notifications') loadNotifications();
-  if (page === 'courses') { renderCourses(); renderDivisionCourse(); }
+  if (page === 'courses') { renderCourses(); }
   if (page === 'leave') loadLeave();
 }
 
@@ -2229,7 +2219,6 @@ function renderProfile() {
   // Check pending edits
   checkPendingStatus();
   renderCourses();
-  renderDivisionCourse();
   renderPromotionHistory();
   // ভাষা প্রয়োগ করো
   setTimeout(() => {
@@ -2280,8 +2269,8 @@ function renderFields(containerId, fields) {
 
     return `<div class="field-row">
       <span class="field-label">${f.label}</span>
-      <span class="field-value" id="fv-${f.key}" style="text-align:right">
-        ${val}${sub ? `<br><span style="font-size:0.68rem;color:var(--text2);font-weight:400">${sub}</span>` : ''}
+      <span class="field-value" id="fv-${f.key}">
+        ${val}${sub ? `<br><span style="font-size:0.68rem;color:var(--text2);font-weight:400;display:block;margin-top:2px">${sub}</span>` : ''}
       </span>
       ${editBtn}
     </div>`;
@@ -2670,8 +2659,16 @@ function renderCourses() {
   const m = currentMemberData;
   if (!m) return;
 
-  const coursesRaw = m.cr_bn || m.cr_en || '';
-  const courses = coursesRaw ? coursesRaw.split(/[,،]/).map(s => s.trim()).filter(Boolean) : [];
+  const isAdmin = userRole === 'admin' || userRole === 'superadmin';
+
+  // cr_bn কোর্স + dc_bn ডিভিশন কোর্স একসাথে
+  const crRaw = m.cr_bn || m.cr_en || '';
+  const dcRaw = m.dc_bn || '';
+  const crList = crRaw ? crRaw.split(/[,،\n]/).map(s => s.trim()).filter(Boolean) : [];
+  const dcList = dcRaw ? dcRaw.split(/[,،\n]/).map(s => s.trim()).filter(Boolean) : [];
+  // dc কোর্সগুলো cr তে না থাকলে যোগ করো (duplicate এড়াতে)
+  const courses = [...crList];
+  dcList.forEach(dc => { if (!courses.includes(dc)) courses.push(dc); });
 
   const results = m.courseResults || {};
 
@@ -2693,7 +2690,6 @@ function renderCourses() {
     const isLocked = !!currentResult;
     const currentPos = results['pos_' + i] || '';
     const isPosLocked = !!currentPos;
-    const isAdmin = userRole === 'admin' || userRole === 'superadmin';
 
     const pills = grades.map(g => {
       const isActive = currentResult === g.id;
@@ -5332,7 +5328,7 @@ function renderPromotionHistory() {
       <span class="field-label" style="min-width:unset;flex:1;color:var(--text)">${e.label}</span>
       <span class="field-value" style="text-align:right">
         <span style="color:var(--gold);font-weight:600">${e.date}</span>
-        ${ageStr ? `<br><span style="font-size:0.68rem;color:var(--text2)">${ageStr}</span>` : ''}
+        ${ageStr ? `<br><span style="font-size:0.68rem;color:var(--text2);display:block;margin-top:2px">${ageStr}</span>` : ''}
       </span>
       ${editBtn}
     </div>`;
@@ -5437,34 +5433,6 @@ function _pensionCountdown(dateStr) {
     return '✅ ' + _diffStr(past, 'আগে পেনশন হয়েছে', '');
   }
   return '⏳ বাকি ' + _diffStr(diff, '', 'আরও বাকি');
-}
-
-/* ── Division Course render (courses page এ) ── */
-function renderDivisionCourse() {
-  const m    = currentMemberData;
-  const body = document.getElementById('divisionCourseBody');
-  if (!body || !m) return;
-
-  const isAdmin = userRole === 'admin' || userRole === 'superadmin';
-  const val     = m.dc_bn || '';
-
-  if (!val) {
-    body.innerHTML = `
-      <div style="color:var(--text2);text-align:center;padding:12px;font-size:0.85rem;">ডিভিশন কোর্সের তথ্য নেই</div>
-      ${isAdmin ? `<div style="margin-top:8px;text-align:center">
-        <button onclick="openEdit('dc_bn','ডিভিশন কোর্স','textarea','')"
-          style="background:rgba(200,169,74,0.1);border:1px dashed rgba(200,169,74,0.4);
-          border-radius:8px;padding:8px 18px;color:var(--gold);
-          font-family:'Rajdhani',sans-serif;font-size:0.78rem;font-weight:700;
-          letter-spacing:1px;cursor:pointer">✏️ তথ্য যোগ করুন</button></div>` : ''}`;
-    return;
-  }
-
-  body.innerHTML = `
-    <div class="field-row" style="align-items:flex-start">
-      <span class="field-value" style="white-space:pre-line;flex:1;text-align:left;line-height:1.8">${val}</span>
-      ${isAdmin ? `<button class="field-edit-btn" onclick="openEdit('dc_bn','ডিভিশন কোর্স','textarea','')">✏️</button>` : ''}
-    </div>`;
 }
 
 /* ══════════════════════════════════════════
