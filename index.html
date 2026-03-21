@@ -1131,10 +1131,10 @@ body {
               </div>
               <!-- Filter tabs -->
               <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap">
-                <button class="admin-tab-btn active" id="ufilter-all" onclick="setUserFilter('all',this)">সবাই</button>
-                <button class="admin-tab-btn" id="ufilter-superadmin" onclick="setUserFilter('superadmin',this)">🔴 সুপার অ্যাডমিন</button>
-                <button class="admin-tab-btn" id="ufilter-admin" onclick="setUserFilter('admin',this)">🔵 অ্যাডমিন</button>
-                <button class="admin-tab-btn" id="ufilter-member" onclick="setUserFilter('member',this)">⚪ সদস্য</button>
+                <button class="admin-tab-btn active" id="ufilter-all" onclick="setUserFilter('all',this)">All</button>
+                <button class="admin-tab-btn" id="ufilter-superadmin" onclick="setUserFilter('superadmin',this)">🔴 Super Admin</button>
+                <button class="admin-tab-btn" id="ufilter-admin" onclick="setUserFilter('admin',this)">🔵 Admin</button>
+                <button class="admin-tab-btn" id="ufilter-member" onclick="setUserFilter('member',this)">⚪ Member</button>
               </div>
               <div id="superAdminList">
                 <div style="color:var(--text2);text-align:center;padding:20px;font-size:0.85rem">লোড হচ্ছে...</div>
@@ -1590,24 +1590,97 @@ function doLogout() {
 /* ══════════════════════════════════════════
    USER MANAGEMENT — Promote / Demote / Delete / Password Reset
 ══════════════════════════════════════════ */
-async function promoteUser(uid, newRole, name, armyNo) {
-  const roleLabel = newRole === 'admin' ? 'অ্যাডমিন' : 'সাধারণ সদস্য';
-  const dirLabel = newRole === 'admin' ? 'প্রমোট' : 'ডিমোট';
-  if (!confirm(`${name} (${armyNo}) কে ${roleLabel} হিসেবে ${dirLabel} করবেন?`)) return;
+const ADMIN_BRANCHES = [
+  'Commanding Officer','Second-in-Command','Quarter Master','Adjutant',
+  'Company Commander','Recce Officer','Chief Clerk',
+  'A Branch Clerk','G Branch Clerk','QAIC',
+  '48 Field Company','49 Field Company','50 Field Company',
+  'Plant Company','Bridge Company','HQ Company','EME','Others'
+];
+
+function promoteUser(uid, newRole, name, armyNo) {
+  const ROLE_LABELS = { admin: 'Admin', superadmin: 'Super Admin', member: 'Member' };
+  const roleLabel = ROLE_LABELS[newRole] || newRole;
+
+  // member করলে company লাগবে না — সরাসরি confirm
+  if (newRole === 'member') {
+    if (!confirm(`"${name}" (${armyNo}) কে Member করবেন?`)) return;
+    doPromote(uid, newRole, name, armyNo, '');
+    return;
+  }
+
+  // Admin বা Super Admin করলে — branch/company modal দেখাও
+  const modal = document.createElement('div');
+  modal.id = 'promoteModal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+  modal.innerHTML = `
+    <div style="background:var(--dark2);border:1px solid var(--border);border-radius:16px;padding:24px;width:100%;max-width:400px">
+      <div style="font-family:'Rajdhani',sans-serif;font-size:0.85rem;font-weight:700;letter-spacing:2px;color:var(--gold);margin-bottom:6px;text-transform:uppercase">
+        🛡️ ${roleLabel} হিসেবে নিয়োগ
+      </div>
+      <div style="font-size:0.82rem;color:var(--text2);margin-bottom:16px">
+        <strong style="color:var(--text)">${name}</strong> (${armyNo})
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">দায়িত্বপ্রাপ্ত শাখা / কোম্পানি *</label>
+        <select class="form-input" id="promoteBranch" style="background:var(--dark3)">
+          <option value="">— নির্বাচন করুন —</option>
+          ${ADMIN_BRANCHES.map(b => `<option value="${b}">${b}</option>`).join('')}
+        </select>
+      </div>
+
+      <div style="font-size:0.75rem;color:var(--text2);background:rgba(200,169,74,0.08);border:1px solid rgba(200,169,74,0.2);border-radius:8px;padding:8px 12px;margin-bottom:16px;line-height:1.6">
+        ℹ️ এই শাখার সদস্যদের তথ্য পরিবর্তনের request এই Admin এর কাছে যাবে।
+      </div>
+
+      <div style="display:flex;gap:10px">
+        <button onclick="
+          const branch = document.getElementById('promoteBranch').value;
+          if (!branch) { showToast('শাখা নির্বাচন করুন', 'error'); return; }
+          document.getElementById('promoteModal').remove();
+          doPromote('${uid}','${newRole}','${name.replace(/'/g,"\\'")}','${armyNo}', branch);
+        " style="flex:1;padding:12px;background:linear-gradient(135deg,var(--gold),#9a7a20);border:none;border-radius:10px;color:#0a0c10;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:0.85rem;letter-spacing:1px;cursor:pointer">
+          ✅ নিশ্চিত করুন
+        </button>
+        <button onclick="document.getElementById('promoteModal').remove()"
+          style="padding:12px 18px;background:transparent;border:1px solid var(--border2);border-radius:10px;color:var(--text2);cursor:pointer;font-family:'Rajdhani',sans-serif">
+          বাতিল
+        </button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.onclick = e => { if (e.target === modal) modal.remove(); };
+}
+
+async function doPromote(uid, newRole, name, armyNo, branch) {
+  const ROLE_LABELS = { admin: 'Admin', superadmin: 'Super Admin', member: 'Member' };
+  const roleLabel = ROLE_LABELS[newRole] || newRole;
   showLoading('আপডেট হচ্ছে...');
   try {
-    await db.collection('users').doc(uid).update({
+    const updateData = {
       role: newRole,
       updatedBy: currentUser.uid,
-      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
-    showToast(`✅ ${name} কে ${roleLabel} করা হয়েছে`, 'success');
-    hideLoading();
-    showStatDetail('admins'); // রিফ্রেশ
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    };
+    if (branch) updateData.branch = branch;
+
+    await db.collection('users').doc(uid).update(updateData);
+
+    // adminProfiles এ branch save করো
+    if (newRole === 'admin' || newRole === 'superadmin') {
+      await db.collection('adminProfiles').doc(uid).set({
+        armyNo, branch, role: newRole,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      }, { merge: true });
+    }
+
+    showToast(`✅ ${name} → ${roleLabel}${branch ? ' (' + branch + ')' : ''}`, 'success');
+    setTimeout(() => loadSuperAdminList(), 600);
   } catch(e) {
-    hideLoading();
     showToast('ব্যর্থ: ' + e.message, 'error');
   }
+  hideLoading();
 }
 
 async function adminResetPassword(uid, armyNo) {
@@ -2910,53 +2983,48 @@ function renderUserList() {
     const ini = (u.name||u.armyNo||'?')[0].toUpperCase();
 
     const roleBadge = role === 'superadmin'
-      ? `<span class="badge badge-red" style="font-size:0.6rem">সুপার অ্যাডমিন</span>`
+      ? `<span class="badge badge-red" style="font-size:0.6rem">Super Admin</span>`
       : role === 'admin'
-      ? `<span class="badge badge-blue" style="font-size:0.6rem">অ্যাডমিন</span>`
-      : `<span class="badge" style="font-size:0.6rem;color:var(--text2);border-color:var(--border2)">সদস্য</span>`;
+      ? `<span class="badge badge-blue" style="font-size:0.6rem">Admin</span>`
+      : `<span class="badge" style="font-size:0.6rem;color:var(--text2);border-color:var(--border2)">Member</span>`;
 
     // Promote/Demote buttons
     let btns = '';
     if (!isSelf) {
       if (role === 'member') {
-        // সদস্য → অ্যাডমিন
         btns += `<button onclick="promoteUser('${u.uid}','admin','${(u.name||u.armyNo||'').replace(/'/g,"\\'")}','${u.armyNo||''}')"
           style="background:rgba(56,139,253,0.12);border:1px solid rgba(56,139,253,0.3);color:var(--info);border-radius:7px;padding:5px 10px;font-size:0.65rem;cursor:pointer;font-family:'Rajdhani',sans-serif;font-weight:700;white-space:nowrap">
-          ↑ অ্যাডমিন করুন</button>`;
+          ↑ Make Admin</button>`;
       } else if (role === 'admin') {
-        // অ্যাডমিন → সুপার অ্যাডমিন
         btns += `<button onclick="promoteUser('${u.uid}','superadmin','${(u.name||u.armyNo||'').replace(/'/g,"\\'")}','${u.armyNo||''}')"
           style="background:rgba(224,85,85,0.12);border:1px solid rgba(224,85,85,0.3);color:var(--danger);border-radius:7px;padding:5px 10px;font-size:0.65rem;cursor:pointer;font-family:'Rajdhani',sans-serif;font-weight:700;white-space:nowrap;margin-bottom:4px">
-          ↑ সুপার অ্যাডমিন</button>
+          ↑ Super Admin</button>
         <button onclick="promoteUser('${u.uid}','member','${(u.name||u.armyNo||'').replace(/'/g,"\\'")}','${u.armyNo||''}')"
           style="background:rgba(210,153,34,0.12);border:1px solid rgba(210,153,34,0.3);color:var(--warn);border-radius:7px;padding:5px 10px;font-size:0.65rem;cursor:pointer;font-family:'Rajdhani',sans-serif;font-weight:700;white-space:nowrap">
-          ↓ সদস্য করুন</button>`;
+          ↓ Make Member</button>`;
       } else if (role === 'superadmin') {
-        // সুপার অ্যাডমিন → অ্যাডমিন
         btns += `<button onclick="promoteUser('${u.uid}','admin','${(u.name||u.armyNo||'').replace(/'/g,"\\'")}','${u.armyNo||''}')"
           style="background:rgba(210,153,34,0.12);border:1px solid rgba(210,153,34,0.3);color:var(--warn);border-radius:7px;padding:5px 10px;font-size:0.65rem;cursor:pointer;font-family:'Rajdhani',sans-serif;font-weight:700;white-space:nowrap;margin-bottom:4px">
-          ↓ অ্যাডমিন করুন</button>
+          ↓ Make Admin</button>
         <button onclick="promoteUser('${u.uid}','member','${(u.name||u.armyNo||'').replace(/'/g,"\\'")}','${u.armyNo||''}')"
           style="background:rgba(210,153,34,0.12);border:1px solid rgba(210,153,34,0.3);color:var(--warn);border-radius:7px;padding:5px 10px;font-size:0.65rem;cursor:pointer;font-family:'Rajdhani',sans-serif;font-weight:700;white-space:nowrap">
-          ↓ সদস্য করুন</button>`;
+          ↓ Make Member</button>`;
       }
-      // পাসওয়ার্ড রিসেট
       btns += `<button onclick="adminResetPassword('${u.uid}','${u.armyNo||''}')"
         style="background:rgba(200,169,74,0.1);border:1px solid rgba(200,169,74,0.3);color:var(--gold);border-radius:7px;padding:5px 10px;font-size:0.65rem;cursor:pointer;font-family:'Rajdhani',sans-serif;font-weight:700;white-space:nowrap;margin-top:4px">
-        🔑 পাসওয়ার্ড</button>`;
-      // ডিলিট (superadmin only)
+        🔑 Password</button>`;
       if (userRole === 'superadmin') {
         btns += `<button onclick="deleteUser('${u.uid}','${(u.name||u.armyNo||'').replace(/'/g,"\\'")}' )"
           style="background:rgba(224,85,85,0.1);border:1px solid rgba(224,85,85,0.3);color:var(--danger);border-radius:7px;padding:5px 10px;font-size:0.65rem;cursor:pointer;font-family:'Rajdhani',sans-serif;font-weight:700;white-space:nowrap;margin-top:4px">
-          🗑 ডিলিট</button>`;
+          🗑 Delete</button>`;
       }
     }
 
     return `<div class="pending-item" style="align-items:flex-start;flex-wrap:wrap;gap:8px">
       <div class="pending-avatar">${ini}</div>
       <div class="pending-info" style="flex:1;min-width:0">
-        <div class="pending-name">${u.name||'—'} ${roleBadge} ${isSelf?'<span style="font-size:0.65rem;color:var(--text3)">(আপনি)</span>':''}</div>
-        <div class="pending-detail">সেনা নম্বর: ${u.armyNo||'—'} · ${u.co||'—'}</div>
+        <div class="pending-name">${u.name||'—'} ${roleBadge} ${isSelf?'<span style="font-size:0.65rem;color:var(--text3)">(You)</span>':''}</div>
+        <div class="pending-detail">Army No: ${u.armyNo||'—'}${u.branch ? ' · <strong style="color:var(--gold)">'+u.branch+'</strong>' : ''}</div>
       </div>
       ${btns ? `<div style="display:flex;flex-direction:column;gap:3px;align-items:flex-end">${btns}</div>` : ''}
     </div>`;
