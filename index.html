@@ -682,8 +682,238 @@ body {
 </div>
 
 <!-- ══════════════════════════════════════
-     SCREEN 2: Main App
+     SCREEN 3: First Time Setup
 ════════════════════════════════════════ -->
+<div id="setupScreen" class="screen">
+  <div style="min-height:100vh;background:var(--dark);overflow-y:auto;padding:20px 20px calc(40px + env(safe-area-inset-bottom))">
+
+    <!-- Header -->
+    <div style="text-align:center;padding:24px 0 20px">
+      <div style="width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,var(--gold),#7a5a10);border:2px solid var(--gold);display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 14px;box-shadow:0 0 30px rgba(200,169,74,0.3)">🪖</div>
+      <div style="font-size:1.1rem;font-weight:700;color:var(--gold);margin-bottom:4px">স্বাগতম!</div>
+      <div style="font-size:0.82rem;color:var(--text2);font-family:'Rajdhani',sans-serif;letter-spacing:1px">আপনার তথ্য পূরণ করুন</div>
+    </div>
+
+    <!-- Progress bar -->
+    <div style="display:flex;gap:6px;margin-bottom:24px">
+      <div id="sp1" style="flex:1;height:4px;border-radius:2px;background:var(--gold);transition:background 0.3s"></div>
+      <div id="sp2" style="flex:1;height:4px;border-radius:2px;background:var(--border2);transition:background 0.3s"></div>
+      <div id="sp3" style="flex:1;height:4px;border-radius:2px;background:var(--border2);transition:background 0.3s"></div>
+      <div id="sp4" style="flex:1;height:4px;border-radius:2px;background:var(--border2);transition:background 0.3s"></div>
+    </div>
+
+    <!-- Step title -->
+    <div id="setupStepTitle" style="font-family:'Rajdhani',sans-serif;font-size:0.78rem;letter-spacing:2px;text-transform:uppercase;color:var(--text2);margin-bottom:14px">ধাপ ১ / ৪ — ব্যক্তিগত তথ্য</div>
+
+    <!-- ══ Step 1: Personal ══ -->
+    <div id="setupStep1">
+      <div class="card" style="margin-bottom:12px">
+        <div class="card-body">
+
+          <div class="form-group">
+            <label class="form-label">বাংলা নাম *</label>
+            <input type="text" class="form-input" id="s_bn" placeholder="পূর্ণ নাম বাংলায়">
+          </div>
+          <div class="form-group">
+            <label class="form-label">ইংরেজি নাম</label>
+            <input type="text" class="form-input" id="s_en" placeholder="Full name in English">
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div class="form-group">
+              <label class="form-label">রক্তের গ্রুপ *</label>
+              <select class="form-input" id="s_bl" style="background:var(--dark3)">
+                <option value="">নির্বাচন করুন</option>
+                <option>A+</option><option>A-</option><option>B+</option><option>B-</option>
+                <option>AB+</option><option>AB-</option><option>O+</option><option>O-</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">লিঙ্গ</label>
+              <select class="form-input" id="s_gn" style="background:var(--dark3)">
+                <option value="">নির্বাচন করুন</option>
+                <option>পুরুষ</option><option>মহিলা</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">NID নম্বর</label>
+            <input type="text" class="form-input" id="s_nid" placeholder="জাতীয় পরিচয়পত্র নম্বর">
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div class="form-group">
+              <label class="form-label">মোবাইল</label>
+              <input type="text" class="form-input" id="s_mb" placeholder="01XXXXXXXXX">
+            </div>
+            <div class="form-group">
+              <label class="form-label">হোয়াটসঅ্যাপ</label>
+              <input type="text" class="form-input" id="s_wa" placeholder="01XXXXXXXXX">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">জেলা</label>
+            <select class="form-input" id="s_di" style="background:var(--dark3)">
+              <option value="">নির্বাচন করুন</option>
+              <option>ঢাকা</option><option>চট্টগ্রাম</option><option>সিলেট</option><option>রাজশাহী</option><option>খুলনা</option><option>বরিশাল</option><option>রংপুর</option><option>ময়মনসিংহ</option><option>কুমিল্লা</option><option>নোয়াখালী</option><option>ফেনী</option><option>লক্ষ্মীপুর</option><option>চাঁদপুর</option><option>ব্রাহ্মণবাড়িয়া</option><option>হবিগঞ্জ</option><option>মৌলভীবাজার</option><option>সুনামগঞ্জ</option><option>কিশোরগঞ্জ</option><option>নেত্রকোণা</option><option>জামালপুর</option><option>শেরপুর</option><option>টাঙ্গাইল</option><option>গাজীপুর</option><option>নারায়ণগঞ্জ</option><option>মুন্সিগঞ্জ</option><option>মানিকগঞ্জ</option><option>ফরিদপুর</option><option>মাদারীপুর</option><option>শরীয়তপুর</option><option>রাজবাড়ী</option><option>গোপালগঞ্জ</option><option>নরসিংদী</option><option>বগুড়া</option><option>চাঁপাইনবাবগঞ্জ</option><option>নওগাঁ</option><option>নাটোর</option><option>সিরাজগঞ্জ</option><option>পাবনা</option><option>জয়পুরহাট</option><option>কুষ্টিয়া</option><option>মেহেরপুর</option><option>চুয়াডাঙ্গা</option><option>ঝিনাইদহ</option><option>মাগুরা</option><option>নড়াইল</option><option>যশোর</option><option>সাতক্ষীরা</option><option>বাগেরহাট</option><option>পিরোজপুর</option><option>ভোলা</option><option>পটুয়াখালী</option><option>বরগুনা</option><option>ঝালকাঠি</option><option>দিনাজপুর</option><option>ঠাকুরগাঁও</option><option>পঞ্চগড়</option><option>নীলফামারী</option><option>লালমনিরহাট</option><option>কুড়িগ্রাম</option><option>গাইবান্ধা</option><option>কক্সবাজার</option><option>বান্দরবান</option><option>রাঙ্গামাটি</option><option>খাগড়াছড়ি</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">শিক্ষাগত যোগ্যতা</label>
+            <select class="form-input" id="s_ed" style="background:var(--dark3)">
+              <option value="">নির্বাচন করুন</option>
+              <option>প্রাথমিক (৫ম শ্রেণি)</option><option>জুনিয়র স্কুল সার্টিফিকেট (জেএসসি)</option>
+              <option>মাধ্যমিক (এসএসসি)</option><option>উচ্চ মাধ্যমিক (এইচএসসি)</option>
+              <option>ডিপ্লোমা</option><option>ডিগ্রী/অনার্স</option><option>মাস্টার্স</option><option>অন্যান্য</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">স্থায়ী ঠিকানা</label>
+            <textarea class="form-input" id="s_ad" rows="3" placeholder="গ্রাম, পোস্ট, উপজেলা, জেলা"></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">জরুরি যোগাযোগ</label>
+            <input type="text" class="form-input" id="s_em" placeholder="নাম ও মোবাইল নম্বর">
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ Step 2: Military ══ -->
+    <div id="setupStep2" style="display:none">
+      <div class="card" style="margin-bottom:12px">
+        <div class="card-body">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div class="form-group">
+              <label class="form-label">পদবী *</label>
+              <select class="form-input" id="s_rank" style="background:var(--dark3)">
+                <option value="">নির্বাচন করুন</option>
+                <option>লেঃ কর্নেল</option><option>মেজর</option><option>ক্যাপ্টেন</option><option>লেফটেন্যান্ট</option>
+                <option>মাস্টাঃ ওয়াঃ অফিঃ</option><option>সিনিঃ ওয়াঃ অফিঃ</option><option>ওয়ারেন্ট অফিসার</option>
+                <option>সার্জেন্ট</option><option>কর্পোরাল</option><option>ল্যান্স কর্পোরাল</option>
+                <option>সৈনিক</option><option>এনসি (ই)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">ট্রেড *</label>
+              <select class="form-input" id="s_trade" style="background:var(--dark3)">
+                <option value="">নির্বাচন করুন</option>
+                <option>অফিসার</option><option>আরএমটি</option><option>আরসিটি</option><option>ইএন্ডবিআর</option>
+                <option>ইলেক্টিশিয়ান</option><option>এ/ই</option><option>এইসি</option><option>এনসি (ই)</option>
+                <option>এমএ</option><option>এসএমটি</option><option>ওইপি</option><option>ওবিএম</option>
+                <option>ওসিইউ</option><option>ওয়েল্ডার</option><option>করনিক</option><option>কার্পেন্টার</option>
+                <option>কুক (ইউ)</option><option>টিএসএ</option><option>টিবিভি</option><option>টিসিভি</option>
+                <option>টেইলার</option><option>ডিএমটি</option><option>ডিএসভি</option><option>ড্রাফটসম্যান</option>
+                <option>পিডি</option><option>পেইন্টার</option><option>বিটিএস</option><option>মেশন</option>
+                <option>মেশিনিষ্ট</option><option>সার্ভেয়ার</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">কোম্পানী *</label>
+            <select class="form-input" id="s_co" style="background:var(--dark3)">
+              <option value="">নির্বাচন করুন</option>
+              <option>৪৮ ফিল্ড কোম্পানী</option><option>৪৯ ফিল্ড কোম্পানী</option>
+              <option>৫০ ফিল্ড কোম্পানী</option><option>প্লান্ট কোম্পানী</option>
+              <option>ব্রীজ কোম্পানী</option><option>সদর কোম্পানী</option><option>ইএমই</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">নিয়োগ</label>
+            <input type="text" class="form-input" id="s_niyog" placeholder="যেমন: ক্লার্ক, স্টোরকিপার">
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div class="form-group">
+              <label class="form-label">ভর্তির তারিখ</label>
+              <input type="text" class="form-input" id="s_jd" placeholder="DD/MM/YYYY">
+            </div>
+            <div class="form-group">
+              <label class="form-label">শপথের তারিখ</label>
+              <input type="text" class="form-input" id="s_od" placeholder="DD/MM/YYYY">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">লাইসেন্স</label>
+            <input type="text" class="form-input" id="s_li" placeholder="যেমন: ড্রাইভিং, ক্রেন">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ Step 3: Family ══ -->
+    <div id="setupStep3" style="display:none">
+      <div class="card" style="margin-bottom:12px">
+        <div class="card-body">
+          <div class="form-group">
+            <label class="form-label">বৈবাহিক অবস্থা</label>
+            <select class="form-input" id="s_ma" style="background:var(--dark3)">
+              <option value="">নির্বাচন করুন</option>
+              <option>অবিবাহিত</option><option>বিবাহিত</option>
+              <option>বিধবা/বিপত্নীক</option><option>তালাকপ্রাপ্ত</option>
+            </select>
+          </div>
+          <div id="s_married_section" style="display:none">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+              <div class="form-group">
+                <label class="form-label">স্ত্রী/স্বামীর নাম</label>
+                <input type="text" class="form-input" id="s_sp" placeholder="নাম">
+              </div>
+              <div class="form-group">
+                <label class="form-label">স্ত্রী/স্বামীর জন্ম</label>
+                <input type="text" class="form-input" id="s_sd" placeholder="DD/MM/YYYY">
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">বিবাহের তারিখ</label>
+              <input type="text" class="form-input" id="s_wd" placeholder="DD/MM/YYYY">
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+              <div class="form-group">
+                <label class="form-label">সন্তান ১ নাম</label>
+                <input type="text" class="form-input" id="s_c1n" placeholder="নাম">
+              </div>
+              <div class="form-group">
+                <label class="form-label">সন্তান ১ জন্ম</label>
+                <input type="text" class="form-input" id="s_c1d" placeholder="DD/MM/YYYY">
+              </div>
+              <div class="form-group">
+                <label class="form-label">সন্তান ২ নাম</label>
+                <input type="text" class="form-input" id="s_c2n" placeholder="নাম">
+              </div>
+              <div class="form-group">
+                <label class="form-label">সন্তান ২ জন্ম</label>
+                <input type="text" class="form-input" id="s_c2d" placeholder="DD/MM/YYYY">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ Step 4: Confirm ══ -->
+    <div id="setupStep4" style="display:none">
+      <div class="card" style="margin-bottom:12px">
+        <div class="card-body">
+          <div style="text-align:center;padding:10px 0 16px">
+            <div style="font-size:40px;margin-bottom:10px">✅</div>
+            <div style="font-size:1rem;font-weight:700;color:var(--success);margin-bottom:6px">সব তথ্য প্রস্তুত!</div>
+            <div style="font-size:0.82rem;color:var(--text2);line-height:1.7">নিচের তথ্য সঠিক থাকলে সংরক্ষণ করুন।<br>পরে যেকোনো তথ্য একবার সংশোধন করা যাবে।</div>
+          </div>
+          <div id="setupSummary" style="background:var(--dark3);border-radius:10px;padding:14px;font-size:0.82rem;line-height:2"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Navigation buttons -->
+    <div style="display:flex;gap:10px;margin-top:8px">
+      <button id="setupPrevBtn" onclick="setupPrev()" style="display:none;padding:14px 20px;background:transparent;border:1px solid var(--border2);border-radius:10px;color:var(--text2);cursor:pointer;font-family:'Rajdhani',sans-serif;font-size:0.9rem;font-weight:700;letter-spacing:1px">◀ আগে</button>
+      <button id="setupNextBtn" onclick="setupNext()" style="flex:1;padding:14px;background:linear-gradient(135deg,var(--gold),#9a7a20);border:none;border-radius:10px;color:#0a0c10;font-family:'Rajdhani',sans-serif;font-size:1rem;font-weight:700;letter-spacing:2px;cursor:pointer">পরবর্তী ▶</button>
+    </div>
+    <div style="text-align:center;margin-top:10px">
+      <button onclick="skipSetup()" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:0.75rem;font-family:'Noto Serif Bengali',serif">এখন নয়, পরে পূরণ করব</button>
+    </div>
+    <div id="setupError" style="display:none;background:rgba(224,85,85,0.12);border:1px solid rgba(224,85,85,0.3);border-radius:8px;padding:10px 14px;margin-top:10px;font-size:0.82rem;color:var(--danger)"></div>
+  </div>
+</div>
 <div id="appScreen" class="screen">
 
   <!-- Top Bar -->
@@ -1714,6 +1944,8 @@ async function loadMemberData(uid) {
     }
 
     renderProfile();
+    // নতুন user হলে first setup দেখাও
+    if (userRole === 'member') checkFirstSetup();
     if (userRole === 'admin' || userRole === 'superadmin') {
       document.getElementById('nav-admin').style.display = 'flex';
       if (userRole === 'superadmin') {
@@ -3126,6 +3358,221 @@ function clearNewMemberForm() {
   if (status) status.style.display = 'none';
   const res = document.getElementById('addMemberResult');
   if (res) res.style.display = 'none';
+}
+
+/* ══════════════════════════════════════════
+   FIRST TIME SETUP — নতুন user এর data entry
+══════════════════════════════════════════ */
+let _setupStep = 1;
+
+function checkFirstSetup() {
+  const m = currentMemberData;
+  if (!m) return;
+  // Data পূরণ হয়েছে কিনা চেক — bn (নাম) এবং r_bn (পদবী) না থাকলে নতুন user
+  const isNewUser = !m.bn && !m.en && !m.r_bn;
+  if (isNewUser) {
+    _setupStep = 1;
+    // dob আগে থেকে আছে, readonly দেখাব
+    const dobEl = document.getElementById('s_dob_display');
+    if (dobEl) dobEl.textContent = m.dob || '—';
+    showScreen('setup');
+    updateSetupProgress(1);
+  }
+}
+
+function isNewUserSetupNeeded() {
+  const m = currentMemberData;
+  return m && !m.bn && !m.en && !m.r_bn;
+}
+
+function updateSetupProgress(step) {
+  _setupStep = step;
+  const titles = [
+    'ধাপ ১ / ৪ — ব্যক্তিগত তথ্য',
+    'ধাপ ২ / ৪ — সামরিক তথ্য',
+    'ধাপ ৩ / ৪ — পারিবারিক তথ্য',
+    'ধাপ ৪ / ৪ — নিশ্চিতকরণ',
+  ];
+  document.getElementById('setupStepTitle').textContent = titles[step - 1] || '';
+
+  // Progress bars
+  for (let i = 1; i <= 4; i++) {
+    const bar = document.getElementById('sp' + i);
+    if (bar) bar.style.background = i <= step ? 'var(--gold)' : 'var(--border2)';
+  }
+
+  // Steps show/hide
+  for (let i = 1; i <= 4; i++) {
+    const el = document.getElementById('setupStep' + i);
+    if (el) el.style.display = i === step ? 'block' : 'none';
+  }
+
+  // Buttons
+  const prevBtn = document.getElementById('setupPrevBtn');
+  const nextBtn = document.getElementById('setupNextBtn');
+  if (prevBtn) prevBtn.style.display = step > 1 ? 'block' : 'none';
+  if (nextBtn) nextBtn.textContent = step === 4 ? '✅ সংরক্ষণ করুন' : 'পরবর্তী ▶';
+
+  // Step 3: married section toggle
+  if (step === 3) {
+    const maEl = document.getElementById('s_ma');
+    if (maEl) maEl.onchange = () => {
+      const ms = document.getElementById('s_married_section');
+      if (ms) ms.style.display = maEl.value === 'বিবাহিত' ? 'block' : 'none';
+    };
+  }
+
+  // Step 4: summary
+  if (step === 4) buildSetupSummary();
+
+  // Error clear
+  const err = document.getElementById('setupError');
+  if (err) err.style.display = 'none';
+}
+
+function setupNext() {
+  const err = document.getElementById('setupError');
+
+  if (_setupStep === 1) {
+    // Validate step 1
+    const bn = document.getElementById('s_bn')?.value.trim();
+    const bl = document.getElementById('s_bl')?.value;
+    if (!bn) {
+      err.textContent = 'বাংলা নাম অবশ্যই দিন।';
+      err.style.display = 'block';
+      document.getElementById('s_bn').focus();
+      return;
+    }
+    updateSetupProgress(2);
+  } else if (_setupStep === 2) {
+    const rank = document.getElementById('s_rank')?.value;
+    const trade = document.getElementById('s_trade')?.value;
+    const co = document.getElementById('s_co')?.value;
+    if (!rank || !trade || !co) {
+      err.textContent = 'পদবী, ট্রেড ও কোম্পানী অবশ্যই নির্বাচন করুন।';
+      err.style.display = 'block';
+      return;
+    }
+    updateSetupProgress(3);
+  } else if (_setupStep === 3) {
+    updateSetupProgress(4);
+  } else if (_setupStep === 4) {
+    saveSetupData();
+  }
+}
+
+function setupPrev() {
+  if (_setupStep > 1) updateSetupProgress(_setupStep - 1);
+}
+
+function skipSetup() {
+  if (confirm('এখন না করলে পরে Profile থেকে তথ্য পূরণ করতে পারবেন।\nএখন এড়িয়ে যাবেন?')) {
+    showScreen('app');
+  }
+}
+
+function buildSetupSummary() {
+  const g = id => document.getElementById(id)?.value?.trim() || '';
+  const lines = [
+    ['নাম (বাংলা)', g('s_bn')],
+    ['নাম (ইংরেজি)', g('s_en')],
+    ['রক্তের গ্রুপ', g('s_bl')],
+    ['জেলা', g('s_di')],
+    ['পদবী', g('s_rank')],
+    ['ট্রেড', g('s_trade')],
+    ['কোম্পানী', g('s_co')],
+    ['নিয়োগ', g('s_niyog')],
+    ['বৈবাহিক অবস্থা', g('s_ma')],
+  ].filter(([, v]) => v);
+
+  document.getElementById('setupSummary').innerHTML = lines
+    .map(([k, v]) => `<div style="display:flex;gap:8px"><span style="color:var(--text2);min-width:130px;font-family:'Rajdhani',sans-serif;font-size:0.72rem;letter-spacing:1px;text-transform:uppercase">${k}</span><span style="color:var(--text);font-weight:600">${v}</span></div>`)
+    .join('') || '<div style="color:var(--text2);font-size:0.82rem">কোনো তথ্য নেই</div>';
+}
+
+async function saveSetupData() {
+  const g = id => document.getElementById(id)?.value?.trim() || '';
+  const err = document.getElementById('setupError');
+  const btn = document.getElementById('setupNextBtn');
+
+  btn.textContent = '⏳ সংরক্ষণ হচ্ছে...';
+  btn.disabled = true;
+
+  try {
+    const docId = currentMemberData.id ||
+      String(currentMemberData.no || '').replace(/[^A-Z0-9]/gi, '');
+
+    if (!docId) throw new Error('সদস্য ID পাওয়া যায়নি');
+
+    const rank = g('s_rank');
+    const trade = g('s_trade');
+    const co = g('s_co');
+    const di = g('s_di');
+    const ma = g('s_ma');
+
+    const data = {
+      // Personal
+      bn:    g('s_bn'),
+      en:    g('s_en') || g('s_bn'),
+      bl:    g('s_bl'),
+      gn_bn: g('s_gn'),
+      nid:   g('s_nid'),
+      mb:    g('s_mb'),
+      wa:    g('s_wa') || g('s_mb'),
+      di_bn: di, di_en: di,
+      ed_bn: g('s_ed'),
+      ad:    g('s_ad'),
+      em:    g('s_em'),
+      // Military
+      r_bn: rank, r_en: rank,
+      tr_bn: trade, tr_en: trade,
+      co_bn: co, co_en: co,
+      niyog: g('s_niyog'),
+      jd:    g('s_jd'),
+      od:    g('s_od'),
+      li:    g('s_li'),
+      // Family
+      ma_bn: ma, ma_en: ma,
+      sp:    g('s_sp'),
+      sd:    g('s_sd'),
+      wd:    g('s_wd'),
+      c1n:   g('s_c1n'), c1d: g('s_c1d'),
+      c2n:   g('s_c2n'), c2d: g('s_c2d'),
+      // Metadata
+      setupCompletedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      updatedBy: currentUser.uid,
+    };
+
+    // Empty string গুলো বাদ দাও
+    Object.keys(data).forEach(k => { if (data[k] === '') delete data[k]; });
+
+    const docRef = db.collection('members').doc(docId);
+    const snap = await docRef.get();
+    if (snap.exists) {
+      await docRef.update(data);
+    } else {
+      await docRef.set({ ...data, no: currentMemberData.no }, { merge: true });
+    }
+
+    // users collection এ name update করো
+    if (data.bn) {
+      await db.collection('users').doc(currentUser.uid).update({ name: data.bn });
+    }
+
+    // Local data update
+    Object.assign(currentMemberData, data);
+
+    showToast('✅ তথ্য সফলভাবে সংরক্ষণ হয়েছে!', 'success');
+    renderProfile();
+    showScreen('app');
+
+  } catch(e) {
+    err.textContent = '❌ সংরক্ষণ ব্যর্থ: ' + (e.code || e.message);
+    err.style.display = 'block';
+    btn.textContent = '✅ সংরক্ষণ করুন';
+    btn.disabled = false;
+  }
 }
 
 // ডিফল্ট পাসওয়ার্ড তৈরি — সেনা নম্বর ৬ সংখ্যায় pad করো
