@@ -1121,8 +1121,21 @@ body {
               <div id="addMemberResult" style="display:none;margin-top:12px;border-radius:8px;padding:12px 14px;font-size:0.82rem;line-height:1.6"></div>
             </div>
 
-            <!-- অ্যাডমিন তালিকা ট্যাব -->
+            <!-- অ্যাডমিন / ইউজার ম্যানেজমেন্ট ট্যাব -->
             <div id="superTabAdmins" style="display:none">
+              <!-- Search -->
+              <div style="display:flex;gap:8px;margin-bottom:12px">
+                <input type="text" id="userSearchInput" class="form-input"
+                  placeholder="নাম বা সেনা নম্বর দিয়ে খুঁজুন..."
+                  style="flex:1" oninput="filterUserList(this.value)">
+              </div>
+              <!-- Filter tabs -->
+              <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap">
+                <button class="admin-tab-btn active" id="ufilter-all" onclick="setUserFilter('all',this)">সবাই</button>
+                <button class="admin-tab-btn" id="ufilter-superadmin" onclick="setUserFilter('superadmin',this)">🔴 সুপার অ্যাডমিন</button>
+                <button class="admin-tab-btn" id="ufilter-admin" onclick="setUserFilter('admin',this)">🔵 অ্যাডমিন</button>
+                <button class="admin-tab-btn" id="ufilter-member" onclick="setUserFilter('member',this)">⚪ সদস্য</button>
+              </div>
               <div id="superAdminList">
                 <div style="color:var(--text2);text-align:center;padding:20px;font-size:0.85rem">লোড হচ্ছে...</div>
               </div>
@@ -2838,37 +2851,116 @@ function switchSuperTab(tab, btn) {
   if (tab === 'admins') loadSuperAdminList();
 }
 
+let allUsersList = [];
+let userFilterType = 'all';
+let userSearchQuery = '';
+
 async function loadSuperAdminList() {
   const box = document.getElementById('superAdminList');
+  box.innerHTML = '<div style="color:var(--text2);text-align:center;padding:20px;font-size:0.85rem">লোড হচ্ছে...</div>';
+
   try {
-    const snap = await db.collection('users').where('role','in',['admin','superadmin']).get();
-    if (snap.empty) { box.innerHTML = '<div style="color:var(--text2);text-align:center;padding:20px;font-size:0.85rem">কোনো অ্যাডমিন নেই</div>'; return; }
-    box.innerHTML = snap.docs.map(d => {
-      const u = d.data();
-      const roleCls = u.role === 'superadmin' ? 'badge-red' : 'badge-blue';
-      const roleLabel = u.role === 'superadmin' ? 'সুপার অ্যাডমিন' : 'অ্যাডমিন';
-      const ini = (u.name||u.armyNo||'?')[0].toUpperCase();
-      const isSelf = d.id === currentUser.uid;
-      return `<div class="pending-item">
-        <div class="pending-avatar">${ini}</div>
-        <div class="pending-info">
-          <div class="pending-name">${u.name||'—'}</div>
-          <div class="pending-detail">সেনা নম্বর: ${u.armyNo||'—'} · <span class="badge ${roleCls}" style="font-size:0.6rem">${roleLabel}</span></div>
-        </div>
-        ${!isSelf && currentUser.uid !== d.id ? `
-        <div style="display:flex;flex-direction:column;gap:5px">
-          <button onclick="changeAdminRole('${d.id}','${u.role === 'admin' ? 'superadmin' : 'admin'}')"
-            style="background:rgba(56,139,253,0.12);border:1px solid rgba(56,139,253,0.3);color:var(--info);border-radius:7px;padding:5px 8px;font-size:0.65rem;cursor:pointer;font-family:'Rajdhani',sans-serif;font-weight:700">
-            ${u.role === 'admin' ? '↑ সুপার' : '↓ অ্যাডমিন'}
-          </button>
-          <button onclick="removeAdmin('${d.id}','${u.name||u.armyNo}')"
-            style="background:rgba(224,85,85,0.12);border:1px solid rgba(224,85,85,0.3);color:var(--danger);border-radius:7px;padding:5px 8px;font-size:0.65rem;cursor:pointer;font-family:'Rajdhani',sans-serif;font-weight:700">
-            অপসারণ
-          </button>
-        </div>` : '<span style="font-size:0.7rem;color:var(--text3)">(আপনি)</span>'}
-      </div>`;
-    }).join('');
-  } catch(e) { box.innerHTML = `<div style="color:var(--danger);font-size:0.82rem">লোড ব্যর্থ: ${e.message}</div>`; }
+    const snap = await db.collection('users').get();
+    allUsersList = snap.docs.map(d => ({ uid: d.id, ...d.data() }));
+    // পদবী অনুযায়ী sort: superadmin → admin → member
+    const roleOrder = { superadmin: 0, admin: 1, member: 2 };
+    allUsersList.sort((a, b) => (roleOrder[a.role]||2) - (roleOrder[b.role]||2));
+    renderUserList();
+  } catch(e) {
+    box.innerHTML = `<div style="color:var(--danger);font-size:0.82rem;padding:10px">লোড ব্যর্থ: ${e.message}</div>`;
+  }
+}
+
+function setUserFilter(type, btn) {
+  userFilterType = type;
+  document.querySelectorAll('#superTabAdmins .admin-tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderUserList();
+}
+
+function filterUserList(q) {
+  userSearchQuery = q.toLowerCase();
+  renderUserList();
+}
+
+function renderUserList() {
+  const box = document.getElementById('superAdminList');
+  let list = allUsersList;
+
+  // Filter by role
+  if (userFilterType !== 'all') {
+    list = list.filter(u => (u.role || 'member') === userFilterType);
+  }
+  // Filter by search
+  if (userSearchQuery) {
+    list = list.filter(u =>
+      (u.name||'').toLowerCase().includes(userSearchQuery) ||
+      (u.armyNo||'').toLowerCase().includes(userSearchQuery)
+    );
+  }
+
+  if (!list.length) {
+    box.innerHTML = '<div style="color:var(--text2);text-align:center;padding:20px;font-size:0.85rem">কোনো ইউজার পাওয়া যায়নি</div>';
+    return;
+  }
+
+  box.innerHTML = list.map(u => {
+    const role = u.role || 'member';
+    const isSelf = u.uid === currentUser.uid;
+    const ini = (u.name||u.armyNo||'?')[0].toUpperCase();
+
+    const roleBadge = role === 'superadmin'
+      ? `<span class="badge badge-red" style="font-size:0.6rem">সুপার অ্যাডমিন</span>`
+      : role === 'admin'
+      ? `<span class="badge badge-blue" style="font-size:0.6rem">অ্যাডমিন</span>`
+      : `<span class="badge" style="font-size:0.6rem;color:var(--text2);border-color:var(--border2)">সদস্য</span>`;
+
+    // Promote/Demote buttons
+    let btns = '';
+    if (!isSelf) {
+      if (role === 'member') {
+        // সদস্য → অ্যাডমিন
+        btns += `<button onclick="promoteUser('${u.uid}','admin','${(u.name||u.armyNo||'').replace(/'/g,"\\'")}','${u.armyNo||''}')"
+          style="background:rgba(56,139,253,0.12);border:1px solid rgba(56,139,253,0.3);color:var(--info);border-radius:7px;padding:5px 10px;font-size:0.65rem;cursor:pointer;font-family:'Rajdhani',sans-serif;font-weight:700;white-space:nowrap">
+          ↑ অ্যাডমিন করুন</button>`;
+      } else if (role === 'admin') {
+        // অ্যাডমিন → সুপার অ্যাডমিন
+        btns += `<button onclick="promoteUser('${u.uid}','superadmin','${(u.name||u.armyNo||'').replace(/'/g,"\\'")}','${u.armyNo||''}')"
+          style="background:rgba(224,85,85,0.12);border:1px solid rgba(224,85,85,0.3);color:var(--danger);border-radius:7px;padding:5px 10px;font-size:0.65rem;cursor:pointer;font-family:'Rajdhani',sans-serif;font-weight:700;white-space:nowrap;margin-bottom:4px">
+          ↑ সুপার অ্যাডমিন</button>
+        <button onclick="promoteUser('${u.uid}','member','${(u.name||u.armyNo||'').replace(/'/g,"\\'")}','${u.armyNo||''}')"
+          style="background:rgba(210,153,34,0.12);border:1px solid rgba(210,153,34,0.3);color:var(--warn);border-radius:7px;padding:5px 10px;font-size:0.65rem;cursor:pointer;font-family:'Rajdhani',sans-serif;font-weight:700;white-space:nowrap">
+          ↓ সদস্য করুন</button>`;
+      } else if (role === 'superadmin') {
+        // সুপার অ্যাডমিন → অ্যাডমিন
+        btns += `<button onclick="promoteUser('${u.uid}','admin','${(u.name||u.armyNo||'').replace(/'/g,"\\'")}','${u.armyNo||''}')"
+          style="background:rgba(210,153,34,0.12);border:1px solid rgba(210,153,34,0.3);color:var(--warn);border-radius:7px;padding:5px 10px;font-size:0.65rem;cursor:pointer;font-family:'Rajdhani',sans-serif;font-weight:700;white-space:nowrap;margin-bottom:4px">
+          ↓ অ্যাডমিন করুন</button>
+        <button onclick="promoteUser('${u.uid}','member','${(u.name||u.armyNo||'').replace(/'/g,"\\'")}','${u.armyNo||''}')"
+          style="background:rgba(210,153,34,0.12);border:1px solid rgba(210,153,34,0.3);color:var(--warn);border-radius:7px;padding:5px 10px;font-size:0.65rem;cursor:pointer;font-family:'Rajdhani',sans-serif;font-weight:700;white-space:nowrap">
+          ↓ সদস্য করুন</button>`;
+      }
+      // পাসওয়ার্ড রিসেট
+      btns += `<button onclick="adminResetPassword('${u.uid}','${u.armyNo||''}')"
+        style="background:rgba(200,169,74,0.1);border:1px solid rgba(200,169,74,0.3);color:var(--gold);border-radius:7px;padding:5px 10px;font-size:0.65rem;cursor:pointer;font-family:'Rajdhani',sans-serif;font-weight:700;white-space:nowrap;margin-top:4px">
+        🔑 পাসওয়ার্ড</button>`;
+      // ডিলিট (superadmin only)
+      if (userRole === 'superadmin') {
+        btns += `<button onclick="deleteUser('${u.uid}','${(u.name||u.armyNo||'').replace(/'/g,"\\'")}' )"
+          style="background:rgba(224,85,85,0.1);border:1px solid rgba(224,85,85,0.3);color:var(--danger);border-radius:7px;padding:5px 10px;font-size:0.65rem;cursor:pointer;font-family:'Rajdhani',sans-serif;font-weight:700;white-space:nowrap;margin-top:4px">
+          🗑 ডিলিট</button>`;
+      }
+    }
+
+    return `<div class="pending-item" style="align-items:flex-start;flex-wrap:wrap;gap:8px">
+      <div class="pending-avatar">${ini}</div>
+      <div class="pending-info" style="flex:1;min-width:0">
+        <div class="pending-name">${u.name||'—'} ${roleBadge} ${isSelf?'<span style="font-size:0.65rem;color:var(--text3)">(আপনি)</span>':''}</div>
+        <div class="pending-detail">সেনা নম্বর: ${u.armyNo||'—'} · ${u.co||'—'}</div>
+      </div>
+      ${btns ? `<div style="display:flex;flex-direction:column;gap:3px;align-items:flex-end">${btns}</div>` : ''}
+    </div>`;
+  }).join('');
 }
 
 async function changeAdminRole(uid, newRole) {
@@ -3834,8 +3926,8 @@ async function promoteUser(uid, newRole, name, armyNo) {
     }
 
     showToast(`✅ "${name}" — ${roleLabel} হিসেবে আপডেট হয়েছে`, 'success');
-    // রিফ্রেশ
-    setTimeout(() => showStatDetail('admins'), 800);
+    // list রিফ্রেশ
+    setTimeout(() => loadSuperAdminList(), 800);
   } catch(e) {
     showToast('ব্যর্থ: ' + (e.code || e.message), 'error');
   }
@@ -3857,7 +3949,7 @@ async function deleteUser(uid, name) {
     await batch.commit();
 
     showToast(`✅ "${name}" ডিলিট হয়েছে`, 'success');
-    setTimeout(() => showStatDetail('admins'), 800);
+    setTimeout(() => loadSuperAdminList(), 800);
   } catch(e) {
     showToast('ডিলিট ব্যর্থ: ' + (e.code || e.message), 'error');
   }
