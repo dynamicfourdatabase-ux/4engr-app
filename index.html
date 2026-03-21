@@ -1947,9 +1947,25 @@ async function doLogin() {
 }
 
 function doLogout() {
-  if (confirm('লগআউট করবেন?')) {
-    auth.signOut();
-  }
+  showConfirm('লগআউট করবেন?', () => auth.signOut());
+}
+
+/* Custom confirm — browser default এর বদলে */
+function showConfirm(msg, onOk, onCancel) {
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);backdrop-filter:blur(4px);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+  overlay.innerHTML = `
+    <div style="background:var(--dark2);border:1px solid var(--border);border-radius:16px;padding:24px 20px;width:100%;max-width:320px;box-shadow:var(--shadow)">
+      <div style="font-size:0.95rem;color:var(--text);line-height:1.6;margin-bottom:20px;text-align:center">${msg}</div>
+      <div style="display:flex;gap:10px">
+        <button id="_confirmCancel" style="flex:1;padding:11px;background:transparent;border:1px solid var(--border2);border-radius:10px;color:var(--text2);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:0.9rem;cursor:pointer">বাতিল</button>
+        <button id="_confirmOk" style="flex:1;padding:11px;background:linear-gradient(135deg,var(--danger),#a03030);border:none;border-radius:10px;color:#fff;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:0.9rem;cursor:pointer">হ্যাঁ</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  overlay.querySelector('#_confirmOk').onclick    = () => { document.body.removeChild(overlay); if(onOk) onOk(); };
+  overlay.querySelector('#_confirmCancel').onclick = () => { document.body.removeChild(overlay); if(onCancel) onCancel(); };
+  overlay.onclick = (e) => { if(e.target===overlay){ document.body.removeChild(overlay); if(onCancel) onCancel(); } };
 }
 
 /* ══════════════════════════════════════════
@@ -2449,39 +2465,60 @@ async function saveModal() {
   }
 
   // ── কোর্স নাম সংশোধন ──
-  if (currentEditField.key === '_editCourseName') {
-    if (!newVal) { showToast('নাম খালি রাখা যাবে না', 'error'); btn.textContent='সংরক্ষণ করুন'; btn.disabled=false; return; }
-    const courses = (currentMemberData.cr_bn || '').split(/[,،]/).map(s=>s.trim()).filter(Boolean);
-    const updated = [...courses];
-    updated[currentEditField.idx] = newVal;
-    const updatedStr = updated.join(', ');
-    const isAdmin = userRole === 'admin' || userRole === 'superadmin';
+  if (currentEditField.key === '_editCourseName' || currentEditField.key === '_editCourse') {
+    const idx    = currentEditField.idx;
+    const bnName = (document.getElementById('editInput')?.value || '').trim();
+    const enName = (document.getElementById('editCourseEn')?.value || '').trim();
+    const resVal = document.getElementById('editCourseResult')?.value || '';
+    const posVal = parseInt(document.getElementById('editCoursePos')?.value || '0') || 0;
+    const recVal = (document.getElementById('editCourseRec')?.value || '').trim();
+    if (!bnName && !enName) { showToast('নাম খালি রাখা যাবে না', 'error'); btn.textContent='সংরক্ষণ করুন'; btn.disabled=false; return; }
+    const crBnArr = (currentMemberData.cr_bn || '').split(',').map(s=>s.trim()).filter(Boolean);
+    const crEnArr = (currentMemberData.cr_en || '').split(',').map(s=>s.trim()).filter(Boolean);
+    if (bnName) crBnArr[idx] = bnName;
+    if (enName) crEnArr[idx] = enName;
+    const updatedBn = crBnArr.join(', ');
+    const updatedEn = crEnArr.join(', ');
     const docId = currentMemberData.id || String(currentMemberData.no||'').replace(/[^A-Z0-9]/gi,'');
+    const isAdmin = userRole === 'admin' || userRole === 'superadmin';
     if (isAdmin) {
-      // Admin সরাসরি আপডেট করে
       try {
-        await db.collection('members').doc(docId).update({ cr_bn: updatedStr, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
-        currentMemberData.cr_bn = updatedStr;
+        const updateObj = { cr_bn: updatedBn, cr_en: updatedEn, updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
+        if (resVal) updateObj['courseResults.course_' + idx] = resVal;
+        if (posVal > 0) updateObj['courseResults.pos_' + idx] = posVal;
+        if (recVal) updateObj['courseResults.rec_' + idx] = recVal;
+        await db.collection('members').doc(docId).update(updateObj);
+        currentMemberData.cr_bn = updatedBn;
+        currentMemberData.cr_en = updatedEn;
+        if (!currentMemberData.courseResults) currentMemberData.courseResults = {};
+        if (resVal) currentMemberData.courseResults['course_' + idx] = resVal;
+        if (posVal > 0) currentMemberData.courseResults['pos_' + idx] = posVal;
+        if (recVal) currentMemberData.courseResults['rec_' + idx] = recVal;
         closeModal(); renderCourses();
-        showToast('✅ কোর্সের নাম আপডেট হয়েছে', 'success');
+        showToast('✅ কোর্স আপডেট হয়েছে', 'success');
       } catch(e) { showToast('ব্যর্থ: ' + e.message, 'error'); }
     } else {
-      // সৈনিক editRequest এ পাঠায়
       try {
+        const oldCourseName = (currentMemberData.cr_bn || '').split(',').map(s=>s.trim()).filter(Boolean)[idx] || '';
         await db.collection('editRequests').add({
           memberId: docId,
           memberNo: currentMemberData.no,
           memberName: currentMemberData.bn || currentMemberData.en,
           memberCompany: currentMemberData.co_bn || '',
-          field: 'cr_bn', fieldLabel: 'কোর্স নাম (' + (courses[currentEditField.idx]||'') + ')',
+          field: 'cr_bn',
+          fieldLabel: 'কোর্স সম্পাদনা: ' + (bnName || enName),
           oldValue: currentMemberData.cr_bn || '',
-          newValue: updatedStr,
+          newValue: updatedBn,
+          oldValueEn: currentMemberData.cr_en || '',
+          newValueEn: updatedEn,
+          courseEditExtra: { idx, nameBn: bnName, nameEn: enName, result: resVal, position: posVal, recommendation: recVal },
+          requestType: 'editCourse',
           requestedBy: currentUser.uid,
           status: 'pending',
           createdAt: firebase.firestore.FieldValue.serverTimestamp(),
         });
         closeModal();
-        showToast('✅ অনুমোদনের জন্য জমা দেওয়া হয়েছে', 'success');
+        showToast('⏳ সম্পাদনা জমা হয়েছে — Admin অনুমোদনের অপেক্ষায়', 'success');
         checkPendingStatus();
       } catch(e) { showToast('ব্যর্থ: ' + e.message, 'error'); }
     }
@@ -2778,18 +2815,19 @@ function renderCourses() {
 
     const recValRC = results['rec_' + i] || '';
     return `<div class="course-item">
-      <div class="course-item-header" style="flex-wrap:nowrap;align-items:flex-start">
-        <span style="font-size:14px;margin-top:2px">📋</span>
-        <span class="course-name" id="cn_${i}" style="flex:1;min-width:0;word-break:break-word;line-height:1.4">${course}</span>
-        <div style="display:flex;align-items:center;gap:4px;flex-shrink:0;margin-left:6px">
-          ${currentResult ? `<span class="badge badge-green" style="font-size:0.6rem">${RESULT_LABELS_RC[currentResult]||currentResult}</span>` : ''}
-          ${currentPos ? `<span class="badge badge-gold" style="font-size:0.6rem">🏆 ${currentPos}${useBn ? 'তম' : (currentPos==1?'st':currentPos==2?'nd':currentPos==3?'rd':'th')}</span>` : ''}
-          ${isLocked ? '<span style="font-size:11px">🔒</span>' : ''}
-          <button onclick="editCourseNameByIdx(${i})" style="background:transparent;border:none;color:var(--gold);cursor:pointer;font-size:12px;padding:2px 4px;border-radius:5px;opacity:0.7" title="নাম সংশোধন">✏️</button>
+      <!-- উপরের row: badge + বাটন ডানে -->
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:6px">
+        <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">
+          ${currentResult ? `<span class="badge badge-green" style="font-size:0.62rem">${RESULT_LABELS_RC[currentResult]||currentResult}</span>` : ''}
+          ${currentPos ? `<span class="badge badge-gold" style="font-size:0.62rem">🏆 ${currentPos}${useBn ? 'তম' : (currentPos==1?'st':currentPos==2?'nd':currentPos==3?'rd':'th')}</span>` : ''}
+          ${isLocked ? '<span style="font-size:11px;color:var(--text3)">🔒</span>' : '<span style="font-size:11px;color:var(--text3)">🔓</span>'}
         </div>
+        <button onclick="editCourseByIdx(${i})" style="background:rgba(200,169,74,0.1);border:1px solid rgba(200,169,74,0.3);color:var(--gold);cursor:pointer;font-size:0.7rem;padding:3px 10px;border-radius:6px;font-family:'Rajdhani',sans-serif;font-weight:700;white-space:nowrap">✏️ সম্পাদনা</button>
       </div>
-      ${recValRC ? `<div style="font-size:0.72rem;color:var(--text2);margin-top:5px;padding:5px 8px;background:rgba(255,255,255,0.03);border-radius:6px">💬 ${recValRC}</div>` : ''}
-      <div style="font-size:0.72rem;color:var(--text2);margin-top:8px;margin-bottom:6px;font-family:'Rajdhani',sans-serif;letter-spacing:1px;display:flex;align-items:center;gap:6px">
+      <!-- কোর্সের নাম — পুরো width -->
+      <div style="font-size:0.95rem;font-weight:700;color:var(--text);line-height:1.5;margin-bottom:6px" id="cn_${i}">${course}</div>
+      ${recValRC ? `<div style="font-size:0.72rem;color:var(--text2);margin-bottom:6px;padding:5px 8px;background:rgba(255,255,255,0.03);border-radius:6px">💬 ${recValRC}</div>` : ''}
+      <div style="font-size:0.72rem;color:var(--text2);margin-bottom:6px;font-family:'Rajdhani',sans-serif;letter-spacing:1px;display:flex;align-items:center;gap:6px">
         <span>${isLocked ? '🔒 ফলাফল চূড়ান্ত' : 'ফলাফল নির্বাচন করুন:'}</span>
         ${resultResetBtn}
       </div>
@@ -2961,19 +2999,54 @@ async function savePosition(idx) {
   }
 }
 
-function editCourseNameByIdx(idx) {
-  const courses = (currentMemberData.cr_bn||'').split(/[,،]/).map(s=>s.trim()).filter(Boolean);
-  const currentName = courses[idx] || '';
-  document.getElementById('modalTitle').textContent = 'কোর্সের নাম সংশোধন';
-  document.getElementById('modalBody').innerHTML =
-    '<div class="form-group">' +
-    '<label class="form-label">কোর্সের নাম</label>' +
-    '<input type="text" class="form-input" id="editInput" value="' + currentName.replace(/"/g,'&quot;') + '">' +
-    '</div>' +
-    '<div style="font-size:0.78rem;color:var(--text2);margin-top:6px">ℹ️ এই পরিবর্তন সাথে সাথে কার্যকর হবে।</div>';
-  currentEditField = { key: '_editCourseName', label: 'কোর্স নাম', idx };
+function editCourseByIdx(idx) {
+  const isBn = appLang !== 'en';
+  const crBnArr = (currentMemberData.cr_bn || '').split(',').map(s=>s.trim()).filter(Boolean);
+  const crEnArr = (currentMemberData.cr_en || '').split(',').map(s=>s.trim()).filter(Boolean);
+  const results  = currentMemberData.courseResults || {};
+  const curBn  = crBnArr[idx] || '';
+  const curEn  = crEnArr[idx] || '';
+  const curRes = results['course_' + idx] || '';
+  const curPos = results['pos_' + idx] || '';
+  const curRec = results['rec_' + idx] || '';
+  const isAdmin = userRole === 'admin' || userRole === 'superadmin';
+  document.getElementById('modalTitle').textContent = isBn ? 'কোর্স / ক্যাডার সম্পাদনা' : 'Edit Course / Cadre';
+  document.getElementById('modalBody').innerHTML = `
+    <div class="form-group">
+      <label class="form-label">বাংলা নাম</label>
+      <input type="text" class="form-input" id="editInput" value="${curBn.replace(/"/g,'&quot;')}" placeholder="বাংলা নাম">
+    </div>
+    <div class="form-group">
+      <label class="form-label">English Name</label>
+      <input type="text" class="form-input" id="editCourseEn" value="${curEn.replace(/"/g,'&quot;')}" placeholder="English name">
+    </div>
+    <div class="form-group">
+      <label class="form-label">${isBn ? 'ফলাফল' : 'Result'}</label>
+      <select class="form-input" id="editCourseResult" style="background:var(--dark3)">
+        <option value="">— ${isBn ? 'নির্বাচন করুন' : 'Select'} —</option>
+        <option value="pass" ${curRes==='pass'?'selected':''} >${isBn?'পাস':'Pass'}</option>
+        <option value="alpha" ${curRes==='alpha'?'selected':''}>Alpha</option>
+        <option value="bplus" ${curRes==='bplus'?'selected':''}>B+</option>
+        <option value="b" ${curRes==='b'?'selected':''}>B</option>
+        <option value="bminus" ${curRes==='bminus'?'selected':''}>B-</option>
+        <option value="fail" ${curRes==='fail'?'selected':''} >${isBn?'ফেল':'Fail'}</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">${isBn ? 'অর্জিত অবস্থান (কত তম?)' : 'Position Achieved'}</label>
+      <input type="number" class="form-input" id="editCoursePos" value="${curPos}" min="1" max="9999" placeholder="${isBn?'যেমন: 5':'e.g. 5'}">
+    </div>
+    <div class="form-group">
+      <label class="form-label">${isBn ? 'সুপারিশ' : 'Recommendation'}</label>
+      <textarea class="form-input" id="editCourseRec" rows="2" style="resize:none" placeholder="${isBn?'সুপারিশ (ঐচ্ছিক)':'Recommendation (optional)'}">${curRec}</textarea>
+    </div>
+    ${!isAdmin ? '<div style="background:rgba(210,153,34,0.1);border:1px solid rgba(210,153,34,0.3);border-radius:8px;padding:8px 12px;font-size:0.78rem;color:var(--warn)">⏳ পরিবর্তন Admin অনুমোদনের পর কার্যকর হবে।</div>' : ''}
+  `;
+  currentEditField = { key: '_editCourse', label: 'কোর্স সম্পাদনা', idx };
   document.getElementById('editModal').classList.add('open');
 }
+// backward compat
+function editCourseNameByIdx(idx) { editCourseByIdx(idx); }
 
 function openAddCourse() {
   const isBn = appLang !== 'en';
@@ -3035,10 +3108,19 @@ async function loadPendingCoursesAndRender() {
   if (!docId) return;
   try {
     // সবসময় Firebase থেকে fresh load — logout/login এ হারাবে না
-    const snap = await db.collection('editRequests')
-      .where('memberId', '==', docId)
-      .where('status', '==', 'pending')
-      .get();
+    // memberId বা requestedBy যেকোনো একটা দিয়ে match করো
+    let snap;
+    try {
+      snap = await db.collection('editRequests')
+        .where('memberId', '==', docId)
+        .where('status', '==', 'pending')
+        .get();
+    } catch(e1) {
+      snap = await db.collection('editRequests')
+        .where('requestedBy', '==', currentUser.uid)
+        .where('status', '==', 'pending')
+        .get();
+    }
 
     if (snap.empty) return; // কোনো pending নেই
 
@@ -3088,18 +3170,19 @@ function renderCoursesWithPending(pendingList) {
     const resLabel    = RLBL[p.result] || '';
     const pos = p.position || 0;
     const posLabel = pos > 0 ? (isBn ? pos + 'তম স্থান' : pos + (pos==1?'st':pos==2?'nd':pos==3?'rd':'th') + ' Place') : '';
-    extraHtml += `<div class="course-item" style="border:1px dashed rgba(210,153,34,0.5);opacity:0.88">
-      <div class="course-item-header" style="flex-wrap:nowrap;align-items:flex-start">
-        <span style="font-size:14px;margin-top:2px">📋</span>
-        <span class="course-name" style="flex:1;min-width:0;word-break:break-word;line-height:1.4">${displayName}</span>
-        <span style="background:rgba(210,153,34,0.15);border:1px solid rgba(210,153,34,0.4);color:var(--warn);border-radius:20px;padding:2px 8px;font-family:'Rajdhani',sans-serif;font-size:0.6rem;font-weight:700;white-space:nowrap;flex-shrink:0;margin-left:6px">⏳ ${isBn ? 'অপেক্ষায়' : 'Pending'}</span>
+    extraHtml += `<div class="course-item" style="border:1px dashed rgba(210,153,34,0.45);background:rgba(210,153,34,0.03)">
+      <!-- badge row -->  
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:6px">
+        <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">
+          ${resLabel ? `<span style="font-size:0.62rem;background:rgba(63,185,80,0.1);border:1px solid rgba(63,185,80,0.3);color:var(--success);border-radius:10px;padding:2px 8px;font-family:'Rajdhani',sans-serif">📊 ${resLabel}</span>` : ''}
+          ${posLabel ? `<span style="font-size:0.62rem;background:rgba(200,169,74,0.1);border:1px solid rgba(200,169,74,0.3);color:var(--gold);border-radius:10px;padding:2px 8px;font-family:'Rajdhani',sans-serif;font-weight:700">🏆 ${posLabel}</span>` : ''}
+        </div>
+        <span style="background:rgba(210,153,34,0.15);border:1px solid rgba(210,153,34,0.4);color:var(--warn);border-radius:20px;padding:2px 10px;font-family:'Rajdhani',sans-serif;font-size:0.6rem;font-weight:700;white-space:nowrap">⏳ ${isBn ? 'অনুমোদনের অপেক্ষায়' : 'Pending Approval'}</span>
       </div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:7px">
-        ${resLabel ? `<span style="font-size:0.7rem;background:rgba(63,185,80,0.1);border:1px solid rgba(63,185,80,0.3);color:var(--success);border-radius:10px;padding:2px 9px;font-family:'Rajdhani',sans-serif">📊 ${resLabel}</span>` : ''}
-        ${posLabel ? `<span style="font-size:0.7rem;background:rgba(200,169,74,0.1);border:1px solid rgba(200,169,74,0.3);color:var(--gold);border-radius:10px;padding:2px 9px;font-family:'Rajdhani',sans-serif;font-weight:700">🏆 ${posLabel}</span>` : ''}
-        ${p.rec ? `<span style="font-size:0.68rem;color:var(--text2)">💬 ${p.rec}</span>` : ''}
-      </div>
-      <div style="font-size:0.7rem;color:var(--warn);margin-top:6px;font-family:'Rajdhani',sans-serif">
+      <!-- কোর্সের নাম -->  
+      <div style="font-size:0.95rem;font-weight:700;color:var(--text);line-height:1.5;margin-bottom:5px">${displayName}</div>
+      ${p.rec ? `<div style="font-size:0.72rem;color:var(--text2);padding:4px 8px;background:rgba(255,255,255,0.03);border-radius:6px;margin-bottom:4px">💬 ${p.rec}</div>` : ''}
+      <div style="font-size:0.7rem;color:var(--warn);font-family:'Rajdhani',sans-serif">
         ${isBn ? 'Admin অনুমোদন দিলে যুক্ত হবে।' : 'Will appear after Admin approval.'}
       </div>
     </div>`;
