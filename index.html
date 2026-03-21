@@ -21,12 +21,12 @@
 <script>
   self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
 </script>
-<!-- Firebase SDKs (compat — v12 modular এর compat layer) -->
-<script src="https://www.gstatic.com/firebasejs/12.11.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/12.11.0/firebase-app-check-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/12.11.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/12.11.0/firebase-storage-compat.js"></script>
+<!-- Firebase SDKs (compat v10 — stable) -->
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-check-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-storage-compat.js"></script>
 
 <style>
 :root {
@@ -1369,10 +1369,7 @@ function initFirebase(config) {
     // App Check — debug mode (Monitoring এ আছে বলে block করছিল)
     try {
       const appCheck = firebase.appCheck();
-      appCheck.activate(
-        new firebase.appCheck.ReCaptchaEnterpriseProvider('6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI'),
-        true
-      );
+      appCheck.activate('debug', true); // debug token ব্যবহার করো
     } catch(acErr) {
       console.warn('App Check skip:', acErr.message);
     }
