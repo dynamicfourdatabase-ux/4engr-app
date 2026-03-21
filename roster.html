@@ -509,7 +509,7 @@ select:focus { border-color: var(--accent); }
 <div class="controls-wrap">
   <div class="controls">
     <div class="search-wrap" style="flex:2;min-width:200px;">
-      <input type="text" id="searchInput" placeholder="নাম, সেনা নম্বর, ট্রেড, কোর্স, জেলা, NID...">
+      <input type="text" id="searchInput" oninput="applyFilters()" placeholder="নাম, সেনা নম্বর, ট্রেড, কোর্স, জেলা, NID...">
     </div>
     <select id="companyFilter"><option value="">সব কোম্পানী</option></select>
     <select id="rankFilter"><option value="">সব পদবী</option></select>
@@ -774,12 +774,13 @@ function setView(v){
 
 /* ─── FILTER & SEARCH ─── */
 function applyFilters(){
-  const q=document.getElementById('searchInput').value.trim().toLowerCase();
-  const co=document.getElementById('companyFilter').value;
-  const rk=document.getElementById('rankFilter').value;
-  const bl=document.getElementById('bloodFilter').value;
-  const di=document.getElementById('districtFilter').value;
-  const tr=document.getElementById('tradeFilter').value;
+  if(!MEMBERS || !MEMBERS.length) return;
+  const q=document.getElementById('searchInput')?.value.trim().toLowerCase()||'';
+  const co=document.getElementById('companyFilter')?.value||'';
+  const rk=document.getElementById('rankFilter')?.value||'';
+  const bl=document.getElementById('bloodFilter')?.value||'';
+  const di=document.getElementById('districtFilter')?.value||'';
+  const tr=document.getElementById('tradeFilter')?.value||'';
   filtered=MEMBERS.filter(m=>{
     if(co&&m.co_bn!==co)return false;
     if(rk&&m.r_bn!==rk)return false;
@@ -787,9 +788,9 @@ function applyFilters(){
     if(di&&m.di_bn!==di)return false;
     if(tr&&m.tr_bn!==tr)return false;
     if(q){
-      // Search across ALL fields in both languages
+      // Search across ALL fields in both languages — null safe
       const hay=[
-        m.bn,m.en,m.no,
+        m.bn,m.en,String(m.no||''),
         m.r_bn,m.r_en,
         m.tr_bn,m.tr_en,
         m.co_bn,m.co_en,
@@ -806,7 +807,7 @@ function applyFilters(){
         m.ad,m.rt,m.pu,m.niyog,m.promo_date,
         m.c1n,m.c2n,m.c3n,m.c4n,
         m.dob,m.jd,m.od,m.pd,
-      ].join(' ').toLowerCase();
+      ].map(v=>v||'').join(' ').toLowerCase();
       if(!hay.includes(q))return false;
     }
     return true;
@@ -843,6 +844,10 @@ function renderCards(){
   }
 }
 
+function isBlankMember(m){
+  return !m.bn && !m.en && !m.r_bn;
+}
+
 function renderCard(m,idx){
   const rank=R(m,'r'); const trade=R(m,'tr'); const dist=R(m,'di'); const co=R(m,'co');
   const nm1=lang==='bn'?(m.bn||m.en||'—'):(m.en||m.bn||'—');
@@ -851,15 +856,32 @@ function renderCard(m,idx){
   const svc=yearsSince(parseDate(m.jd));
   const edu=lang==='bn'?m.ed_bn:m.ed_en;
   const eduShort=(edu||'—').replace('HSC (Higher Secondary)','HSC').replace('SSC (Secondary)','SSC').replace('উচ্চ মাধ্যমিক (এইচএসসি)','এইচএসসি').replace('মাধ্যমিক (এসএসসি)','এসএসসি').replace('ডিগ্রী/অনার্স','ডিগ্রী').replace('Degree/Honours','Degree');
-  return `<div class="card" onclick="showModal(${idx})">
+  const blank = isBlankMember(m);
+  const canEdit = webCurrentUser && (webUserRole === 'admin' || webUserRole === 'superadmin');
+
+  const blankBadge = blank
+    ? `<span style="font-family:'Rajdhani',sans-serif;font-size:0.6rem;font-weight:700;letter-spacing:1px;
+        color:#d29922;border:1px solid rgba(210,153,34,0.4);border-radius:10px;padding:2px 7px;
+        background:rgba(210,153,34,0.08);white-space:nowrap">${L('তথ্য অপূর্ণ','Incomplete')}</span>`
+    : '';
+
+  return `<div class="card${blank?' card-blank':''}" onclick="showModal(${idx})" style="${blank?'border-color:rgba(210,153,34,0.35)':''}">
     <div class="card-top">
       ${avatarHtml(m)}
       <div class="card-name">
         <div class="n1">${nm1}</div>
-        <div class="n2">${nm2}</div>
+        <div class="n2">${nm2||blankBadge}</div>
       </div>
       <span class="rank-badge ${rc(rank)}">${rank||'—'}</span>
     </div>
+    ${blank ? `
+    <div style="padding:10px 14px 14px;text-align:center">
+      <div style="font-size:0.75rem;color:var(--text3);margin-bottom:8px"># ${m.no||'—'} · ${L('নিবন্ধন বাকি','Registration pending')}</div>
+      ${canEdit ? `<button onclick="event.stopPropagation();openRosterEditModal(filtered[${idx}])"
+        style="background:rgba(210,153,34,0.12);border:1px solid rgba(210,153,34,0.35);color:#b8902a;
+        border-radius:7px;padding:6px 14px;font-family:'Rajdhani',sans-serif;font-size:0.7rem;
+        font-weight:700;letter-spacing:1px;cursor:pointer">${L('✏️ তথ্য পূরণ করুন','✏️ Fill Details')}</button>` : ''}
+    </div>` : `
     <div class="card-body">
       <div class="info-item"><span class="lbl">${L('রক্তের গ্রুপ','Blood Group')}</span><span class="val blood">${m.bl||'—'}</span></div>
       <div class="info-item"><span class="lbl">${L('ট্রেড','Trade')}</span><span class="val">${trade||'—'}</span></div>
@@ -871,18 +893,25 @@ function renderCard(m,idx){
     <div class="card-footer">
       <span class="co-tag">${co||'—'}</span>
       <span class="sena-no"># ${m.no||'—'}</span>
-    </div>
+    </div>`}
   </div>`;
 }
 
 function renderListRow(m,idx){
   const rank=R(m,'r'); const trade=R(m,'tr'); const dist=R(m,'di'); const co=R(m,'co');
-  const nm1=lang==='bn'?(m.bn||m.en||'—'):(m.en||m.bn||'—');
+  const blank=isBlankMember(m);
+  const nm1=lang==='bn'
+    ? (m.bn||m.en||(blank?L('(অপূর্ণ)','(Incomplete)'):'—'))
+    : (m.en||m.bn||(blank?'(Incomplete)':'—'));
   const nm2=lang==='bn'?(m.en||''):(m.bn||'');
-  return `<div class="list-row" onclick="showModal(${idx})">
+  return `<div class="list-row${blank?' list-row-blank':''}" onclick="showModal(${idx})"
+    style="${blank?'border-left:3px solid rgba(210,153,34,0.5);opacity:0.8':''}">
     ${listAvatarHtml(m)}
-    <div class="list-name"><div class="n1">${nm1}</div><div class="n2">${nm2}</div></div>
-    <div class="list-cell"><span class="rank-badge ${rc(rank)}">${rank||'—'}</span></div>
+    <div class="list-name">
+      <div class="n1">${nm1}</div>
+      <div class="n2">${nm2}</div>
+    </div>
+    <div class="list-cell"><span class="rank-badge ${rc(rank)}">${rank||(blank?'—':'—')}</span></div>
     <div class="list-cell">${trade||'—'}</div>
     <div class="list-cell blood">${m.bl||'—'}</div>
     <div class="list-cell">${dist||'—'}</div>
@@ -921,6 +950,13 @@ const PROMO_EN=['Sainik → Lance Cpl','Lance Cpl → Corporal','Corporal → Se
 function showModal(idx){
   const m=filtered[idx];
   if(!m)return;
+
+  // Blank member — Admin হলে সরাসরি edit modal দেখাও
+  if(isBlankMember(m) && webCurrentUser && (webUserRole==='admin'||webUserRole==='superadmin')){
+    openRosterEditModal(m);
+    return;
+  }
+
   const rank=R(m,'r'); const trade=R(m,'tr'); const co=R(m,'co'); const dist=R(m,'di');
   const edu=lang==='bn'?m.ed_bn:m.ed_en;
   const nm1=lang==='bn'?(m.bn||m.en||'—'):(m.en||m.bn||'—');
@@ -1174,153 +1210,125 @@ function injectAdminBar() {
 function openAddMemberModal() {
   const modal = document.createElement('div');
   modal.id = 'addMemberModal';
-  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9998;display:flex;align-items:flex-end;justify-content:center;padding:20px;overflow-y:auto';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9998;display:flex;align-items:flex-end;justify-content:center;padding:0';
+  const inp = (id, ph, extra='') =>
+    `<input type="text" id="${id}" placeholder="${ph}" autocomplete="off" ${extra}
+      style="width:100%;background:#1c2333;border:1px solid rgba(255,255,255,0.08);border-radius:8px;
+      padding:10px 13px;color:#e6e6e6;font-size:0.9rem;outline:none;margin-top:4px">`;
+  const lbl = txt =>
+    `<label style="display:block;font-size:0.68rem;color:#8b949e;letter-spacing:1px;text-transform:uppercase">${txt}</label>`;
+
   modal.innerHTML = `
-    <div style="background:#161b22;border:1px solid rgba(184,144,42,0.25);border-radius:16px 16px 0 0;width:100%;max-width:600px;padding:24px;max-height:90vh;overflow-y:auto">
+    <div style="background:#161b22;border:1px solid rgba(184,144,42,0.25);border-radius:16px 16px 0 0;
+      width:100%;max-width:500px;padding:24px;max-height:85vh;overflow-y:auto">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
         <span style="font-family:'Rajdhani',sans-serif;font-size:0.9rem;font-weight:700;letter-spacing:2px;color:#3fb950;text-transform:uppercase">➕ নতুন সদস্য যোগ</span>
         <button id="addMemberCloseBtn" style="background:transparent;border:none;color:rgba(255,255,255,0.4);cursor:pointer;font-size:20px">✕</button>
       </div>
-      <div style="background:rgba(63,185,80,0.06);border:1px solid rgba(63,185,80,0.2);border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:0.8rem;color:rgba(255,255,255,0.5);line-height:1.6">
-        ℹ️ তথ্য যোগ হলে সদস্য <strong style="color:#3fb950">Self-Registration</strong> করে অ্যাকাউন্ট তৈরি করতে পারবে।
+
+      <div style="background:rgba(63,185,80,0.06);border:1px solid rgba(63,185,80,0.2);border-radius:8px;
+        padding:12px 14px;margin-bottom:16px;font-size:0.8rem;color:rgba(255,255,255,0.55);line-height:1.8">
+        <div style="font-family:'Rajdhani',sans-serif;font-size:0.75rem;font-weight:700;letter-spacing:1px;color:#3fb950;margin-bottom:6px">📋 নিবন্ধন পদ্ধতি</div>
+        <div>① Admin শুধু <strong style="color:#e6e6e6">সেনা নম্বর</strong> ও <strong style="color:#e6e6e6">জন্ম তারিখ</strong> যোগ করবেন</div>
+        <div>② সদস্য অ্যাপে গিয়ে নিবন্ধন করবেন — সেনা নম্বর ও জন্ম তারিখ দিয়ে যাচাই হবে</div>
+        <div>③ নিবন্ধনের পর সদস্য নিজে তার সকল তথ্য পূরণ করবেন</div>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-        <div><label style="display:block;font-size:0.7rem;color:#8b949e;margin-bottom:4px;letter-spacing:1px;text-transform:uppercase">সেনা নম্বর *</label>
-        <input type="text" id="wm_no" placeholder="যেমন: 12345" style="width:100%;background:#1c2333;border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:9px 12px;color:#e6e6e6;font-size:0.88rem;outline:none"></div>
-        <div><label style="display:block;font-size:0.7rem;color:#8b949e;margin-bottom:4px;letter-spacing:1px;text-transform:uppercase">পদবী *</label>
-        <select id="wm_rank" style="width:100%;background:#1c2333;border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:9px 12px;color:#e6e6e6;font-size:0.88rem;outline:none">
-          <option value="">নির্বাচন করুন</option>
-          <option value='মাস্টার ওয়ারেন্ট অফিসার'>মাস্টার ওয়ারেন্ট অফিসার</option>
-          <option value='সিনিয়র ওয়ারেন্ট অফিসার'>সিনিয়র ওয়ারেন্ট অফিসার</option>
-          <option value='ওয়ারেন্ট অফিসার'>ওয়ারেন্ট অফিসার</option>
-          <option value='সার্জেন্ট'>সার্জেন্ট</option>
-          <option value='কর্পোরাল'>কর্পোরাল</option>
-          <option value='ল্যান্স কর্পোরাল'>ল্যান্স কর্পোরাল</option>
-          <option value='সৈনিক'>সৈনিক</option>
-          <option value='এনসি (ই)'>এনসি (ই)</option>
-        </select></div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div>
+          ${lbl('সেনা নম্বর *')}
+          ${inp('wm_no', 'যেমন: 32273', 'oninput="this.value=this.value.toUpperCase()"')}
+        </div>
+        <div>
+          ${lbl('জন্ম তারিখ *')}
+          ${inp('wm_dob', 'DD/MM/YYYY')}
+        </div>
       </div>
-      <div style="margin-top:10px"><label style="display:block;font-size:0.7rem;color:#8b949e;margin-bottom:4px;letter-spacing:1px;text-transform:uppercase">বাংলা নাম *</label>
-      <input type="text" id="wm_bn" placeholder="পূর্ণ নাম বাংলায়" style="width:100%;background:#1c2333;border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:9px 12px;color:#e6e6e6;font-size:0.88rem;outline:none"></div>
-      <div style="margin-top:10px"><label style="display:block;font-size:0.7rem;color:#8b949e;margin-bottom:4px;letter-spacing:1px;text-transform:uppercase">ইংরেজি নাম</label>
-      <input type="text" id="wm_en" placeholder="Full name in English" style="width:100%;background:#1c2333;border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:9px 12px;color:#e6e6e6;font-size:0.88rem;outline:none"></div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
-        <div><label style="display:block;font-size:0.7rem;color:#8b949e;margin-bottom:4px;letter-spacing:1px;text-transform:uppercase">জন্ম তারিখ *</label>
-        <input type="text" id="wm_dob" placeholder="DD/MM/YYYY" style="width:100%;background:#1c2333;border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:9px 12px;color:#e6e6e6;font-size:0.88rem;outline:none"></div>
-        <div><label style="display:block;font-size:0.7rem;color:#8b949e;margin-bottom:4px;letter-spacing:1px;text-transform:uppercase">রক্তের গ্রুপ</label>
-        <select id="wm_bl" style="width:100%;background:#1c2333;border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:9px 12px;color:#e6e6e6;font-size:0.88rem;outline:none">
-          <option value="">নির্বাচন করুন</option>
-          <option>A+</option><option>A-</option><option>B+</option><option>B-</option>
-          <option>AB+</option><option>AB-</option><option>O+</option><option>O-</option>
-        </select></div>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
-        <div><label style="display:block;font-size:0.7rem;color:#8b949e;margin-bottom:4px;letter-spacing:1px;text-transform:uppercase">ট্রেড</label>
-        <select id="wm_trade" style="width:100%;background:#1c2333;border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:9px 12px;color:#e6e6e6;font-size:0.88rem;outline:none">
-          <option value="">নির্বাচন করুন</option>
-          <option value='আরএমটি'>আরএমটি</option>
-          <option value='আরসিটি'>আরসিটি</option>
-          <option value='ইএন্ডবিআর'>ইএন্ডবিআর</option>
-          <option value='ইলেক্টিশিয়ান'>ইলেক্টিশিয়ান</option>
-          <option value='এ/ই'>এ/ই</option>
-          <option value='এইসি'>এইসি</option>
-          <option value='এনসি (ই)'>এনসি (ই)</option>
-          <option value='এমএ'>এমএ</option>
-          <option value='এসএমটি'>এসএমটি</option>
-          <option value='ওইপি'>ওইপি</option>
-          <option value='ওবিএম'>ওবিএম</option>
-          <option value='ওসিইউ'>ওসিইউ</option>
-          <option value='ওয়েল্ডার'>ওয়েল্ডার</option>
-          <option value='করনিক'>করনিক</option>
-          <option value='কার্পেন্টার'>কার্পেন্টার</option>
-          <option value='কুক (ইউ)'>কুক (ইউ)</option>
-          <option value='টিএসএ'>টিএসএ</option>
-          <option value='টিবিভি'>টিবিভি</option>
-          <option value='টিসিভি'>টিসিভি</option>
-          <option value='টেইলার'>টেইলার</option>
-          <option value='ডিএমটি'>ডিএমটি</option>
-          <option value='ডিএসভি'>ডিএসভি</option>
-          <option value='ড্রাফটসম্যান'>ড্রাফটসম্যান</option>
-          <option value='পিডি'>পিডি</option>
-          <option value='পেইন্টার'>পেইন্টার</option>
-          <option value='বিটিএস'>বিটিএস</option>
-          <option value='মেশন'>মেশন</option>
-          <option value='মেশিনিষ্ট'>মেশিনিষ্ট</option>
-          <option value='সার্ভেয়ার'>সার্ভেয়ার</option>
-        </select></div>
-        <div><label style="display:block;font-size:0.7rem;color:#8b949e;margin-bottom:4px;letter-spacing:1px;text-transform:uppercase">কোম্পানী *</label>
-        <select id="wm_co" style="width:100%;background:#1c2333;border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:9px 12px;color:#e6e6e6;font-size:0.88rem;outline:none">
-          <option value="">নির্বাচন করুন</option>
-          <option>৪৮ ফিল্ড কোম্পানী</option><option>৪৯ ফিল্ড কোম্পানী</option>
-          <option>৫০ ফিল্ড কোম্পানী</option><option>প্লান্ট কোম্পানী</option>
-          <option>ব্রীজ কোম্পানী</option><option>সদর কোম্পানী</option>
-          <option>ইএমই</option>
-        </select></div>
-      </div>
-      <div style="margin-top:10px"><label style="display:block;font-size:0.7rem;color:#8b949e;margin-bottom:4px;letter-spacing:1px;text-transform:uppercase">জেলা</label>
-      <input type="text" id="wm_dist" placeholder="স্থায়ী জেলা" style="width:100%;background:#1c2333;border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:9px 12px;color:#e6e6e6;font-size:0.88rem;outline:none"></div>
-      <div style="margin-top:10px"><label style="display:block;font-size:0.7rem;color:#8b949e;margin-bottom:4px;letter-spacing:1px;text-transform:uppercase">মোবাইল</label>
-      <input type="text" id="wm_mb" placeholder="01XXXXXXXXX" style="width:100%;background:#1c2333;border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:9px 12px;color:#e6e6e6;font-size:0.88rem;outline:none"></div>
-      <div style="margin-top:10px"><label style="display:block;font-size:0.7rem;color:#8b949e;margin-bottom:4px;letter-spacing:1px;text-transform:uppercase">স্থায়ী ঠিকানা</label>
-      <textarea id="wm_ad" rows="2" placeholder="গ্রাম, পোস্ট, উপজেলা, জেলা" style="width:100%;background:#1c2333;border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:9px 12px;color:#e6e6e6;font-size:0.88rem;outline:none;resize:none"></textarea></div>
-      <div id="addMemberWebResult" style="display:none;margin-top:12px;border-radius:8px;padding:10px 14px;font-size:0.82rem"></div>
+
+      <div id="addMemberWebResult" style="display:none;margin-top:12px;border-radius:8px;padding:10px 14px;font-size:0.82rem;white-space:pre-line;line-height:1.6"></div>
+
       <div style="display:flex;gap:10px;margin-top:16px">
         <button onclick="submitAddMember()" id="btnWebAddMember"
-          style="flex:1;padding:12px;background:linear-gradient(135deg,#3fb950,#2a8a40);border:none;border-radius:8px;color:#fff;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:0.88rem;letter-spacing:1px;cursor:pointer">
+          style="flex:1;padding:13px;background:linear-gradient(135deg,#3fb950,#2a8a40);border:none;
+          border-radius:8px;color:#fff;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:0.88rem;
+          letter-spacing:1px;cursor:pointer">
           ➕ সদস্য যোগ করুন
         </button>
         <button id="addMemberCancelBtn"
-          style="padding:12px 18px;background:transparent;border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:rgba(255,255,255,0.4);cursor:pointer;font-family:'Rajdhani',sans-serif">
+          style="padding:13px 18px;background:transparent;border:1px solid rgba(255,255,255,0.1);
+          border-radius:8px;color:rgba(255,255,255,0.4);cursor:pointer;font-family:'Rajdhani',sans-serif">
           বাতিল
         </button>
       </div>
     </div>`;
+
   document.body.appendChild(modal);
   modal.onclick = e => { if (e.target === modal) modal.remove(); };
   document.getElementById('addMemberCloseBtn').onclick = () => modal.remove();
   document.getElementById('addMemberCancelBtn').onclick = () => modal.remove();
+  // Focus on army no
+  setTimeout(() => document.getElementById('wm_no')?.focus(), 100);
 }
 
 async function submitAddMember() {
-  const g = id => document.getElementById(id)?.value.trim() || '';
-  const no = g('wm_no'), bn = g('wm_bn'), dob = g('wm_dob');
-  const rank = g('wm_rank'), co = g('wm_co');
+  const no  = (document.getElementById('wm_no')?.value  || '').trim().toUpperCase();
+  const dob = (document.getElementById('wm_dob')?.value || '').trim();
   const res = document.getElementById('addMemberWebResult');
 
   const showRes = (msg, ok) => {
-    res.style.cssText = 'display:block;background:rgba(' + (ok?'63,185,80':'224,85,85') + ',0.1);border:1px solid rgba(' + (ok?'63,185,80':'224,85,85') + ',0.3);color:' + (ok?'#3fb950':'#e05555') + ';border-radius:8px;padding:10px 14px;font-size:0.82rem';
+    res.style.cssText = 'display:block;background:rgba(' + (ok?'63,185,80':'224,85,85') + ',0.1);border:1px solid rgba(' + (ok?'63,185,80':'224,85,85') + ',0.3);color:' + (ok?'#3fb950':'#e05555') + ';border-radius:8px;padding:10px 14px;font-size:0.82rem;white-space:pre-line;line-height:1.6';
     res.textContent = msg;
   };
 
-  if (!no || !bn || !dob || !rank || !co) { showRes('* চিহ্নিত তথ্য আবশ্যিক।', false); return; }
+  if (!no)  { showRes('সেনা নম্বর দিন।', false); return; }
+  if (!dob) { showRes('জন্ম তারিখ দিন (DD/MM/YYYY)।', false); return; }
+
+  const dobParts = dob.split('/');
+  if (dobParts.length !== 3 || dobParts[2].length !== 4) {
+    showRes('জন্ম তারিখ সঠিক ফরম্যাটে দিন: DD/MM/YYYY', false); return;
+  }
 
   const docId = no.replace(/[^A-Z0-9]/gi, '');
+  if (!docId) { showRes('সেনা নম্বর সঠিক নয়।', false); return; }
+
   const btn = document.getElementById('btnWebAddMember');
   btn.disabled = true; btn.textContent = '⏳ যোগ হচ্ছে...';
 
   try {
     const existing = await db.collection('members').doc(docId).get();
-    if (existing.exists) { showRes('⚠️ এই সেনা নম্বরে ইতিমধ্যে সদস্য আছে।', false); btn.disabled=false; btn.textContent='➕ সদস্য যোগ করুন'; return; }
+    if (existing.exists) {
+      const d = existing.data();
+      if (d.dob && d.dob.trim() === dob.trim()) {
+        showRes('⚠️ এই সেনা নম্বর ও জন্ম তারিখ ইতিমধ্যে যোগ করা আছে।\nসদস্য এখনই নিবন্ধন করতে পারবেন।', false);
+      } else if (d.dob) {
+        showRes('⚠️ এই সেনা নম্বরে ইতিমধ্যে সদস্য আছে (ভিন্ন জন্ম তারিখ সহ)।', false);
+      } else {
+        await db.collection('members').doc(docId).update({
+          dob,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          updatedBy: webCurrentUser.uid,
+        });
+        showRes('✅ জন্ম তারিখ আপডেট হয়েছে।\nসদস্য এখন নিবন্ধন করতে পারবেন।\nসেনা নং: ' + no, true);
+      }
+      btn.disabled = false; btn.textContent = '➕ সদস্য যোগ করুন'; return;
+    }
 
     await db.collection('members').doc(docId).set({
-      no, bn, en: g('wm_en') || bn,
-      r_bn: rank, r_en: rank,
-      dob, bl: g('wm_bl'),
-      tr_bn: g('wm_trade'), tr_en: g('wm_trade'),
-      co_bn: co, co_en: co,
-      di_bn: g('wm_dist'), di_en: g('wm_dist'),
-      mb: g('wm_mb'), ad: g('wm_ad'),
+      no,
+      dob,
       addedBy: webCurrentUser.uid,
       addedAt: firebase.firestore.FieldValue.serverTimestamp(),
       updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
     });
 
-    showRes('✅ সদস্য যোগ সফল! ' + bn + ' (' + no + ')', true);
-    // ওয়েবসাইটে তাৎক্ষণিক দেখানোর জন্য MEMBERS array এ যোগ করো
-    MEMBERS.push({ no, bn, en: g('wm_en')||bn, r_bn: rank, co_bn: co, dob, bl: g('wm_bl'), _id: docId });
+    showRes('✅ সদস্য যোগ সফল!\n\nসেনা নং: ' + no + '\nজন্ম তারিখ: ' + dob + '\n\nসদস্য অ্যাপে গিয়ে নিবন্ধন করতে পারবেন।', true);
+
+    // MEMBERS array তে যোগ করো তাৎক্ষণিক দেখানোর জন্য
+    MEMBERS.push({ no, dob, _id: docId });
     document.getElementById('totalCount').textContent = MEMBERS.length;
     applyFilters();
-    setTimeout(() => document.getElementById('addMemberModal')?.remove(), 2000);
+
+    setTimeout(() => document.getElementById('addMemberModal')?.remove(), 2500);
   } catch(e) {
     showRes('ব্যর্থ: ' + (e.code || e.message), false);
   }
@@ -1707,13 +1715,29 @@ async function saveAdminProfile(docId) {
 
 /* ── Roster থেকে সদস্য তথ্য সম্পাদনা ── */
 function openRosterEditModal(m) {
-  const RANKS = ['লেঃ কর্নেল','মেজর','ক্যাপ্টেন','লেফটেন্যান্ট','মাস্টাঃ ওয়াঃ অফিঃ','সিনিঃ ওয়াঃ অফিঃ','ওয়ারেন্ট অফিসার','সার্জেন্ট','কর্পোরাল','ল্যান্স কর্পোরাল','সৈনিক','এনসি (ই)'];
-  const TRADES = ['অফিসার','আরএমটি','আরসিটি','ইএন্ডবিআর','ইলেক্টিশিয়ান','এ/ই','এইসি','এনসি (ই)','এমএ','এসএমটি','ওইপি','ওবিএম','ওসিইউ','ওয়েল্ডার','করনিক','কার্পেন্টার','কুক (ইউ)','টিএসএ','টিবিভি','টিসিভি','টেইলার','ডিএমটি','ডিএসভি','ড্রাফটসম্যান','পিডি','পেইন্টার','বিটিএস','মেশন','মেশিনিষ্ট','সার্ভেয়ার'];
+  const RANKS    = ['লেঃ কর্নেল','মেজর','ক্যাপ্টেন','লেফটেন্যান্ট','মাস্টাঃ ওয়াঃ অফিঃ','সিনিঃ ওয়াঃ অফিঃ','ওয়ারেন্ট অফিসার','সার্জেন্ট','কর্পোরাল','ল্যান্স কর্পোরাল','সৈনিক','এনসি (ই)'];
+  const TRADES   = ['অফিসার','আরএমটি','আরসিটি','ইএন্ডবিআর','ইলেক্টিশিয়ান','এ/ই','এইসি','এনসি (ই)','এমএ','এসএমটি','ওইপি','ওবিএম','ওসিইউ','ওয়েল্ডার','করনিক','কার্পেন্টার','কুক (ইউ)','টিএসএ','টিবিভি','টিসিভি','টেইলার','ডিএমটি','ডিএসভি','ড্রাফটসম্যান','পিডি','পেইন্টার','বিটিএস','মেশন','মেশিনিষ্ট','সার্ভেয়ার'];
+  const COMPANIES= ['৪৮ ফিল্ড কোম্পানী','৪৯ ফিল্ড কোম্পানী','৫০ ফিল্ড কোম্পানী','প্লান্ট কোম্পানী','ব্রীজ কোম্পানী','সদর কোম্পানী','ইএমই'];
+  const BLOODS   = ['A+','A-','B+','B-','AB+','AB-','O+','O-'];
+  const MARITAL  = ['অবিবাহিত','বিবাহিত','বিধবা/বিপত্নীক','তালাকপ্রাপ্ত'];
+  const DISTRICTS= ['ঢাকা','চট্টগ্রাম','সিলেট','রাজশাহী','খুলনা','বরিশাল','রংপুর','ময়মনসিংহ','কুমিল্লা','নোয়াখালী','ফেনী','লক্ষ্মীপুর','চাঁদপুর','ব্রাহ্মণবাড়িয়া','হবিগঞ্জ','মৌলভীবাজার','সুনামগঞ্জ','কিশোরগঞ্জ','নেত্রকোণা','জামালপুর','শেরপুর','টাঙ্গাইল','গাজীপুর','নারায়ণগঞ্জ','মুন্সিগঞ্জ','মানিকগঞ্জ','ফরিদপুর','মাদারীপুর','শরীয়তপুর','রাজবাড়ী','গোপালগঞ্জ','নরসিংদী','বগুড়া','চাঁপাইনবাবগঞ্জ','নওগাঁ','নাটোর','সিরাজগঞ্জ','পাবনা','জয়পুরহাট','কুষ্টিয়া','মেহেরপুর','চুয়াডাঙ্গা','ঝিনাইদহ','মাগুরা','নড়াইল','যশোর','সাতক্ষীরা','বাগেরহাট','পিরোজপুর','ভোলা','পটুয়াখালী','বরগুনা','ঝালকাঠি','দিনাজপুর','ঠাকুরগাঁও','পঞ্চগড়','নীলফামারী','লালমনিরহাট','কুড়িগ্রাম','গাইবান্ধা','কক্সবাজার','বান্দরবান','রাঙ্গামাটি','খাগড়াছড়ি'];
+  const EDUCATIONS=['প্রাথমিক (৫ম শ্রেণি)','জুনিয়র স্কুল সার্টিফিকেট (জেএসসি)','মাধ্যমিক (এসএসসি)','উচ্চ মাধ্যমিক (এইচএসসি)','ডিপ্লোমা','ডিগ্রী/অনার্স','মাস্টার্স','অন্যান্য'];
 
-  const inp = (id, val, ph='') => `<input type="text" id="re_${id}" value="${(val||'').replace(/"/g,'&quot;')}" placeholder="${ph}" style="width:100%;background:#1c2333;border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:8px 11px;color:#e6e6e6;font-size:0.85rem;outline:none;margin-top:3px">`;
-  const sel = (id, val, opts) => `<select id="re_${id}" style="width:100%;background:#1c2333;border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:8px 11px;color:#e6e6e6;font-size:0.85rem;outline:none;margin-top:3px"><option value="">—</option>${opts.map(o=>`<option value="${o}" ${val===o?'selected':''}>${o}</option>`).join('')}</select>`;
-  const lbl = (txt) => `<label style="display:block;font-family:'Rajdhani',sans-serif;font-size:0.68rem;letter-spacing:1px;color:#8b949e;text-transform:uppercase;margin-top:10px">${txt}</label>`;
-  const ta = (id, val, ph='') => `<textarea id="re_${id}" rows="2" placeholder="${ph}" style="width:100%;background:#1c2333;border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:8px 11px;color:#e6e6e6;font-size:0.85rem;outline:none;margin-top:3px;resize:vertical">${val||''}</textarea>`;
+  // Helper — lock indicator: member নিজে edit করেছে কিনা
+  const lockIcon = key => m['_selfEdited_'+key]
+    ? `<span title="সদস্য নিজে একবার পরিবর্তন করেছেন" style="font-size:11px;color:#d29922;margin-left:4px">🔒</span>`
+    : '';
+
+  // Input builders
+  const S = `width:100%;background:#1c2333;border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:8px 11px;color:#e6e6e6;font-size:0.85rem;outline:none;margin-top:3px`;
+  const inp = (id, val, ph='') =>
+    `<input type="text" id="re_${id}" value="${(val||'').replace(/"/g,'&quot;')}" placeholder="${ph}" style="${S}">`;
+  const sel = (id, val, opts) =>
+    `<select id="re_${id}" style="${S};background:#1c2333"><option value="">—</option>${opts.map(o=>`<option value="${o}"${val===o?' selected':''}>${o}</option>`).join('')}</select>`;
+  const ta  = (id, val, ph='') =>
+    `<textarea id="re_${id}" rows="2" placeholder="${ph}" style="${S};resize:vertical">${val||''}</textarea>`;
+  const lbl = (txt, key='') =>
+    `<label style="display:flex;align-items:center;font-family:'Rajdhani',sans-serif;font-size:0.68rem;letter-spacing:1px;color:#8b949e;text-transform:uppercase;margin-top:10px">${txt}${key?lockIcon(key):''}</label>`;
 
   const docId = m._id || String(m.no||'').replace(/[^A-Z0-9]/gi,'');
 
@@ -1727,26 +1751,32 @@ function openRosterEditModal(m) {
         <button onclick="document.getElementById('rosterEditModal').remove()" style="background:transparent;border:none;color:rgba(255,255,255,0.4);cursor:pointer;font-size:20px">✕</button>
       </div>
 
+      ${Object.keys(m).some(k=>k.startsWith('_selfEdited_'))?`
+      <div style="background:rgba(210,153,34,0.08);border:1px solid rgba(210,153,34,0.25);border-radius:8px;padding:8px 12px;margin-bottom:14px;font-size:0.78rem;color:#d29922;font-family:'Rajdhani',sans-serif">
+        🔒 চিহ্নিত field গুলো সদস্য নিজে একবার পরিবর্তন করেছেন।
+      </div>` : ''}
+
       <div style="font-family:'Rajdhani',sans-serif;font-size:0.7rem;letter-spacing:2px;color:#b8902a;text-transform:uppercase;margin-bottom:8px">ব্যক্তিগত তথ্য</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
         <div>${lbl('বাংলা নাম')}${inp('bn',m.bn)}</div>
         <div>${lbl('ইংরেজি নাম')}${inp('en',m.en)}</div>
-        <div>${lbl('জন্ম তারিখ (DD/MM/YYYY)')}${inp('dob',m.dob,'DD/MM/YYYY')}</div>
-        <div>${lbl('রক্তের গ্রুপ')}${sel('bl',m.bl,['A+','A-','B+','B-','AB+','AB-','O+','O-'])}</div>
-        <div>${lbl('NID নম্বর')}${inp('nid',m.nid)}</div>
-        <div>${lbl('মোবাইল')}${inp('mb',m.mb,'01XXXXXXXXX')}</div>
-        <div>${lbl('হোয়াটসঅ্যাপ')}${inp('wa',m.wa,'01XXXXXXXXX')}</div>
-        <div>${lbl('জেলা')}${inp('di_bn',m.di_bn||m.dist)}</div>
-        <div>${lbl('শিক্ষা')}${inp('ed_bn',m.ed_bn)}</div>
-        <div>${lbl('জরুরি যোগাযোগ')}${inp('em',m.em)}</div>
+        <div>${lbl('জন্ম তারিখ (DD/MM/YYYY)','dob')}${inp('dob',m.dob,'DD/MM/YYYY')}</div>
+        <div>${lbl('রক্তের গ্রুপ','bl')}${sel('bl',m.bl,BLOODS)}</div>
+        <div>${lbl('NID নম্বর','nid')}${inp('nid',m.nid)}</div>
+        <div>${lbl('মোবাইল','mb')}${inp('mb',m.mb,'01XXXXXXXXX')}</div>
+        <div>${lbl('হোয়াটসঅ্যাপ','wa')}${inp('wa',m.wa,'01XXXXXXXXX')}</div>
+        <div>${lbl('জেলা','di_bn')}${sel('di_bn',m.di_bn||m.dist,DISTRICTS)}</div>
+        <div>${lbl('শিক্ষা','ed_bn')}${sel('ed_bn',m.ed_bn,EDUCATIONS)}</div>
+        <div>${lbl('জরুরি যোগাযোগ','em')}${inp('em',m.em)}</div>
       </div>
-      <div>${lbl('স্থায়ী ঠিকানা')}${ta('ad',m.ad,'গ্রাম, পোস্ট, উপজেলা, জেলা')}</div>
+      <div>${lbl('স্থায়ী ঠিকানা','ad')}${ta('ad',m.ad,'গ্রাম, পোস্ট, উপজেলা, জেলা')}</div>
 
       <div style="font-family:'Rajdhani',sans-serif;font-size:0.7rem;letter-spacing:2px;color:#b8902a;text-transform:uppercase;margin:16px 0 8px">সামরিক তথ্য</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-        <div>${lbl('পদবী')}${sel('r_bn',m.r_bn,RANKS)}</div>
-        <div>${lbl('ট্রেড')}${sel('tr_bn',m.tr_bn,TRADES)}</div>
-        <div>${lbl('নিয়োগ')}${inp('niyog',m.niyog)}</div>
+        <div>${lbl('পদবী','r_bn')}${sel('r_bn',m.r_bn,RANKS)}</div>
+        <div>${lbl('ট্রেড','tr_bn')}${sel('tr_bn',m.tr_bn,TRADES)}</div>
+        <div>${lbl('কোম্পানী','co_bn')}${sel('co_bn',m.co_bn,COMPANIES)}</div>
+        <div>${lbl('নিয়োগ','niyog')}${inp('niyog',m.niyog)}</div>
         <div>${lbl('ভর্তির তারিখ')}${inp('jd',m.jd,'DD/MM/YYYY')}</div>
         <div>${lbl('শপথের তারিখ')}${inp('od',m.od||m.oath_date,'DD/MM/YYYY')}</div>
         <div>${lbl('প্রমোশনের তারিখ')}${inp('promo_date',m.promo_date,'DD/MM/YYYY')}</div>
@@ -1758,16 +1788,16 @@ function openRosterEditModal(m) {
 
       <div style="font-family:'Rajdhani',sans-serif;font-size:0.7rem;letter-spacing:2px;color:#b8902a;text-transform:uppercase;margin:16px 0 8px">পারিবারিক তথ্য</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-        <div>${lbl('বৈবাহিক অবস্থা')}${sel('ma_bn',m.ma_bn,['অবিবাহিত','বিবাহিত','বিধবা/বিপত্নীক','তালাকপ্রাপ্ত'])}</div>
-        <div>${lbl('স্ত্রীর নাম')}${inp('sp',m.sp)}</div>
-        <div>${lbl('স্ত্রীর জন্ম')}${inp('sd',m.sd,'DD/MM/YYYY')}</div>
-        <div>${lbl('বিবাহের তারিখ')}${inp('wd',m.wd,'DD/MM/YYYY')}</div>
-        <div>${lbl('সন্তান ১ নাম')}${inp('c1n',m.c1n)}</div>
-        <div>${lbl('সন্তান ১ জন্ম')}${inp('c1d',m.c1d,'DD/MM/YYYY')}</div>
-        <div>${lbl('সন্তান ২ নাম')}${inp('c2n',m.c2n)}</div>
-        <div>${lbl('সন্তান ২ জন্ম')}${inp('c2d',m.c2d,'DD/MM/YYYY')}</div>
-        <div>${lbl('সন্তান ৩ নাম')}${inp('c3n',m.c3n)}</div>
-        <div>${lbl('সন্তান ৩ জন্ম')}${inp('c3d',m.c3d,'DD/MM/YYYY')}</div>
+        <div>${lbl('বৈবাহিক অবস্থা','ma_bn')}${sel('ma_bn',m.ma_bn,MARITAL)}</div>
+        <div>${lbl('স্ত্রীর নাম','sp')}${inp('sp',m.sp)}</div>
+        <div>${lbl('স্ত্রীর জন্ম','sd')}${inp('sd',m.sd,'DD/MM/YYYY')}</div>
+        <div>${lbl('বিবাহের তারিখ','wd')}${inp('wd',m.wd,'DD/MM/YYYY')}</div>
+        <div>${lbl('সন্তান ১ নাম','c1n')}${inp('c1n',m.c1n)}</div>
+        <div>${lbl('সন্তান ১ জন্ম','c1d')}${inp('c1d',m.c1d,'DD/MM/YYYY')}</div>
+        <div>${lbl('সন্তান ২ নাম','c2n')}${inp('c2n',m.c2n)}</div>
+        <div>${lbl('সন্তান ২ জন্ম','c2d')}${inp('c2d',m.c2d,'DD/MM/YYYY')}</div>
+        <div>${lbl('সন্তান ৩ নাম','c3n')}${inp('c3n',m.c3n)}</div>
+        <div>${lbl('সন্তান ৩ জন্ম','c3d')}${inp('c3d',m.c3d,'DD/MM/YYYY')}</div>
       </div>
 
       <div id="rosterEditResult" style="display:none;border-radius:8px;padding:10px 12px;margin:12px 0;font-size:0.82rem"></div>
@@ -1792,11 +1822,10 @@ async function saveRosterEdit(docId) {
   if (!docId) { showRes('❌ সদস্য ID পাওয়া যায়নি', false); return; }
 
   const data = {};
-  // সব fields — roster.html এর exact same keys ব্যবহার করছি
   const fieldMap = {
     'bn':'bn','en':'en','dob':'dob','bl':'bl','nid':'nid',
     'mb':'mb','wa':'wa','di_bn':'di_bn','ed_bn':'ed_bn','em':'em','ad':'ad',
-    'r_bn':'r_bn','tr_bn':'tr_bn','niyog':'niyog',
+    'r_bn':'r_bn','tr_bn':'tr_bn','co_bn':'co_bn','niyog':'niyog',
     'jd':'jd','od':'od','promo_date':'promo_date','li':'li','pn':'pn','pu':'pu','rec':'rec',
     'ma_bn':'ma_bn','sp':'sp','sd':'sd','wd':'wd',
     'c1n':'c1n','c1d':'c1d','c2n':'c2n','c2d':'c2d','c3n':'c3n','c3d':'c3d'
@@ -1807,10 +1836,9 @@ async function saveRosterEdit(docId) {
     if (v) data[dbKey] = v;
   });
 
-  // tr_bn থেকে tr_en, di_bn থেকে di_en, r_bn থেকে r_en sync করো
-  if (data.tr_bn) data.tr_en = data.tr_bn;
-  if (data.r_bn) data.r_en = data.r_bn;
-  if (data.di_bn) data.di_en = data.di_bn;
+  // _bn → _en auto sync
+  const syncMap = { r_bn:'r_en', tr_bn:'tr_en', co_bn:'co_en', di_bn:'di_en', ma_bn:'ma_en' };
+  Object.entries(syncMap).forEach(([bn, en]) => { if (data[bn]) data[en] = data[bn]; });
 
   data.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
   data.updatedBy = webCurrentUser.uid;
@@ -2027,6 +2055,7 @@ function _injectModalPhotoClick(m) {
 }
 
 
+document.getElementById('searchInput').addEventListener('input', applyFilters);
 document.getElementById('companyFilter').addEventListener('change',applyFilters);
 document.getElementById('rankFilter').addEventListener('change',applyFilters);
 document.getElementById('bloodFilter').addEventListener('change',applyFilters);
