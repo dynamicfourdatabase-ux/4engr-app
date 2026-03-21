@@ -400,14 +400,10 @@ body {
 .result-pill.bplus { color: var(--info); border-color: rgba(56,139,253,0.4); }
 .result-pill.b { color: var(--gold); border-color: rgba(200,169,74,0.4); }
 .result-pill.bminus { color: var(--warn); border-color: rgba(210,153,34,0.4); }
-.result-pill.pass { color: #3fb950; border-color: rgba(63,185,80,0.4); }
-.result-pill.fail { color: var(--danger); border-color: rgba(224,85,85,0.4); }
 .result-pill.active.alpha { background: rgba(63,185,80,0.2); }
 .result-pill.active.bplus { background: rgba(56,139,253,0.2); }
 .result-pill.active.b { background: rgba(200,169,74,0.2); }
 .result-pill.active.bminus { background: rgba(210,153,34,0.2); }
-.result-pill.active.pass { background: rgba(63,185,80,0.2); }
-.result-pill.active.fail { background: rgba(224,85,85,0.2); }
 
 /* Status bar */
 .status-bar {
@@ -1951,28 +1947,9 @@ async function doLogin() {
 }
 
 function doLogout() {
-  // Custom logout confirmation modal
-  const overlay = document.createElement('div');
-  overlay.id = 'logoutModal';
-  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);backdrop-filter:blur(6px);z-index:500;display:flex;align-items:center;justify-content:center;padding:20px';
-  overlay.innerHTML = `
-    <div style="background:var(--dark2);border:1px solid var(--border);border-radius:20px;padding:28px 24px;width:100%;max-width:320px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.6);animation:slideUp 0.25s ease">
-      <div style="width:56px;height:56px;border-radius:50%;background:rgba(224,85,85,0.12);border:1px solid rgba(224,85,85,0.3);display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 16px">🚪</div>
-      <div style="font-size:1.05rem;font-weight:700;color:var(--text);margin-bottom:8px">লগআউট করবেন?</div>
-      <div style="font-size:0.82rem;color:var(--text2);margin-bottom:24px;line-height:1.6">আপনার অ্যাকাউন্ট থেকে বের হয়ে যাবেন।</div>
-      <div style="display:flex;gap:10px">
-        <button onclick="document.getElementById('logoutModal').remove()"
-          style="flex:1;padding:12px;background:transparent;border:1px solid var(--border2);border-radius:10px;color:var(--text2);font-family:'Rajdhani',sans-serif;font-size:0.9rem;font-weight:700;letter-spacing:1px;cursor:pointer;transition:all 0.2s"
-          onmouseover="this.style.borderColor='var(--gold)';this.style.color='var(--gold)'"
-          onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--text2)'">বাতিল</button>
-        <button onclick="document.getElementById('logoutModal').remove();auth.signOut()"
-          style="flex:1;padding:12px;background:linear-gradient(135deg,rgba(224,85,85,0.9),rgba(180,40,40,0.9));border:none;border-radius:10px;color:#fff;font-family:'Rajdhani',sans-serif;font-size:0.9rem;font-weight:700;letter-spacing:1px;cursor:pointer;transition:all 0.2s"
-          onmouseover="this.style.filter='brightness(1.15)'"
-          onmouseout="this.style.filter='brightness(1)'">🚪 লগআউট</button>
-      </div>
-    </div>`;
-  document.body.appendChild(overlay);
-  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+  if (confirm('লগআউট করবেন?')) {
+    auth.signOut();
+  }
 }
 
 /* ══════════════════════════════════════════
@@ -2518,48 +2495,21 @@ async function saveModal() {
     const updated = existing ? existing + ', ' + newVal : newVal;
     const docId = currentMemberData.id || String(currentMemberData.no||'').replace(/[^A-Z0-9]/gi,'');
     const isAdmin = userRole === 'admin' || userRole === 'superadmin';
-
-    // নতুন কোর্সের index — বর্তমান list এর শেষে
-    const crList = existing ? existing.split(/[,،\n]/).map(s=>s.trim()).filter(Boolean) : [];
-    const newIdx = crList.length;
-    const courseResult = document.getElementById('courseResultInput')?.value || '';
-    const courseVenue  = document.getElementById('courseVenueInput')?.value.trim() || '';
-    const courseRec    = document.getElementById('courseRecInput')?.value.trim() || '';
-
     if (isAdmin) {
       try {
         const docRef = db.collection('members').doc(docId);
         const snap = await docRef.get();
-        const updateData = {
-          cr_bn: updated,
-          updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-        };
-        // ফলাফল, স্থান, সুপারিশ courseResults এ রাখো
-        const existingResults = (snap.exists ? snap.data().courseResults : null) || currentMemberData.courseResults || {};
-        if (courseResult) existingResults['course_' + newIdx] = courseResult;
-        if (courseVenue)  existingResults['venue_'  + newIdx] = courseVenue;
-        if (courseRec)    existingResults['rec_'    + newIdx] = courseRec;
-        updateData.courseResults = existingResults;
-
         if (snap.exists) {
-          await docRef.update(updateData);
+          await docRef.update({ cr_bn: updated, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
         } else {
-          await docRef.set({ ...updateData, no: currentMemberData.no || currentMemberData.armyNo }, { merge: true });
+          await docRef.set({ cr_bn: updated }, { merge: true });
         }
         currentMemberData.cr_bn = updated;
-        if (!currentMemberData.courseResults) currentMemberData.courseResults = {};
-        if (courseResult) currentMemberData.courseResults['course_' + newIdx] = courseResult;
-        if (courseVenue)  currentMemberData.courseResults['venue_'  + newIdx] = courseVenue;
-        if (courseRec)    currentMemberData.courseResults['rec_'    + newIdx] = courseRec;
         closeModal(); renderCourses();
         showToast('✅ কোর্স যোগ হয়েছে', 'success');
       } catch(e) { showToast('যোগ ব্যর্থ: ' + e.message, 'error'); }
     } else {
       try {
-        const extraData = {};
-        if (courseResult) extraData['course_' + newIdx] = courseResult;
-        if (courseVenue)  extraData['venue_'  + newIdx] = courseVenue;
-        if (courseRec)    extraData['rec_'    + newIdx] = courseRec;
         await db.collection('editRequests').add({
           memberId: docId,
           memberNo: currentMemberData.no,
@@ -2568,7 +2518,6 @@ async function saveModal() {
           field: 'cr_bn', fieldLabel: 'নতুন কোর্স যোগ: ' + newVal,
           oldValue: existing,
           newValue: updated,
-          extraData,
           requestedBy: currentUser.uid,
           status: 'pending',
           createdAt: firebase.firestore.FieldValue.serverTimestamp(),
@@ -2735,18 +2684,14 @@ function renderCourses() {
     const resultKey = 'course_' + i;
     const currentResult = results[resultKey] || '';
     const grades = [
-      { id: 'pass',   label: 'পাস' },
-      { id: 'alpha',  label: 'Alpha' },
-      { id: 'bplus',  label: 'B+' },
-      { id: 'b',      label: 'B' },
+      { id: 'alpha', label: 'Alpha' },
+      { id: 'bplus', label: 'B+' },
+      { id: 'b', label: 'B' },
       { id: 'bminus', label: 'B-' },
-      { id: 'fail',   label: 'ফেল' },
     ];
     const isLocked = !!currentResult;
     const currentPos = results['pos_' + i] || '';
     const isPosLocked = !!currentPos;
-    const currentVenue = results['venue_' + i] || '';
-    const currentRec   = results['rec_'   + i] || '';
 
     const pills = grades.map(g => {
       const isActive = currentResult === g.id;
@@ -2793,24 +2738,16 @@ function renderCourses() {
            <button onclick="savePosition(${i})" style="background:linear-gradient(135deg,var(--gold),#9a7a20);border:none;border-radius:7px;padding:7px 14px;color:#0a0c10;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:0.78rem;letter-spacing:1px;cursor:pointer;white-space:nowrap">সংরক্ষণ</button>
          </div>`;
 
-    // স্থান ও সুপারিশ section
-    const metaSection = (currentVenue || currentRec) ? `
-      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">
-        ${currentVenue ? `<span style="display:inline-flex;align-items:center;gap:4px;font-size:0.7rem;color:var(--text2);background:var(--dark3);border:1px solid var(--border2);border-radius:20px;padding:3px 10px;font-family:'Rajdhani',sans-serif">📍 ${currentVenue}</span>` : ''}
-        ${currentRec   ? `<span style="display:inline-flex;align-items:center;gap:4px;font-size:0.7rem;color:var(--text2);background:var(--dark3);border:1px solid var(--border2);border-radius:20px;padding:3px 10px;font-family:'Rajdhani',sans-serif">⭐ ${currentRec}</span>` : ''}
-      </div>` : '';
-
     return `<div class="course-item">
       <div class="course-item-header">
         <span style="font-size:14px">📋</span>
         <span class="course-name" id="cn_${i}">${course}</span>
-        ${currentResult ? `<span class="badge badge-green" style="font-size:0.6rem">${grades.find(g=>g.id===currentResult)?.label || (currentResult==='pass'?'পাস':currentResult==='fail'?'ফেল':'')}</span>` : ''}
+        ${currentResult ? `<span class="badge badge-green" style="font-size:0.6rem">${grades.find(g=>g.id===currentResult)?.label||''}</span>` : ''}
         ${currentPos ? `<span class="badge badge-gold" style="font-size:0.6rem">🏆 ${currentPos}তম</span>` : ''}
         ${isLocked ? '<span style="font-size:11px;margin-left:2px">🔒</span>' : ''}
         <button onclick="editCourseNameByIdx(${i})" style="margin-left:auto;background:transparent;border:none;color:var(--gold);cursor:pointer;font-size:12px;padding:2px 6px;border-radius:5px;opacity:0.7" title="নাম সংশোধন">✏️</button>
       </div>
-      ${metaSection}
-      <div style="font-size:0.72rem;color:var(--text2);margin-bottom:6px;margin-top:8px;font-family:'Rajdhani',sans-serif;letter-spacing:1px;display:flex;align-items:center;gap:6px">
+      <div style="font-size:0.72rem;color:var(--text2);margin-bottom:6px;font-family:'Rajdhani',sans-serif;letter-spacing:1px;display:flex;align-items:center;gap:6px">
         <span>${isLocked ? '🔒 ফলাফল চূড়ান্ত' : 'ফলাফল নির্বাচন করুন:'}</span>
         ${resultResetBtn}
       </div>
@@ -3000,28 +2937,8 @@ function openAddCourse() {
   document.getElementById('modalTitle').textContent = 'নতুন কোর্স যোগ করুন';
   document.getElementById('modalBody').innerHTML = `
     <div class="form-group">
-      <label class="form-label">কোর্স / ক্যাডারের নাম *</label>
-      <input type="text" class="form-input" id="editInput" placeholder="যেমন: বেসিক ইঞ্জিনিয়ারিং কোর্স">
-    </div>
-    <div class="form-group">
-      <label class="form-label">ফলাফল</label>
-      <select class="form-input" id="courseResultInput" style="background:var(--dark3)">
-        <option value="">নির্বাচন করুন</option>
-        <option value="pass">পাস</option>
-        <option value="alpha">Alpha</option>
-        <option value="bplus">B+</option>
-        <option value="b">B</option>
-        <option value="bminus">B-</option>
-        <option value="fail">ফেল</option>
-      </select>
-    </div>
-    <div class="form-group">
-      <label class="form-label">স্থান</label>
-      <input type="text" class="form-input" id="courseVenueInput" placeholder="যেমন: মিলিটারি ইন্সটিটিউট, ঢাকা">
-    </div>
-    <div class="form-group">
-      <label class="form-label">সুপারিশ</label>
-      <input type="text" class="form-input" id="courseRecInput" placeholder="যেমন: বিশেষ সুপারিশ">
+      <label class="form-label">কোর্সের নাম</label>
+      <input type="text" class="form-input" id="editInput" placeholder="কোর্সের নাম লিখুন">
     </div>
   `;
   currentEditField = { key: '_addCourse', label: 'নতুন কোর্স' };
@@ -4601,72 +4518,31 @@ function renderAdminCourseFields() {
     return;
   }
 
-  const grades = [
-    {id:'pass',label:'পাস',color:'#3fb950'},
-    {id:'alpha',label:'Alpha',color:'#3fb950'},
-    {id:'bplus',label:'B+',color:'var(--info)'},
-    {id:'b',label:'B',color:'var(--gold)'},
-    {id:'bminus',label:'B-',color:'var(--warn)'},
-    {id:'fail',label:'ফেল',color:'var(--danger)'},
-  ];
+  const grades = [{id:'alpha',label:'Alpha'},{id:'bplus',label:'B+'},{id:'b',label:'B'},{id:'bminus',label:'B-'}];
   document.getElementById('adminCoursesFields').innerHTML = courses.map((course, i) => {
     const currentResult = results['course_' + i] || '';
-    const currentPos    = results['pos_'    + i] || '';
-    const currentVenue  = results['venue_'  + i] || '';
-    const currentRec    = results['rec_'    + i] || '';
+    const currentPos = results['pos_' + i] || '';
     return `<div style="background:var(--dark3);border:1px solid var(--border2);border-radius:10px;padding:12px;margin-bottom:10px">
       <div style="font-size:0.88rem;font-weight:600;margin-bottom:8px">📋 ${course}</div>
       <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:8px">
         <span style="font-size:0.72rem;color:var(--text2);font-family:'Rajdhani',sans-serif;letter-spacing:1px">ফলাফল:</span>
         ${grades.map(g => `<button onclick="adminSetCourseResult(${i},'${g.id}')"
           style="padding:4px 10px;border-radius:6px;border:1px solid;font-family:'Rajdhani',sans-serif;font-size:0.7rem;font-weight:700;cursor:pointer;
-          ${currentResult===g.id ? `background:${g.color}22;border-color:${g.color}88;color:${g.color}` : 'background:transparent;border-color:var(--border2);color:var(--text2)'}">${g.label}</button>`).join('')}
-        ${currentResult ? `<button onclick="adminClearCourseResult(${i})" style="padding:4px 8px;border-radius:6px;border:1px solid rgba(224,85,85,0.3);background:rgba(224,85,85,0.1);color:#e05555;font-size:0.65rem;cursor:pointer;font-family:'Rajdhani',sans-serif">🗑</button>` : ''}
+          ${currentResult===g.id ? 'background:rgba(63,185,80,0.2);border-color:rgba(63,185,80,0.5);color:#3fb950' : 'background:transparent;border-color:var(--border2);color:var(--text2)'}">${g.label}</button>`).join('')}
+        ${currentResult ? `<button onclick="adminClearCourseResult(${i})" style="padding:4px 8px;border-radius:6px;border:1px solid rgba(224,85,85,0.3);background:rgba(224,85,85,0.1);color:#e05555;font-size:0.65rem;cursor:pointer;font-family:'Rajdhani',sans-serif">🗑 মুছুন</button>` : ''}
       </div>
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+      <div style="display:flex;align-items:center;gap:8px">
         <span style="font-size:0.72rem;color:var(--text2);font-family:'Rajdhani',sans-serif;letter-spacing:1px;white-space:nowrap">🏆 অবস্থান:</span>
         <input type="number" id="apos_${i}" value="${currentPos}" min="1" placeholder="নম্বর"
           style="width:80px;background:var(--dark);border:1px solid var(--border2);border-radius:7px;padding:5px 8px;color:var(--text);font-size:0.85rem;outline:none">
         <button onclick="adminSavePosition(${i})" class="btn-admin-save">সেভ</button>
         ${currentPos ? `<button onclick="adminClearPosition(${i})" style="padding:5px 8px;border-radius:7px;border:1px solid rgba(224,85,85,0.3);background:rgba(224,85,85,0.1);color:#e05555;font-size:0.65rem;cursor:pointer;font-family:'Rajdhani',sans-serif">🗑</button>` : ''}
       </div>
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-        <span style="font-size:0.72rem;color:var(--text2);font-family:'Rajdhani',sans-serif;letter-spacing:1px;white-space:nowrap;min-width:42px">📍 স্থান:</span>
-        <input type="text" id="avenue_${i}" value="${currentVenue.replace(/"/g,'&quot;')}" placeholder="কোর্সের স্থান"
-          style="flex:1;background:var(--dark);border:1px solid var(--border2);border-radius:7px;padding:5px 8px;color:var(--text);font-size:0.85rem;outline:none">
-        <button onclick="adminSaveCourseExtra(${i},'venue')" class="btn-admin-save">সেভ</button>
-      </div>
-      <div style="display:flex;align-items:center;gap:8px">
-        <span style="font-size:0.72rem;color:var(--text2);font-family:'Rajdhani',sans-serif;letter-spacing:1px;white-space:nowrap;min-width:42px">⭐ সুপারিশ:</span>
-        <input type="text" id="arec_${i}" value="${currentRec.replace(/"/g,'&quot;')}" placeholder="সুপারিশ"
-          style="flex:1;background:var(--dark);border:1px solid var(--border2);border-radius:7px;padding:5px 8px;color:var(--text);font-size:0.85rem;outline:none">
-        <button onclick="adminSaveCourseExtra(${i},'rec')" class="btn-admin-save">সেভ</button>
-      </div>
     </div>`;
   }).join('');
 }
 
-async function adminSaveCourseExtra(idx, type) {
-  // type: 'venue' বা 'rec'
-  const inputId = type === 'venue' ? `avenue_${idx}` : `arec_${idx}`;
-  const input = document.getElementById(inputId);
-  if (!input) return;
-  const val = input.value.trim();
-  const docId = adminSelectedMember.id ||
-    String(adminSelectedMember.no || adminSelectedMember.armyNo || '').replace(/[^A-Z0-9]/gi, '');
-  if (!docId) { showToast('সদস্যের ID পাওয়া যায়নি', 'error'); return; }
-  try {
-    await db.collection('members').doc(docId).update({
-      [`courseResults.${type}_${idx}`]: val,
-      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-    });
-    if (!adminSelectedMember.courseResults) adminSelectedMember.courseResults = {};
-    adminSelectedMember.courseResults[type + '_' + idx] = val;
-    showToast('✅ ' + (type === 'venue' ? 'স্থান' : 'সুপারিশ') + ' আপডেট হয়েছে', 'success');
-  } catch(e) { showToast('ব্যর্থ: ' + e.message, 'error'); }
-}
-
-
+async function adminSaveField(key) {
   const input = document.getElementById('afield_' + key);
   if (!input) return;
   const newVal = input.value.trim();
