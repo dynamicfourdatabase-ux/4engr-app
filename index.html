@@ -5263,17 +5263,9 @@ function renderPendingList(docs) {
   box.innerHTML = html;
 }
 
-/* একটা গ্রুপের সব approve */
+/* একটা গ্রুপের সব approve — bulk mode */
 async function approveGroup(ids) {
-  showLoading('অনুমোদন হচ্ছে...');
-  let done = 0, failed = 0;
-  for (const id of ids) {
-    try { await approveEdit(id, true); done++; }
-    catch(e) { failed++; }
-  }
-  hideLoading();
-  showToast(`✅ ${done}টি অনুমোদন হয়েছে${failed ? ' · ' + failed + 'টি ব্যর্থ' : ''}`, 'success');
-  loadAdminData();
+  await approveGroupBulk(ids);
 }
 
 /* একটা গ্রুপের সব reject */
@@ -5317,13 +5309,28 @@ async function approveAllPending() {
         : db.collection('editRequests').where('status', '==', 'pending');
     }
     const snap = await pendingQuery.get();
-    let done = 0, failed = 0;
-    for (const d of snap.docs) {
-      try { await approveEdit(d.id, true); done++; }
-      catch(e) { failed++; console.error('Approve failed:', d.id, e); }
+    if (snap.empty) { hideLoading(); showToast('কোনো pending নেই', 'success'); return; }
+
+    // সদস্য অনুযায়ী group করো
+    const byMember = {};
+    snap.docs.forEach(d => {
+      const memberId = d.data().memberId || d.data().memberNo || 'unknown';
+      if (!byMember[memberId]) byMember[memberId] = [];
+      byMember[memberId].push(d.id);
+    });
+
+    let totalDone = 0, totalFailed = 0;
+    for (const [memberId, ids] of Object.entries(byMember)) {
+      try {
+        await approveGroupBulk(ids);
+        totalDone += ids.length;
+      } catch(e) {
+        totalFailed += ids.length;
+        console.error('Bulk approve failed for member', memberId, e);
+      }
     }
     hideLoading();
-    showToast(`✅ ${done}টি অনুমোদন সম্পন্ন${failed ? ' · ' + failed + 'টি ব্যর্থ' : ''}`, 'success');
+    showToast(`✅ ${totalDone}টি অনুমোদন সম্পন্ন${totalFailed ? ' · ' + totalFailed + 'টি ব্যর্থ' : ''}`, 'success');
     loadAdminData();
   } catch(e) {
     hideLoading();
@@ -5361,6 +5368,118 @@ async function rejectAllPending() {
     loadAdminData();
   } catch(e) {
     hideLoading();
+    showToast('ব্যর্থ: ' + e.message, 'error');
+  }
+}
+
+/* ══════════════════════════════════════════
+   BULK COURSE APPROVE — একই সদস্যের সব কোর্স
+   একটা transaction এ সঠিক index দিয়ে লেখো
+══════════════════════════════════════════ */
+async function approveCourseGroup(courseRequests) {
+  // courseRequests = [ {docId, requestData}, ... ] — একই memberId এর
+  if (!courseRequests.length) return;
+
+  const first = courseRequests[0].data;
+  const memberId = first.memberId;
+
+  // Firestore থেকে সদস্যের current state পড়ো
+  let memberRef;
+  const memberDocDirect = await db.collection('members').doc(memberId).get();
+  if (memberDocDirect.exists) {
+    memberRef = db.collection('members').doc(memberId);
+  } else {
+    const q = await db.collection('members').where('no', '==', first.memberNo).get();
+    if (!q.empty) memberRef = db.collection('members').doc(q.docs[0].id);
+  }
+  if (!memberRef) throw new Error('সদস্য পাওয়া যায়নি: ' + memberId);
+
+  const memberSnap = await memberRef.get();
+  const memberData = memberSnap.data() || {};
+
+  // বর্তমান approved কোর্স list
+  let crBnList = (memberData.cr_bn || '').split(',').map(s => s.trim()).filter(Boolean);
+  let crEnList = (memberData.cr_en || '').split(',').map(s => s.trim()).filter(Boolean);
+  const courseResults = memberData.courseResults || {};
+
+  // batch তৈরি
+  const batch = db.batch();
+
+  // প্রতিটা কোর্স request সঠিক index এ যোগ করো
+  for (const req of courseRequests) {
+    const r = req.data;
+    const ex = r.courseExtra || {};
+    const nameBn = ex.nameBn || r.courseExtra?.nameBn || '';
+    const nameEn = ex.nameEn || r.courseExtra?.nameEn || '';
+
+    // duplicate চেক — ইতিমধ্যে যোগ হয়ে গেলে skip
+    if (nameBn && crBnList.map(s=>s.toLowerCase()).includes(nameBn.toLowerCase())) {
+      // শুধু status update করো
+      batch.update(db.collection('editRequests').doc(req.docId), {
+        status: 'approved',
+        approvedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        approvedBy: currentUser.uid
+      });
+      continue;
+    }
+
+    // নতুন index = বর্তমান list এর শেষে
+    const newIdx = crBnList.length;
+
+    // list এ যোগ করো (পরবর্তী request এর জন্য updated list)
+    crBnList.push(nameBn || nameEn);
+    crEnList.push(nameEn || nameBn);
+    if (ex.result)                  courseResults['course_' + newIdx] = ex.result;
+    if (ex.position && ex.position > 0) courseResults['pos_'    + newIdx] = ex.position;
+    if (ex.recommendation)          courseResults['rec_'    + newIdx] = ex.recommendation;
+
+    // editRequest status update
+    batch.update(db.collection('editRequests').doc(req.docId), {
+      status: 'approved',
+      approvedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      approvedBy: currentUser.uid
+    });
+  }
+
+  // members doc একবারেই update করো
+  const finalUpdate = {
+    cr_bn: crBnList.join(', '),
+    cr_en: crEnList.join(', '),
+    courseResults: courseResults,
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  };
+  batch.update(memberRef, finalUpdate);
+
+  await batch.commit();
+}
+
+/* সদস্য অনুযায়ী group করে bulk approve করো */
+async function approveGroupBulk(ids) {
+  showLoading('অনুমোদন হচ্ছে...');
+  try {
+    // সব doc load করো
+    const docs = await Promise.all(ids.map(id => db.collection('editRequests').doc(id).get()));
+    const requests = docs.map(d => ({ docId: d.id, data: d.data() }));
+
+    // course vs non-course আলাদা করো
+    const courseReqs = requests.filter(r => r.data.requestType === 'addCourse');
+    const otherReqs  = requests.filter(r => r.data.requestType !== 'addCourse');
+
+    // course গুলো একসাথে
+    if (courseReqs.length > 0) {
+      await approveCourseGroup(courseReqs);
+    }
+    // অন্যগুলো আলাদা আলাদা
+    for (const req of otherReqs) {
+      await approveEdit(req.docId, true);
+    }
+
+    hideLoading();
+    showToast(`✅ ${requests.length}টি অনুমোদন সম্পন্ন`, 'success');
+    loadAdminData();
+  } catch(e) {
+    hideLoading();
+    console.error('Bulk approve error:', e);
     showToast('ব্যর্থ: ' + e.message, 'error');
   }
 }
