@@ -1128,9 +1128,22 @@ function showModal(idx){
   if (webCurrentUser && (webUserRole === 'admin' || webUserRole === 'superadmin')) {
     const editBtn = document.createElement('button');
     editBtn.textContent = '✏️ তথ্য সম্পাদনা';
-    editBtn.style.cssText = 'position:absolute;top:16px;right:52px;background:rgba(184,144,42,0.15);border:1px solid rgba(184,144,42,0.4);color:#b8902a;border-radius:8px;padding:6px 14px;font-family:"Rajdhani",sans-serif;font-size:0.72rem;font-weight:700;letter-spacing:1px;cursor:pointer;z-index:10';
+    const rightPos = webUserRole === 'superadmin' ? '54px' : '16px';
+    editBtn.style.cssText = `position:absolute;top:16px;right:${rightPos};background:rgba(184,144,42,0.15);border:1px solid rgba(184,144,42,0.4);color:#b8902a;border-radius:8px;padding:6px 14px;font-family:"Rajdhani",sans-serif;font-size:0.72rem;font-weight:700;letter-spacing:1px;cursor:pointer;z-index:10`;
     editBtn.onclick = () => openRosterEditModal(m);
     document.querySelector('.modal')?.appendChild(editBtn);
+  }
+
+  // SuperAdmin হলে Delete বাটন যোগ করো
+  if (webCurrentUser && webUserRole === 'superadmin') {
+    const delBtn = document.createElement('button');
+    delBtn.innerHTML = '🗑️';
+    delBtn.title = 'সদস্য ডিলিট করুন';
+    delBtn.style.cssText = 'position:absolute;top:16px;right:16px;background:rgba(192,64,64,0.12);border:1px solid rgba(192,64,64,0.35);color:#c04040;border-radius:8px;padding:6px 10px;font-size:14px;cursor:pointer;z-index:10;transition:all 0.2s';
+    delBtn.onmouseenter = () => delBtn.style.background = 'rgba(192,64,64,0.25)';
+    delBtn.onmouseleave = () => delBtn.style.background = 'rgba(192,64,64,0.12)';
+    delBtn.onclick = () => openDeleteMemberModal(m);
+    document.querySelector('.modal')?.appendChild(delBtn);
   }
 }
 
@@ -1880,9 +1893,9 @@ function openRosterEditModal(m) {
   modal.innerHTML = `
     <div style="background:#161b22;border:1px solid rgba(184,144,42,0.25);border-radius:16px 16px 0 0;width:100%;max-width:640px;padding:24px;max-height:92vh;overflow-y:auto">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;position:sticky;top:0;background:#161b22;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.06)">
-        <div style="display:flex;align-items:center;gap:10px">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
           <span style="font-family:'Rajdhani',sans-serif;font-size:0.85rem;font-weight:700;letter-spacing:2px;color:#b8902a;text-transform:uppercase">✏️ তথ্য সম্পাদনা — ${m.bn||m.no}</span>
-          ${webUserRole==='superadmin' ? `<button onclick="openFieldClearModal(window._currentEditMember)" style="background:rgba(192,64,64,0.12);border:1px solid rgba(192,64,64,0.3);color:#e05555;border-radius:7px;padding:4px 10px;font-family:'Rajdhani',sans-serif;font-size:0.68rem;font-weight:700;letter-spacing:1px;cursor:pointer" title="নির্দিষ্ট ফিল্ড মুছুন">🗑️ ফিল্ড মুছুন</button>` : ''}
+          ${webUserRole==='superadmin'?`<button onclick="openFieldClearModal(window._rosterEditMember)" style="background:rgba(192,64,64,0.12);border:1px solid rgba(192,64,64,0.3);color:#e05555;border-radius:7px;padding:4px 10px;font-family:'Rajdhani',sans-serif;font-size:0.68rem;font-weight:700;letter-spacing:1px;cursor:pointer">🗑️ ফিল্ড মুছুন</button>`:''}
         </div>
         <button onclick="document.getElementById('rosterEditModal').remove()" style="background:transparent;border:none;color:rgba(255,255,255,0.4);cursor:pointer;font-size:20px">✕</button>
       </div>
@@ -1922,6 +1935,16 @@ function openRosterEditModal(m) {
       </div>
       <div>${lbl('পূর্বের ইউনিট')}${ta('pu',m.pu||m.prev_units,'প্রতিটি ইউনিট নতুন লাইনে')}</div>
 
+      <div style="font-family:'Rajdhani',sans-serif;font-size:0.7rem;letter-spacing:2px;color:#b8902a;text-transform:uppercase;margin:16px 0 8px">পদোন্নতির ইতিহাস</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div>${lbl('পদোন্নতি ১ তারিখ')}${inp('p1',m.p1,'DD/MM/YYYY')}</div>
+        <div>${lbl('পদোন্নতি ২ তারিখ')}${inp('p2',m.p2,'DD/MM/YYYY')}</div>
+        <div>${lbl('পদোন্নতি ৩ তারিখ')}${inp('p3',m.p3,'DD/MM/YYYY')}</div>
+        <div>${lbl('পদোন্নতি ৪ তারিখ')}${inp('p4',m.p4,'DD/MM/YYYY')}</div>
+        <div>${lbl('পদোন্নতি ৫ তারিখ')}${inp('p5',m.p5,'DD/MM/YYYY')}</div>
+        <div>${lbl('পেনশন তারিখ')}${inp('pd',m.pd,'DD/MM/YYYY')}</div>
+      </div>
+
       <div style="font-family:'Rajdhani',sans-serif;font-size:0.7rem;letter-spacing:2px;color:#b8902a;text-transform:uppercase;margin:16px 0 8px">পারিবারিক তথ্য</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
         <div>${lbl('বৈবাহিক অবস্থা','ma_bn')}${sel('ma_bn',m.ma_bn,MARITAL)}</div>
@@ -1943,7 +1966,7 @@ function openRosterEditModal(m) {
         <button onclick="document.getElementById('rosterEditModal').remove()" style="padding:12px 20px;background:transparent;border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:rgba(255,255,255,0.45);cursor:pointer;font-family:'Rajdhani',sans-serif">বাতিল</button>
       </div>
     </div>`;
-  window._currentEditMember = m;
+  window._rosterEditMember = m;
   document.body.appendChild(modal);
   modal.onclick = e => { if (e.target === modal) modal.remove(); };
 }
@@ -1963,7 +1986,8 @@ async function saveRosterEdit(docId) {
     'bn':'bn','en':'en','dob':'dob','bl':'bl','nid':'nid',
     'mb':'mb','wa':'wa','di_bn':'di_bn','ed_bn':'ed_bn','em':'em','ad':'ad',
     'r_bn':'r_bn','tr_bn':'tr_bn','co_bn':'co_bn','niyog':'niyog',
-    'jd':'jd','od':'od','promo_date':'promo_date','li':'li','pn':'pn','pu':'pu','rec':'rec',
+    'jd':'jd','od':'od','promo_date':'promo_date','pd':'pd','li':'li','pn':'pn','pu':'pu','rec':'rec',
+    'p1':'p1','p2':'p2','p3':'p3','p4':'p4','p5':'p5',
     'ma_bn':'ma_bn','sp':'sp','sd':'sd','wd':'wd',
     'c1n':'c1n','c1d':'c1d','c2n':'c2n','c2d':'c2d','c3n':'c3n','c3d':'c3d'
   };
@@ -2161,49 +2185,133 @@ async function loadRosterLeave(docId) {
 }
 
 // Modal বন্ধ হলে rosterLeaveBody reset করো পরের member এর জন্য
+
+/* ══════════════════════════════════════════
+   SUPERADMIN — DELETE MEMBER
+══════════════════════════════════════════ */
+function openDeleteMemberModal(m) {
+  const docId = (m._id || String(m.no || '')).replace(/[^A-Z0-9]/gi, '');
+  const name  = m.bn || m.en || 'এই সদস্য';
+  const no    = m.no || '—';
+  document.getElementById('deleteMemberModal')?.remove();
+  const modal = document.createElement('div');
+  modal.id = 'deleteMemberModal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+  modal.innerHTML = `
+    <div style="background:#161b22;border:1px solid rgba(192,64,64,0.4);border-radius:16px;width:100%;max-width:420px;padding:28px 24px;box-shadow:0 8px 40px rgba(0,0,0,0.6)">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px">
+        <span style="font-size:28px">⚠️</span>
+        <div>
+          <div style="font-family:'Rajdhani',sans-serif;font-size:1rem;font-weight:700;color:#e05555">সদস্য ডিলিট</div>
+          <div style="font-size:0.78rem;color:rgba(255,255,255,0.4);margin-top:2px">এই কাজ পূর্বাবস্থায় ফেরানো যাবে না</div>
+        </div>
+      </div>
+      <div style="background:rgba(192,64,64,0.08);border:1px solid rgba(192,64,64,0.2);border-radius:10px;padding:14px;margin-bottom:18px">
+        <div style="font-size:0.88rem;color:rgba(255,255,255,0.85);margin-bottom:6px">
+          <strong style="color:#e05555">${name}</strong> &nbsp;|&nbsp; সেনা নম্বর: <strong>${no}</strong>
+        </div>
+        <div style="font-size:0.72rem;color:rgba(255,255,255,0.35);font-family:'Rajdhani',sans-serif">DOC ID: ${docId}</div>
+      </div>
+      <div style="margin-bottom:16px">
+        <label style="font-family:'Rajdhani',sans-serif;font-size:0.75rem;color:rgba(255,255,255,0.5);display:block;margin-bottom:8px">
+          নিশ্চিত করতে সেনা নম্বর টাইপ করুন: <strong style="color:#e05555">${no}</strong>
+        </label>
+        <input id="deleteConfirmInput" type="text" placeholder="সেনা নম্বর লিখুন..."
+          style="width:100%;background:#1c2333;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:10px 14px;color:#e6e6e6;font-size:0.9rem;outline:none;transition:border-color 0.2s">
+      </div>
+      <div style="margin-bottom:18px">
+        <label style="font-family:'Rajdhani',sans-serif;font-size:0.75rem;color:rgba(255,255,255,0.5);display:block;margin-bottom:8px">কারণ (ঐচ্ছিক)</label>
+        <textarea id="deleteReasonInput" rows="2" placeholder="যেমন: ভুল এন্ট্রি, ডুপ্লিকেট তথ্য..."
+          style="width:100%;background:#1c2333;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:10px 14px;color:#e6e6e6;font-size:0.85rem;outline:none;resize:none"></textarea>
+      </div>
+      <div style="display:flex;gap:10px">
+        <button id="confirmDeleteBtn" disabled onclick="confirmDeleteMember('${docId}','${name}','${no}')"
+          style="flex:1;padding:12px;background:linear-gradient(135deg,#c04040,#8a2020);border:none;border-radius:10px;color:#fff;font-family:'Rajdhani',sans-serif;font-size:0.88rem;font-weight:700;cursor:not-allowed;opacity:0.45;transition:all 0.2s">🗑️ ডিলিট করুন</button>
+        <button onclick="document.getElementById('deleteMemberModal').remove()"
+          style="padding:12px 20px;background:transparent;border:1px solid rgba(255,255,255,0.12);border-radius:10px;color:rgba(255,255,255,0.5);font-family:'Rajdhani',sans-serif;cursor:pointer">বাতিল</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  modal.onclick = e => { if (e.target === modal) modal.remove(); };
+  setTimeout(() => {
+    const inp = document.getElementById('deleteConfirmInput');
+    const btn = document.getElementById('confirmDeleteBtn');
+    if (!inp || !btn) return;
+    inp.addEventListener('input', () => {
+      const match = inp.value.trim() === no;
+      btn.disabled = !match;
+      btn.style.opacity = match ? '1' : '0.45';
+      btn.style.cursor  = match ? 'pointer' : 'not-allowed';
+      inp.style.borderColor = match ? 'rgba(192,64,64,0.6)' : 'rgba(255,255,255,0.1)';
+    });
+  }, 60);
+}
+
+async function confirmDeleteMember(docId, name, no) {
+  const reason = document.getElementById('deleteReasonInput')?.value.trim() || 'কারণ উল্লেখ নেই';
+  const btn = document.getElementById('confirmDeleteBtn');
+  if (btn) { btn.textContent = '⏳ ডিলিট হচ্ছে...'; btn.disabled = true; }
+  try {
+    await db.collection('deleteLog').add({
+      docId, memberName: name, armyNo: no, reason,
+      deletedBy: webCurrentUser?.uid || 'unknown',
+      deletedByRole: 'superadmin',
+      deletedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+    await db.collection('members').doc(docId).delete();
+    document.getElementById('deleteMemberModal')?.remove();
+    closeModalBtn();
+    const localIdx = members.findIndex(x =>
+      (x._id || String(x.no || '').replace(/[^A-Z0-9]/gi, '')) === docId
+    );
+    if (localIdx !== -1) members.splice(localIdx, 1);
+    applyFilters();
+    _showAdminToast('✅ ' + name + ' সফলভাবে ডিলিট হয়েছে', 'success');
+  } catch(e) {
+    if (btn) { btn.textContent = '🗑️ ডিলিট করুন'; btn.disabled = false; btn.style.opacity = '1'; }
+    alert('❌ ডিলিট ব্যর্থ: ' + (e.code || e.message));
+  }
+}
+
 /* ══════════════════════════════════════════
    SUPERADMIN — FIELD-LEVEL CLEAR
 ══════════════════════════════════════════ */
 const CLEARABLE_FIELDS = [
-  // পদোন্নতি
-  { key:'p1', label:'পদোন্নতি ১ (সৈনিক → ল্যান্স কর্পোরাল)', group:'পদোন্নতির ইতিহাস' },
-  { key:'p2', label:'পদোন্নতি ২ (ল্যান্স কর্পোরাল → কর্পোরাল)', group:'পদোন্নতির ইতিহাস' },
-  { key:'p3', label:'পদোন্নতি ৩ (কর্পোরাল → সার্জেন্ট)', group:'পদোন্নতির ইতিহাস' },
-  { key:'p4', label:'পদোন্নতি ৪ (সার্জেন্ট → ওয়ারেন্ট অফিসার)', group:'পদোন্নতির ইতিহাস' },
-  { key:'p5', label:'পদোন্নতি ৫ (WO → সিনিঃ WO)', group:'পদোন্নতির ইতিহাস' },
-  // ব্যক্তিগত
-  { key:'nid',   label:'NID নম্বর',          group:'ব্যক্তিগত তথ্য' },
-  { key:'mb',    label:'মোবাইল নম্বর',        group:'ব্যক্তিগত তথ্য' },
-  { key:'nm',    label:'NID মোবাইল',          group:'ব্যক্তিগত তথ্য' },
-  { key:'wa',    label:'হোয়াটসঅ্যাপ',        group:'ব্যক্তিগত তথ্য' },
-  { key:'em',    label:'জরুরি যোগাযোগ',       group:'ব্যক্তিগত তথ্য' },
-  { key:'ad',    label:'স্থায়ী ঠিকানা',       group:'ব্যক্তিগত তথ্য' },
-  { key:'dob',   label:'জন্ম তারিখ',          group:'ব্যক্তিগত তথ্য' },
-  // সামরিক
-  { key:'pn',    label:'সাজা',               group:'সামরিক তথ্য' },
-  { key:'rec',   label:'সুপারিশ',            group:'সামরিক তথ্য' },
-  { key:'pu',    label:'পূর্বের ইউনিট',       group:'সামরিক তথ্য' },
-  { key:'od',    label:'শপথের তারিখ',         group:'সামরিক তথ্য' },
-  { key:'promo_date', label:'প্রমোশনের তারিখ', group:'সামরিক তথ্য' },
-  { key:'pd',    label:'পেনশন তারিখ',         group:'সামরিক তথ্য' },
-  { key:'li',    label:'লাইসেন্স',            group:'সামরিক তথ্য' },
-  { key:'niyog', label:'নিয়োগ',              group:'সামরিক তথ্য' },
-  { key:'ai_bn', label:'AI ১/২০১৩ বর্ধিত',    group:'সামরিক তথ্য' },
-  { key:'res_bn',label:'বাসস্থান অবস্থান',     group:'সামরিক তথ্য' },
-  { key:'rt',    label:'বাসস্থান মেয়াদ',       group:'সামরিক তথ্য' },
-  // পারিবারিক
-  { key:'sp',  label:'স্ত্রী/স্বামীর নাম',     group:'পারিবারিক তথ্য' },
-  { key:'sd',  label:'স্ত্রী/স্বামীর জন্ম',    group:'পারিবারিক তথ্য' },
-  { key:'wd',  label:'বিবাহের তারিখ',          group:'পারিবারিক তথ্য' },
-  { key:'c1n', label:'সন্তান ১ নাম',           group:'পারিবারিক তথ্য' },
-  { key:'c1d', label:'সন্তান ১ জন্ম',          group:'পারিবারিক তথ্য' },
-  { key:'c2n', label:'সন্তান ২ নাম',           group:'পারিবারিক তথ্য' },
-  { key:'c2d', label:'সন্তান ২ জন্ম',          group:'পারিবারিক তথ্য' },
-  { key:'c3n', label:'সন্তান ৩ নাম',           group:'পারিবারিক তথ্য' },
-  { key:'c3d', label:'সন্তান ৩ জন্ম',          group:'পারিবারিক তথ্য' },
-  // কোর্স
+  { key:'p1', label:'পদোন্নতি ১ (সৈনিক → ল্যান্স কর্পোরাল)',      group:'পদোন্নতির ইতিহাস' },
+  { key:'p2', label:'পদোন্নতি ২ (ল্যান্স কর্পোরাল → কর্পোরাল)',   group:'পদোন্নতির ইতিহাস' },
+  { key:'p3', label:'পদোন্নতি ৩ (কর্পোরাল → সার্জেন্ট)',           group:'পদোন্নতির ইতিহাস' },
+  { key:'p4', label:'পদোন্নতি ৪ (সার্জেন্ট → ওয়ারেন্ট অফিসার)',  group:'পদোন্নতির ইতিহাস' },
+  { key:'p5', label:'পদোন্নতি ৫ (WO → সিনিঃ WO)',                  group:'পদোন্নতির ইতিহাস' },
+  { key:'promo_date', label:'প্রমোশনের তারিখ',                      group:'পদোন্নতির ইতিহাস' },
+  { key:'nid',   label:'NID নম্বর',             group:'ব্যক্তিগত তথ্য' },
+  { key:'mb',    label:'মোবাইল নম্বর',           group:'ব্যক্তিগত তথ্য' },
+  { key:'nm',    label:'NID মোবাইল',             group:'ব্যক্তিগত তথ্য' },
+  { key:'wa',    label:'হোয়াটসঅ্যাপ',           group:'ব্যক্তিগত তথ্য' },
+  { key:'em',    label:'জরুরি যোগাযোগ',          group:'ব্যক্তিগত তথ্য' },
+  { key:'ad',    label:'স্থায়ী ঠিকানা',          group:'ব্যক্তিগত তথ্য' },
+  { key:'dob',   label:'জন্ম তারিখ',             group:'ব্যক্তিগত তথ্য' },
+  { key:'pn',    label:'সাজা',                   group:'সামরিক তথ্য' },
+  { key:'rec',   label:'সুপারিশ',                group:'সামরিক তথ্য' },
+  { key:'pu',    label:'পূর্বের ইউনিট',           group:'সামরিক তথ্য' },
+  { key:'od',    label:'শপথের তারিখ',             group:'সামরিক তথ্য' },
+  { key:'pd',    label:'পেনশন তারিখ',             group:'সামরিক তথ্য' },
+  { key:'li',    label:'লাইসেন্স',               group:'সামরিক তথ্য' },
+  { key:'niyog', label:'নিয়োগ',                  group:'সামরিক তথ্য' },
+  { key:'ai_bn', label:'AI ১/২০১৩ বর্ধিত',       group:'সামরিক তথ্য' },
+  { key:'res_bn',label:'বাসস্থান অবস্থান',        group:'সামরিক তথ্য' },
+  { key:'rt',    label:'বাসস্থান মেয়াদ',          group:'সামরিক তথ্য' },
+  { key:'sp',  label:'স্ত্রী/স্বামীর নাম',        group:'পারিবারিক তথ্য' },
+  { key:'sd',  label:'স্ত্রী/স্বামীর জন্ম',       group:'পারিবারিক তথ্য' },
+  { key:'wd',  label:'বিবাহের তারিখ',             group:'পারিবারিক তথ্য' },
+  { key:'c1n', label:'সন্তান ১ নাম',              group:'পারিবারিক তথ্য' },
+  { key:'c1d', label:'সন্তান ১ জন্ম',             group:'পারিবারিক তথ্য' },
+  { key:'c2n', label:'সন্তান ২ নাম',              group:'পারিবারিক তথ্য' },
+  { key:'c2d', label:'সন্তান ২ জন্ম',             group:'পারিবারিক তথ্য' },
+  { key:'c3n', label:'সন্তান ৩ নাম',              group:'পারিবারিক তথ্য' },
+  { key:'c3d', label:'সন্তান ৩ জন্ম',             group:'পারিবারিক তথ্য' },
   { key:'cr_bn', label:'কোর্স ও ক্যাডার (বাংলা)', group:'কোর্স তথ্য' },
-  { key:'cr_en', label:'কোর্স ও ক্যাডার (ইংরেজি)', group:'কোর্স তথ্য' },
+  { key:'cr_en', label:'কোর্স ও ক্যাডার (ইংরেজি)',group:'কোর্স তথ্য' },
   { key:'dc_bn', label:'ডিভিশন পর্যায়ের কোর্স',   group:'কোর্স তথ্য' },
 ];
 
@@ -2211,37 +2319,22 @@ function openFieldClearModal(m) {
   if (!m) { alert('সদস্য তথ্য পাওয়া যায়নি'); return; }
   const docId = m._id || String(m.no || '').replace(/[^A-Z0-9]/gi, '');
   const name  = m.bn || m.en || 'সদস্য';
-
   document.getElementById('fieldClearModal')?.remove();
-
-  // শুধু যেসব ফিল্ডে data আছে সেগুলো দেখাও
   const available = CLEARABLE_FIELDS.filter(f => m[f.key] && String(m[f.key]).trim());
-
-  // group অনুযায়ী ভাগ করো
   const groups = {};
-  available.forEach(f => {
-    if (!groups[f.group]) groups[f.group] = [];
-    groups[f.group].push(f);
-  });
-
+  available.forEach(f => { if (!groups[f.group]) groups[f.group] = []; groups[f.group].push(f); });
   const groupsHtml = Object.entries(groups).map(([grp, fields]) => `
     <div style="margin-bottom:14px">
       <div style="font-family:'Rajdhani',sans-serif;font-size:0.68rem;letter-spacing:2px;color:rgba(200,169,74,0.7);text-transform:uppercase;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid rgba(255,255,255,0.06)">${grp}</div>
       ${fields.map(f => `
-        <label style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;transition:background 0.15s;margin-bottom:4px" onmouseover="this.style.background='rgba(192,64,64,0.08)'" onmouseout="this.style.background='transparent'">
-          <input type="checkbox" value="${f.key}" style="accent-color:#e05555;width:16px;height:16px;cursor:pointer;flex-shrink:0">
+        <label style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;margin-bottom:4px" onmouseover="this.style.background='rgba(192,64,64,0.08)'" onmouseout="this.style.background='transparent'">
+          <input type="checkbox" value="${f.key}" onchange="updateClearBtn()" style="accent-color:#e05555;width:16px;height:16px;cursor:pointer;flex-shrink:0">
           <div style="flex:1;min-width:0">
             <div style="font-size:0.82rem;color:rgba(255,255,255,0.85)">${f.label}</div>
-            <div style="font-size:0.72rem;color:rgba(255,255,255,0.35);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${String(m[f.key]).substring(0,60)}${String(m[f.key]).length>60?'...':''}</div>
+            <div style="font-size:0.72rem;color:rgba(255,255,255,0.35);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${String(m[f.key]).substring(0,55)}${String(m[f.key]).length>55?'...':''}</div>
           </div>
         </label>`).join('')}
-    </div>
-  `).join('');
-
-  const emptyMsg = available.length === 0
-    ? `<div style="text-align:center;padding:30px;color:rgba(255,255,255,0.3);font-size:0.85rem">মুছার মতো কোনো তথ্য নেই</div>`
-    : '';
-
+    </div>`).join('');
   const modal = document.createElement('div');
   modal.id = 'fieldClearModal';
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:10001;display:flex;align-items:center;justify-content:center;padding:16px';
@@ -2249,111 +2342,94 @@ function openFieldClearModal(m) {
     <div style="background:#161b22;border:1px solid rgba(192,64,64,0.35);border-radius:16px;width:100%;max-width:480px;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 8px 40px rgba(0,0,0,0.7)">
       <div style="padding:20px 20px 12px;border-bottom:1px solid rgba(255,255,255,0.06);flex-shrink:0">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-          <span style="font-family:'Rajdhani',sans-serif;font-size:0.9rem;font-weight:700;letter-spacing:1px;color:#e05555">🗑️ ফিল্ড মুছুন</span>
+          <span style="font-family:'Rajdhani',sans-serif;font-size:0.9rem;font-weight:700;color:#e05555">🗑️ ফিল্ড মুছুন</span>
           <button onclick="document.getElementById('fieldClearModal').remove()" style="background:transparent;border:none;color:rgba(255,255,255,0.4);cursor:pointer;font-size:20px">✕</button>
         </div>
-        <div style="font-size:0.78rem;color:rgba(255,255,255,0.4)"><strong style="color:rgba(255,255,255,0.7)">${name}</strong> — যে ফিল্ডগুলো মুছতে চান সেগুলো সিলেক্ট করুন</div>
+        <div style="font-size:0.78rem;color:rgba(255,255,255,0.4)"><strong style="color:rgba(255,255,255,0.7)">${name}</strong> — মুছতে চান এমন ফিল্ড সিলেক্ট করুন</div>
       </div>
-
       <div id="fieldClearList" style="overflow-y:auto;flex:1;padding:16px">
-        ${emptyMsg}
-        ${groupsHtml}
+        ${available.length===0?'<div style="text-align:center;padding:30px;color:rgba(255,255,255,0.3);font-size:0.85rem">মুছার মতো কোনো তথ্য নেই</div>':groupsHtml}
       </div>
-
-      ${available.length > 0 ? `
+      ${available.length>0?`
       <div style="padding:14px 20px;border-top:1px solid rgba(255,255,255,0.06);flex-shrink:0">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
           <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:0.78rem;color:rgba(255,255,255,0.5)">
-            <input type="checkbox" id="selectAllFields" style="accent-color:#e05555;cursor:pointer" onchange="document.querySelectorAll('#fieldClearList input[type=checkbox]').forEach(c=>c.checked=this.checked);updateClearBtn()">
+            <input type="checkbox" id="selectAllFields" onchange="document.querySelectorAll('#fieldClearList input[type=checkbox]').forEach(c=>c.checked=this.checked);updateClearBtn()" style="accent-color:#e05555;cursor:pointer">
             সব সিলেক্ট করুন
           </label>
           <span id="selectedCount" style="font-family:'Rajdhani',sans-serif;font-size:0.75rem;color:rgba(192,64,64,0.8)">০টি সিলেক্ট</span>
         </div>
         <div style="display:flex;gap:10px">
           <button id="clearSelectedBtn" disabled onclick="confirmFieldClear('${docId}','${name}')"
-            style="flex:1;padding:11px;background:linear-gradient(135deg,#c04040,#8a2020);border:none;border-radius:9px;color:#fff;font-family:'Rajdhani',sans-serif;font-size:0.85rem;font-weight:700;letter-spacing:1px;cursor:not-allowed;opacity:0.45;transition:all 0.2s">
-            🗑️ নির্বাচিত ফিল্ড মুছুন
-          </button>
+            style="flex:1;padding:11px;background:linear-gradient(135deg,#c04040,#8a2020);border:none;border-radius:9px;color:#fff;font-family:'Rajdhani',sans-serif;font-size:0.85rem;font-weight:700;cursor:not-allowed;opacity:0.45;transition:all 0.2s">🗑️ নির্বাচিত ফিল্ড মুছুন</button>
           <button onclick="document.getElementById('fieldClearModal').remove()"
             style="padding:11px 18px;background:transparent;border:1px solid rgba(255,255,255,0.1);border-radius:9px;color:rgba(255,255,255,0.45);font-family:'Rajdhani',sans-serif;cursor:pointer">বাতিল</button>
         </div>
-      </div>` : `
+      </div>`:`
       <div style="padding:14px 20px;border-top:1px solid rgba(255,255,255,0.06)">
         <button onclick="document.getElementById('fieldClearModal').remove()"
           style="width:100%;padding:11px;background:transparent;border:1px solid rgba(255,255,255,0.1);border-radius:9px;color:rgba(255,255,255,0.45);font-family:'Rajdhani',sans-serif;cursor:pointer">বন্ধ করুন</button>
       </div>`}
     </div>
   `;
-
   document.body.appendChild(modal);
   modal.onclick = e => { if (e.target === modal) modal.remove(); };
-
-  // checkbox change listener
-  setTimeout(() => {
-    document.querySelectorAll('#fieldClearList input[type=checkbox]').forEach(cb => {
-      cb.addEventListener('change', updateClearBtn);
-    });
-  }, 60);
 }
 
 function updateClearBtn() {
   const checked = document.querySelectorAll('#fieldClearList input[type=checkbox]:checked');
-  const btn     = document.getElementById('clearSelectedBtn');
-  const cnt     = document.getElementById('selectedCount');
+  const btn = document.getElementById('clearSelectedBtn');
+  const cnt = document.getElementById('selectedCount');
   if (!btn) return;
   const n = checked.length;
-  btn.disabled   = n === 0;
-  btn.style.opacity = n > 0 ? '1' : '0.45';
-  btn.style.cursor  = n > 0 ? 'pointer' : 'not-allowed';
-  if (cnt) cnt.textContent = n + 'টি সিলেক্ট';
+  btn.disabled = n===0;
+  btn.style.opacity = n>0?'1':'0.45';
+  btn.style.cursor  = n>0?'pointer':'not-allowed';
+  if (cnt) cnt.textContent = n+'টি সিলেক্ট';
 }
 
 async function confirmFieldClear(docId, name) {
   const checked = [...document.querySelectorAll('#fieldClearList input[type=checkbox]:checked')];
   if (!checked.length) return;
-
   const keys   = checked.map(c => c.value);
-  const labels = checked.map(c => {
-    const f = CLEARABLE_FIELDS.find(x => x.key === c.value);
-    return f ? f.label : c.value;
-  });
-
-  const confirmMsg = `নিচের ${keys.length}টি ফিল্ড মুছে ফেলবেন?\n\n${labels.map(l=>'• '+l).join('\n')}\n\nএই কাজ পূর্বাবস্থায় ফেরানো যাবে না।`;
-  if (!confirm(confirmMsg)) return;
-
+  const labels = keys.map(k => { const f=CLEARABLE_FIELDS.find(x=>x.key===k); return f?f.label:k; });
+  if (!confirm(`নিচের ${keys.length}টি ফিল্ড মুছে ফেলবেন?\n\n${labels.map(l=>'• '+l).join('\n')}\n\nএই কাজ পূর্বাবস্থায় ফেরানো যাবে না।`)) return;
   const btn = document.getElementById('clearSelectedBtn');
-  if (btn) { btn.textContent = '⏳ মুছা হচ্ছে...'; btn.disabled = true; }
-
+  if (btn) { btn.textContent='⏳ মুছা হচ্ছে...'; btn.disabled=true; }
   try {
-    // FieldValue.delete() দিয়ে প্রতিটি ফিল্ড মুছো
     const updateData = { updatedAt: firebase.firestore.FieldValue.serverTimestamp(), updatedBy: webCurrentUser?.uid };
     keys.forEach(k => { updateData[k] = firebase.firestore.FieldValue.delete(); });
-
     await db.collection('members').doc(docId).update(updateData);
-
-    // audit log
     await db.collection('fieldClearLog').add({
-      docId, memberName: name,
-      clearedFields: keys,
+      docId, memberName: name, clearedFields: keys,
       clearedBy: webCurrentUser?.uid,
       clearedByRole: 'superadmin',
       clearedAt: firebase.firestore.FieldValue.serverTimestamp(),
     });
-
-    // local member object আপডেট করো
     const localMember = members.find(x =>
-      (x._id || String(x.no || '').replace(/[^A-Z0-9]/gi, '')) === docId
+      (x._id || String(x.no||'').replace(/[^A-Z0-9]/gi,'')) === docId
     );
-    if (localMember) { keys.forEach(k => delete localMember[k]); }
+    if (localMember) keys.forEach(k => delete localMember[k]);
     applyFilters();
-
     document.getElementById('fieldClearModal')?.remove();
     document.getElementById('rosterEditModal')?.remove();
-    _showDeleteToast('✅ ' + keys.length + 'টি ফিল্ড সফলভাবে মুছা হয়েছে');
+    _showAdminToast('✅ '+keys.length+'টি ফিল্ড সফলভাবে মুছা হয়েছে','success');
   } catch(e) {
-    if (btn) { btn.textContent = '🗑️ নির্বাচিত ফিল্ড মুছুন'; btn.disabled = false; btn.style.opacity = '1'; }
-    alert('❌ মুছা ব্যর্থ: ' + (e.code || e.message));
+    if (btn) { btn.textContent='🗑️ নির্বাচিত ফিল্ড মুছুন'; btn.disabled=false; btn.style.opacity='1'; }
+    alert('❌ মুছা ব্যর্থ: '+(e.code||e.message));
   }
+}
+
+function _showAdminToast(msg, type='success') {
+  document.querySelectorAll('._adminToast').forEach(e=>e.remove());
+  const t = document.createElement('div');
+  t.className = '_adminToast';
+  t.textContent = msg;
+  const color = type==='success'?'rgba(63,185,80,0.4)':'rgba(192,64,64,0.4)';
+  const tc    = type==='success'?'#3fb950':'#e05555';
+  t.style.cssText = `position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:#1c2333;border:1px solid ${color};color:${tc};border-radius:30px;padding:12px 24px;font-family:'Rajdhani',sans-serif;font-size:0.88rem;font-weight:700;z-index:99999;box-shadow:0 4px 20px rgba(0,0,0,0.5);white-space:nowrap;pointer-events:none`;
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(), 3500);
 }
 
 function closeModalBtn() {
