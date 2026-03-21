@@ -485,7 +485,7 @@ select:focus { border-color: var(--accent); }
       <p>Bangladesh Army · Engineer Corps</p>
     </div>
     <div class="header-right">
-  <a href="https://dynamicfourdatabase-ux.github.io/4engr-app" style="display:flex;align-items:center;gap:6px;padding:6px 12px;background:rgba(200,169,74,0.15);border:1px solid rgba(200,169,74,0.35);border-radius:8px;color:var(--header-border);font-family:'Rajdhani',sans-serif;font-size:0.75rem;font-weight:700;letter-spacing:1px;text-decoration:none;transition:all 0.2s" onmouseover="this.style.background='rgba(200,169,74,0.25)'" onmouseout="this.style.background='rgba(200,169,74,0.15)'">
+  <a href="4engr-app.html" style="display:flex;align-items:center;gap:6px;padding:6px 12px;background:rgba(200,169,74,0.15);border:1px solid rgba(200,169,74,0.35);border-radius:8px;color:var(--header-border);font-family:'Rajdhani',sans-serif;font-size:0.75rem;font-weight:700;letter-spacing:1px;text-decoration:none;transition:all 0.2s" onmouseover="this.style.background='rgba(200,169,74,0.25)'" onmouseout="this.style.background='rgba(200,169,74,0.15)'">
     📱 অ্যাপ
   </a>
       <div class="stat-group">
@@ -988,10 +988,11 @@ function showModal(idx){
           <div class="di"><div class="lbl">${L('জন্ম তারিখ','Date of Birth')}</div><div class="val">${fmtDateAge(m.dob)}</div></div>
           <div class="di"><div class="lbl">${L('রক্তের গ্রুপ','Blood Group')}</div><div class="val blood" style="font-size:1rem;">${m.bl||'—'}</div></div>
           <div class="di"><div class="lbl">${L('শিক্ষাগত যোগ্যতা','Education')}</div><div class="val">${edu||'—'}</div></div>
-          <div class="di"><div class="lbl">${L('জেলা','District')}</div><div class="val">${dist||'—'}</div></div>
+          <div class="di"><div class="lbl">${L('জেলা','District')}</div><div class="val">${m.dist||dist||'—'}</div></div>
           <div class="di"><div class="lbl">NID</div><div class="val">${m.nid||'—'}</div></div>
-          <div class="di"><div class="lbl">${L('রানিং মোবাইল','Mobile No.')}</div><div class="val">${m.mb||'—'}</div></div>
+          <div class="di"><div class="lbl">${L('মোবাইল','Mobile No.')}</div><div class="val">${m.mb||'—'}</div></div>
           <div class="di"><div class="lbl">${L('NID মোবাইল','NID Mobile')}</div><div class="val">${m.nm||'—'}</div></div>
+          <div class="di"><div class="lbl">${L('হোয়াটসঅ্যাপ','WhatsApp')}</div><div class="val">${m.wa||'—'}</div></div>
           <div class="di"><div class="lbl">${L('জরুরি যোগাযোগ','Emergency Contact')}</div><div class="val">${m.em||'—'}</div></div>
           <div class="di full"><div class="lbl">${L('স্থায়ী ঠিকানা','Permanent Address')}</div><div class="val">${m.ad||'—'}</div></div>
         </div>
@@ -1006,8 +1007,10 @@ function showModal(idx){
           <div class="di"><div class="lbl">${L('পদবী','Rank')}</div><div class="val"><span class="rank-badge ${rc(rank)}">${rank||'—'}</span></div></div>
           <div class="di"><div class="lbl">${L('ট্রেড','Trade')}</div><div class="val">${trade||'—'}</div></div>
           <div class="di"><div class="lbl">${L('কোম্পানী','Company')}</div><div class="val">${co||'—'}</div></div>
+          <div class="di"><div class="lbl">${L('নিয়োগ','Appointment')}</div><div class="val">${m.niyog||'—'}</div></div>
           <div class="di"><div class="lbl">${L('ভর্তির তারিখ','Enlistment Date')}</div><div class="val">${fmtDateAge(m.jd)}</div></div>
-          <div class="di"><div class="lbl">${L('শপথগ্রহণের তারিখ','Oath Date')}</div><div class="val">${fmtDateAge(m.od)}</div></div>
+          <div class="di"><div class="lbl">${L('শপথের তারিখ','Oath Date')}</div><div class="val">${fmtDateAge(m.oath_date||m.od)}</div></div>
+          <div class="di"><div class="lbl">${L('প্রমোশনের তারিখ','Promotion Date')}</div><div class="val">${m.promo_date||'—'}</div></div>
           <div class="di"><div class="lbl">${L('সম্ভাব্য পেনশন','Expected Pension')}</div><div class="val" style="color:var(--warn)">${fmtDateAge(m.pd,true)}</div></div>
           <div class="di"><div class="lbl">${L('AI ১/২০১৩ বর্ধিত','AI 1/2013 Extended')}</div><div class="val">${ai||'—'}</div></div>
           ${m.pn&&m.pn.length>2&&!['nil','no','nai','n/a','0'].includes(m.pn.toLowerCase())?`<div class="di full"><div class="lbl">${L('সাজা','Punishment')}</div><div class="val"><span class="tag red">${m.pn}</span></div></div>`:''}
@@ -1015,7 +1018,7 @@ function showModal(idx){
         </div>
       </div>
       ${promoHtml?`<div class="sec"><div class="sec-title">${L('পদোন্নতির ইতিহাস','Promotion History')}</div><div class="promo-line">${promoHtml}</div></div>`:''}
-      ${m.pu?`<div class="sec"><div class="sec-title">${L('পূর্বের ইউনিট','Previous Units')}</div><div class="val" style="font-size:0.82rem;white-space:pre-line;line-height:1.7;color:var(--text)">${m.pu}</div></div>`:''}
+      ${(m.prev_units||m.pu)?`<div class="sec"><div class="sec-title">${L('পূর্বের ইউনিট','Previous Units')}</div><div class="val" style="font-size:0.82rem;white-space:pre-line;line-height:1.7;color:var(--text)">${m.prev_units||m.pu}</div></div>`:''}
       <div class="sec">
         <div class="sec-title">${L('বাসস্থান','Residence')}</div>
         <div class="dg">
@@ -1030,8 +1033,8 @@ function showModal(idx){
       ${(lang==='bn'?m.cr_bn:m.cr_en)?`<div class="sec"><div class="sec-title">${L('কোর্স ও ক্যাডার','Courses & Cadre')}</div>
         ${fmtCoursesWithResults(lang==='bn'?m.cr_bn:m.cr_en, m.courseResults||{})}</div>`:''}
       ${(lang==='bn'?m.dc_bn:m.dc_en)?`<div class="sec"><div class="sec-title">${L('সেনা/ডিভিশন পর্যায়ের কোর্স','Army / Division Level Courses')}</div><div class="tag-list">${fmtTags(lang==='bn'?m.dc_bn:m.dc_en,'gold')}</div></div>`:''}
-      ${m.li?`<div class="sec"><div class="sec-title">${L('লাইসেন্স','Licenses')}</div><div class="tag-list">${fmtTags(m.li,'green')}</div></div>`:''}
-      ${!(lang==='bn'?m.cr_bn:m.cr_en)&&!(lang==='bn'?m.dc_bn:m.dc_en)&&!m.li?`<p style="color:var(--text3);font-size:0.88rem;">${L('কোনো তথ্য নেই','No data available')}</p>`:''}
+      ${(m.license||m.li)?`<div class="sec"><div class="sec-title">${L('লাইসেন্স','Licenses')}</div><div class="tag-list">${fmtTags(m.license||m.li,'green')}</div></div>`:''}
+      ${!(lang==='bn'?m.cr_bn:m.cr_en)&&!(lang==='bn'?m.dc_bn:m.dc_en)&&!m.license&&!m.li?`<p style="color:var(--text3);font-size:0.88rem;">${L('কোনো তথ্য নেই','No data available')}</p>`:''}
     </div>
 
     <!-- TAB 3: FAMILY -->
@@ -1039,21 +1042,38 @@ function showModal(idx){
       <div class="sec">
         <div class="sec-title">${L('বৈবাহিক তথ্য','Marital Information')}</div>
         <div class="dg">
-          <div class="di"><div class="lbl">${L('বৈবাহিক অবস্থা','Marital Status')}</div><div class="val">${ma||'—'}</div></div>
+          <div class="di"><div class="lbl">${L('বৈবাহিক অবস্থা','Marital Status')}</div><div class="val">${ma||m.ma_bn||'—'}</div></div>
           <div class="di"><div class="lbl">${L('স্ত্রী/স্বামীর নাম','Spouse Name')}</div><div class="val">${m.sp||'—'}</div></div>
           <div class="di"><div class="lbl">${L('স্ত্রী/স্বামীর জন্ম','Spouse DOB')}</div><div class="val">${fmtDateAge(m.sd)}</div></div>
           <div class="di"><div class="lbl">${L('বিবাহের তারিখ','Marriage Date')}</div><div class="val">${fmtDateAge(m.wd)}</div></div>
         </div>
       </div>
-      ${kRows?`<div class="sec"><div class="sec-title">${L('সন্তানসমূহ','Children')}</div>
-        <table class="ctable">
-          <thead><tr><th>#</th><th>${L('নাম','Name')}</th><th>${L('জন্ম তারিখ','Date of Birth')}</th></tr></thead>
-          <tbody>${kRows}</tbody>
-        </table></div>`:''}
+      ${(()=>{
+        // Dynamic children — c1n থেকে c9n পর্যন্ত চেক
+        let kRowsDyn = '';
+        for(let i=1;i<=9;i++){
+          const cn = m['c'+i+'n']; const cd = m['c'+i+'d'];
+          if(cn) kRowsDyn += `<tr><td>${i}</td><td>${cn}</td><td>${fmtDateAge(cd)}</td></tr>`;
+        }
+        return kRowsDyn ? `<div class="sec"><div class="sec-title">${L('সন্তানসমূহ','Children')}</div>
+          <table class="ctable">
+            <thead><tr><th>#</th><th>${L('নাম','Name')}</th><th>${L('জন্ম তারিখ','Date of Birth')}</th></tr></thead>
+            <tbody>${kRowsDyn}</tbody>
+          </table></div>` : '';
+      })()}
     </div>`;
 
   document.getElementById('overlay').classList.add('open');
   document.body.style.overflow='hidden';
+
+  // Admin হলে Edit বাটন যোগ করো
+  if (webCurrentUser && (webUserRole === 'admin' || webUserRole === 'superadmin')) {
+    const editBtn = document.createElement('button');
+    editBtn.textContent = '✏️ তথ্য সম্পাদনা';
+    editBtn.style.cssText = 'position:absolute;top:16px;right:52px;background:rgba(184,144,42,0.15);border:1px solid rgba(184,144,42,0.4);color:#b8902a;border-radius:8px;padding:6px 14px;font-family:"Rajdhani",sans-serif;font-size:0.72rem;font-weight:700;letter-spacing:1px;cursor:pointer;z-index:10';
+    editBtn.onclick = () => openRosterEditModal(m);
+    document.querySelector('.modal')?.appendChild(editBtn);
+  }
 }
 
 function switchTab(n){
@@ -1602,6 +1622,124 @@ async function saveAdminProfile() {
     let msg = '❌ ব্যর্থ: ' + e.message;
     if (e.code === 'auth/wrong-password') msg = '❌ বর্তমান পাসওয়ার্ড ভুল।';
     showRes(msg, false);
+  }
+}
+
+/* ── Roster থেকে সদস্য তথ্য সম্পাদনা ── */
+function openRosterEditModal(m) {
+  const RANKS = ['লেঃ কর্নেল','মেজর','ক্যাপ্টেন','লেফটেন্যান্ট','মাস্টাঃ ওয়াঃ অফিঃ','সিনিঃ ওয়াঃ অফিঃ','ওয়ারেন্ট অফিসার','সার্জেন্ট','কর্পোরাল','ল্যান্স কর্পোরাল','সৈনিক','এনসি (ই)'];
+  const TRADES = ['অফিসার','আরএমটি','আরসিটি','ইএন্ডবিআর','ইলেক্টিশিয়ান','এ/ই','এইসি','এনসি (ই)','এমএ','এসএমটি','ওইপি','ওবিএম','ওসিইউ','ওয়েল্ডার','করনিক','কার্পেন্টার','কুক (ইউ)','টিএসএ','টিবিভি','টিসিভি','টেইলার','ডিএমটি','ডিএসভি','ড্রাফটসম্যান','পিডি','পেইন্টার','বিটিএস','মেশন','মেশিনিষ্ট','সার্ভেয়ার'];
+
+  const inp = (id, val, ph='') => `<input type="text" id="re_${id}" value="${(val||'').replace(/"/g,'&quot;')}" placeholder="${ph}" style="width:100%;background:#1c2333;border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:8px 11px;color:#e6e6e6;font-size:0.85rem;outline:none;margin-top:3px">`;
+  const sel = (id, val, opts) => `<select id="re_${id}" style="width:100%;background:#1c2333;border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:8px 11px;color:#e6e6e6;font-size:0.85rem;outline:none;margin-top:3px"><option value="">—</option>${opts.map(o=>`<option value="${o}" ${val===o?'selected':''}>${o}</option>`).join('')}</select>`;
+  const lbl = (txt) => `<label style="display:block;font-family:'Rajdhani',sans-serif;font-size:0.68rem;letter-spacing:1px;color:#8b949e;text-transform:uppercase;margin-top:10px">${txt}</label>`;
+  const ta = (id, val, ph='') => `<textarea id="re_${id}" rows="2" placeholder="${ph}" style="width:100%;background:#1c2333;border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:8px 11px;color:#e6e6e6;font-size:0.85rem;outline:none;margin-top:3px;resize:vertical">${val||''}</textarea>`;
+
+  const docId = m._id || String(m.no||'').replace(/[^A-Z0-9]/gi,'');
+
+  const modal = document.createElement('div');
+  modal.id = 'rosterEditModal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:10000;display:flex;align-items:flex-end;justify-content:center;padding:0;overflow-y:auto';
+  modal.innerHTML = `
+    <div style="background:#161b22;border:1px solid rgba(184,144,42,0.25);border-radius:16px 16px 0 0;width:100%;max-width:640px;padding:24px;max-height:92vh;overflow-y:auto">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;position:sticky;top:0;background:#161b22;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.06)">
+        <span style="font-family:'Rajdhani',sans-serif;font-size:0.85rem;font-weight:700;letter-spacing:2px;color:#b8902a;text-transform:uppercase">✏️ তথ্য সম্পাদনা — ${m.bn||m.no}</span>
+        <button onclick="document.getElementById('rosterEditModal').remove()" style="background:transparent;border:none;color:rgba(255,255,255,0.4);cursor:pointer;font-size:20px">✕</button>
+      </div>
+
+      <div style="font-family:'Rajdhani',sans-serif;font-size:0.7rem;letter-spacing:2px;color:#b8902a;text-transform:uppercase;margin-bottom:8px">ব্যক্তিগত তথ্য</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div>${lbl('বাংলা নাম')}${inp('bn',m.bn)}</div>
+        <div>${lbl('ইংরেজি নাম')}${inp('en',m.en)}</div>
+        <div>${lbl('জন্ম তারিখ (DD/MM/YYYY)')}${inp('dob',m.dob,'DD/MM/YYYY')}</div>
+        <div>${lbl('রক্তের গ্রুপ')}${sel('bl',m.bl,['A+','A-','B+','B-','AB+','AB-','O+','O-'])}</div>
+        <div>${lbl('NID নম্বর')}${inp('nid',m.nid)}</div>
+        <div>${lbl('মোবাইল')}${inp('mb',m.mb,'01XXXXXXXXX')}</div>
+        <div>${lbl('হোয়াটসঅ্যাপ')}${inp('wa',m.wa,'01XXXXXXXXX')}</div>
+        <div>${lbl('জেলা')}${inp('dist',m.dist||m.di_bn)}</div>
+        <div>${lbl('শিক্ষা')}${inp('ed_bn',m.ed_bn)}</div>
+        <div>${lbl('জরুরি যোগাযোগ')}${inp('em',m.em)}</div>
+      </div>
+      <div>${lbl('স্থায়ী ঠিকানা')}${ta('ad',m.ad,'গ্রাম, পোস্ট, উপজেলা, জেলা')}</div>
+
+      <div style="font-family:'Rajdhani',sans-serif;font-size:0.7rem;letter-spacing:2px;color:#b8902a;text-transform:uppercase;margin:16px 0 8px">সামরিক তথ্য</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div>${lbl('পদবী')}${sel('r_bn',m.r_bn,RANKS)}</div>
+        <div>${lbl('ট্রেড')}${sel('tr_bn',m.tr_bn,TRADES)}</div>
+        <div>${lbl('নিয়োগ')}${inp('niyog',m.niyog)}</div>
+        <div>${lbl('ভর্তির তারিখ')}${inp('jd',m.jd,'DD/MM/YYYY')}</div>
+        <div>${lbl('শপথের তারিখ')}${inp('oath_date',m.oath_date||m.od,'DD/MM/YYYY')}</div>
+        <div>${lbl('প্রমোশনের তারিখ')}${inp('promo_date',m.promo_date,'DD/MM/YYYY')}</div>
+        <div>${lbl('লাইসেন্স')}${inp('license',m.license||m.li,'যেমন: ড্রাইভিং, ক্রেন')}</div>
+        <div>${lbl('সাজা')}${inp('pn',m.pn)}</div>
+      </div>
+      <div>${lbl('পূর্বের ইউনিট')}${ta('prev_units',m.prev_units||m.pu,'প্রতিটি ইউনিট নতুন লাইনে')}</div>
+
+      <div style="font-family:'Rajdhani',sans-serif;font-size:0.7rem;letter-spacing:2px;color:#b8902a;text-transform:uppercase;margin:16px 0 8px">পারিবারিক তথ্য</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div>${lbl('বৈবাহিক অবস্থা')}${sel('ma_bn',m.ma_bn,['অবিবাহিত','বিবাহিত','বিধবা/বিপত্নীক','তালাকপ্রাপ্ত'])}</div>
+        <div>${lbl('স্ত্রীর নাম')}${inp('sp',m.sp)}</div>
+        <div>${lbl('স্ত্রীর জন্ম')}${inp('sd',m.sd,'DD/MM/YYYY')}</div>
+        <div>${lbl('বিবাহের তারিখ')}${inp('wd',m.wd,'DD/MM/YYYY')}</div>
+        <div>${lbl('সন্তান ১ নাম')}${inp('c1n',m.c1n)}</div>
+        <div>${lbl('সন্তান ১ জন্ম')}${inp('c1d',m.c1d,'DD/MM/YYYY')}</div>
+        <div>${lbl('সন্তান ২ নাম')}${inp('c2n',m.c2n)}</div>
+        <div>${lbl('সন্তান ২ জন্ম')}${inp('c2d',m.c2d,'DD/MM/YYYY')}</div>
+        <div>${lbl('সন্তান ৩ নাম')}${inp('c3n',m.c3n)}</div>
+        <div>${lbl('সন্তান ৩ জন্ম')}${inp('c3d',m.c3d,'DD/MM/YYYY')}</div>
+      </div>
+
+      <div id="rosterEditResult" style="display:none;border-radius:8px;padding:10px 12px;margin:12px 0;font-size:0.82rem"></div>
+
+      <div style="display:flex;gap:10px;margin-top:16px;position:sticky;bottom:0;background:#161b22;padding-top:10px;border-top:1px solid rgba(255,255,255,0.06)">
+        <button onclick="saveRosterEdit('${docId}')" style="flex:1;padding:12px;background:linear-gradient(135deg,#b8902a,#8a6010);border:none;border-radius:8px;color:#0a0c10;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:0.85rem;letter-spacing:1px;cursor:pointer">✅ সংরক্ষণ করুন</button>
+        <button onclick="document.getElementById('rosterEditModal').remove()" style="padding:12px 20px;background:transparent;border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:rgba(255,255,255,0.45);cursor:pointer;font-family:'Rajdhani',sans-serif">বাতিল</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.onclick = e => { if (e.target === modal) modal.remove(); };
+}
+
+async function saveRosterEdit(docId) {
+  const g = id => document.getElementById('re_' + id)?.value.trim() || '';
+  const res = document.getElementById('rosterEditResult');
+  const showRes = (msg, ok) => {
+    res.style.cssText = `display:block;background:rgba(${ok?'63,185,80':'192,64,64'},0.1);border:1px solid rgba(${ok?'63,185,80':'192,64,64'},0.3);color:${ok?'#3fb950':'#e05555'}`;
+    res.textContent = msg;
+  };
+
+  if (!docId) { showRes('❌ সদস্য ID পাওয়া যায়নি', false); return; }
+
+  const data = {};
+  ['bn','en','dob','bl','nid','mb','wa','dist','ed_bn','em','ad',
+   'r_bn','tr_bn','niyog','jd','oath_date','promo_date','license','pn','prev_units',
+   'ma_bn','sp','sd','wd','c1n','c1d','c2n','c2d','c3n','c3d'
+  ].forEach(k => { const v = g(k); if (v) data[k] = v; });
+
+  // tr_bn থেকে tr_en এও copy করো
+  if (data.tr_bn) data.tr_en = data.tr_bn;
+  if (data.r_bn) data.r_en = data.r_bn;
+  if (data.dist) { data.di_bn = data.dist; data.di_en = data.dist; }
+  data.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
+  data.updatedBy = webCurrentUser.uid;
+
+  showRes('সংরক্ষণ হচ্ছে...', true);
+  try {
+    const docRef = db.collection('members').doc(docId);
+    const snap = await docRef.get();
+    if (snap.exists) {
+      await docRef.update(data);
+    } else {
+      await docRef.set(data, { merge: true });
+    }
+    showRes('✅ সফলভাবে সংরক্ষণ হয়েছে!', true);
+    // MEMBERS array আপডেট করো
+    const idx = MEMBERS.findIndex(m => m._id === docId || m.no === g('no'));
+    if (idx !== -1) MEMBERS[idx] = { ...MEMBERS[idx], ...data };
+    applyFilters();
+    setTimeout(() => document.getElementById('rosterEditModal')?.remove(), 1500);
+  } catch(e) {
+    showRes('❌ ব্যর্থ: ' + (e.code || e.message), false);
   }
 }
 

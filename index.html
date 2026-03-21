@@ -793,6 +793,26 @@ body {
       </div>
     </div>
 
+    <!-- ── PAGE: Leave (ছুটি) ── -->
+    <div class="page" id="page-leave">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-header-icon">🏖️</span>
+          <span class="card-header-title">ছুটির তথ্য</span>
+          <button class="field-edit-btn" style="margin-left:auto" onclick="openAddLeave()">+ নতুন ছুটি</button>
+        </div>
+        <div class="card-body" id="leaveList">
+          <div style="color:var(--text2);text-align:center;padding:20px;font-size:0.85rem">লোড হচ্ছে...</div>
+        </div>
+      </div>
+      <!-- মোট ছুটির যোগফল -->
+      <div class="card" id="leaveSummaryCard" style="display:none">
+        <div class="card-body">
+          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px" id="leaveSummary"></div>
+        </div>
+      </div>
+    </div>
+
     <!-- ── PAGE: Notifications ── -->
     <div class="page" id="page-notifications">
       <div id="notificationsList"></div>
@@ -986,8 +1006,12 @@ body {
                   <label class="form-label">পদবী *</label>
                   <select class="form-input" id="nm_rank" style="background:var(--dark3)">
                   <option value="">নির্বাচন করুন</option>
-                  <option value='মাস্টার ওয়ারেন্ট অফিসার'>মাস্টার ওয়ারেন্ট অফিসার</option>
-                  <option value='সিনিয়র ওয়ারেন্ট অফিসার'>সিনিয়র ওয়ারেন্ট অফিসার</option>
+                  <option value='লেঃ কর্নেল'>লেঃ কর্নেল</option>
+                  <option value='মেজর'>মেজর</option>
+                  <option value='ক্যাপ্টেন'>ক্যাপ্টেন</option>
+                  <option value='লেফটেন্যান্ট'>লেফটেন্যান্ট</option>
+                  <option value='মাস্টাঃ ওয়াঃ অফিঃ'>মাস্টাঃ ওয়াঃ অফিঃ</option>
+                  <option value='সিনিঃ ওয়াঃ অফিঃ'>সিনিঃ ওয়াঃ অফিঃ</option>
                   <option value='ওয়ারেন্ট অফিসার'>ওয়ারেন্ট অফিসার</option>
                   <option value='সার্জেন্ট'>সার্জেন্ট</option>
                   <option value='কর্পোরাল'>কর্পোরাল</option>
@@ -1026,6 +1050,7 @@ body {
                   <label class="form-label">ট্রেড</label>
                   <select id="nm_trade" style="width:100%;background:var(--dark3);border:1px solid var(--border2);border-radius:8px;padding:9px 12px;color:var(--text);font-size:0.88rem;outline:none">
                   <option value="">নির্বাচন করুন</option>
+                  <option value='অফিসার'>অফিসার</option>
                   <option value='আরএমটি'>আরএমটি</option>
                   <option value='আরসিটি'>আরসিটি</option>
                   <option value='ইএন্ডবিআর'>ইএন্ডবিআর</option>
@@ -1114,8 +1139,12 @@ body {
                   <label class="form-label">পদবী *</label>
                   <select class="form-input" id="newAdminRank" style="background:var(--dark3)">
                     <option value="">নির্বাচন করুন</option>
-                    <option value='মাস্টার ওয়ারেন্ট অফিসার'>মাস্টার ওয়ারেন্ট অফিসার</option>
-                  <option value='সিনিয়র ওয়ারেন্ট অফিসার'>সিনিয়র ওয়ারেন্ট অফিসার</option>
+                    <option value='লেঃ কর্নেল'>লেঃ কর্নেল</option>
+                  <option value='মেজর'>মেজর</option>
+                  <option value='ক্যাপ্টেন'>ক্যাপ্টেন</option>
+                  <option value='লেফটেন্যান্ট'>লেফটেন্যান্ট</option>
+                  <option value='মাস্টাঃ ওয়াঃ অফিঃ'>মাস্টাঃ ওয়াঃ অফিঃ</option>
+                  <option value='সিনিঃ ওয়াঃ অফিঃ'>সিনিঃ ওয়াঃ অফিঃ</option>
                   <option value='ওয়ারেন্ট অফিসার'>ওয়ারেন্ট অফিসার</option>
                   <option value='সার্জেন্ট'>সার্জেন্ট</option>
                   <option value='কর্পোরাল'>কর্পোরাল</option>
@@ -1261,6 +1290,9 @@ body {
     <button class="nav-item" id="nav-courses" onclick="navTo('courses')">
       <span class="nav-icon">📚</span>কোর্স
     </button>
+    <button class="nav-item" id="nav-leave" onclick="navTo('leave')">
+      <span class="nav-icon">🏖️</span>ছুটি
+    </button>
     <button class="nav-item" id="nav-notifications" onclick="navTo('notifications')">
       <span class="nav-icon">🔔</span>বিজ্ঞপ্তি
     </button>
@@ -1361,6 +1393,7 @@ function navTo(page) {
   if (page === 'admin') loadAdminData();
   if (page === 'notifications') loadNotifications();
   if (page === 'courses') renderCourses();
+  if (page === 'leave') loadLeave();
 }
 
 /* ══════════════════════════════════════════
@@ -1542,6 +1575,75 @@ function doLogout() {
 }
 
 /* ══════════════════════════════════════════
+   USER MANAGEMENT — Promote / Demote / Delete / Password Reset
+══════════════════════════════════════════ */
+async function promoteUser(uid, newRole, name, armyNo) {
+  const roleLabel = newRole === 'admin' ? 'অ্যাডমিন' : 'সাধারণ সদস্য';
+  const dirLabel = newRole === 'admin' ? 'প্রমোট' : 'ডিমোট';
+  if (!confirm(`${name} (${armyNo}) কে ${roleLabel} হিসেবে ${dirLabel} করবেন?`)) return;
+  showLoading('আপডেট হচ্ছে...');
+  try {
+    await db.collection('users').doc(uid).update({
+      role: newRole,
+      updatedBy: currentUser.uid,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    showToast(`✅ ${name} কে ${roleLabel} করা হয়েছে`, 'success');
+    hideLoading();
+    showStatDetail('admins'); // রিফ্রেশ
+  } catch(e) {
+    hideLoading();
+    showToast('ব্যর্থ: ' + e.message, 'error');
+  }
+}
+
+async function adminResetPassword(uid, armyNo) {
+  const newPass = prompt(`${armyNo} এর নতুন পাসওয়ার্ড দিন (কমপক্ষে ৬ অক্ষর):`);
+  if (!newPass || newPass.length < 6) {
+    if (newPass !== null) showToast('পাসওয়ার্ড কমপক্ষে ৬ অক্ষর হতে হবে', 'error');
+    return;
+  }
+  showLoading('পাসওয়ার্ড রিসেট হচ্ছে...');
+  try {
+    const docId = armyNo.replace(/[^A-Z0-9]/gi, '');
+    await db.collection('passwordResets').doc(docId).set({
+      newPassword: newPass,
+      used: false,
+      resetBy: currentUser.uid,
+      resetAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    hideLoading();
+    showToast(`✅ ${armyNo} এর পাসওয়ার্ড রিসেট করা হয়েছে। পরের লগইনে কার্যকর হবে।`, 'success');
+  } catch(e) {
+    hideLoading();
+    showToast('ব্যর্থ: ' + e.message, 'error');
+  }
+}
+
+async function deleteUser(uid, name) {
+  if (uid === currentUser.uid) {
+    showToast('নিজের অ্যাকাউন্ট ডিলিট করা যাবে না', 'error');
+    return;
+  }
+  if (!confirm(`⚠️ সতর্কতা!\n\n"${name}" এর অ্যাকাউন্ট স্থায়ীভাবে ডিলিট করবেন?\n\nএই কাজ পূর্বাবস্থায় ফেরানো যাবে না।`)) return;
+  if (!confirm(`দ্বিতীয়বার নিশ্চিত করুন — "${name}" ডিলিট করবেন?`)) return;
+
+  showLoading('ডিলিট হচ্ছে...');
+  try {
+    // Firestore থেকে user document ডিলিট
+    await db.collection('users').doc(uid).delete();
+    // adminProfiles থেকেও ডিলিট করো যদি থাকে
+    try { await db.collection('adminProfiles').doc(uid).delete(); } catch(e) {}
+    hideLoading();
+    showToast(`✅ "${name}" এর অ্যাকাউন্ট ডিলিট হয়েছে`, 'success');
+    showStatDetail('admins'); // রিফ্রেশ
+  } catch(e) {
+    hideLoading();
+    showToast('ডিলিট ব্যর্থ: ' + e.message, 'error');
+  }
+}
+
+/* ══════════════════════════════════════════
    LOAD MEMBER DATA
 ══════════════════════════════════════════ */
 async function loadMemberData(uid) {
@@ -1651,51 +1753,77 @@ function renderProfile() {
     av2.appendChild(ov);
   }
 
-  // Personal fields (editable)
+  const RANKS = ['লেঃ কর্নেল','মেজর','ক্যাপ্টেন','লেফটেন্যান্ট','মাস্টাঃ ওয়াঃ অফিঃ','সিনিঃ ওয়াঃ অফিঃ','ওয়ারেন্ট অফিসার','সার্জেন্ট','কর্পোরাল','ল্যান্স কর্পোরাল','সৈনিক','এনসি (ই)'];
+  const TRADES = ['অফিসার','আরএমটি','আরসিটি','ইএন্ডবিআর','ইলেক্টিশিয়ান','এ/ই','এইসি','এনসি (ই)','এমএ','এসএমটি','ওইপি','ওবিএম','ওসিইউ','ওয়েল্ডার','করনিক','কার্পেন্টার','কুক (ইউ)','টিএসএ','টিবিভি','টিসিভি','টেইলার','ডিএমটি','ডিএসভি','ড্রাফটসম্যান','পিডি','পেইন্টার','বিটিএস','মেশন','মেশিনিষ্ট','সার্ভেয়ার'];
+
+  // Personal fields
   const personalDef = isAdminUser ? [
-    { key: 'bn', label: t('বাংলা নাম'), editable: true },
-    { key: 'en', label: t('ইংরেজি নাম'), editable: true },
-    { key: 'bl', label: t('রক্তের গ্রুপ'), editable: true, type: 'select', opts: ['A+','A-','B+','B-','AB+','AB-','O+','O-'] },
-    { key: 'mb', label: t('মোবাইল'), editable: true },
-    { key: 'wa', label: t('হোয়াটসঅ্যাপ'), editable: true },
-    { key: 'ad', label: t('স্থায়ী ঠিকানা'), editable: true, type: 'textarea' },
+    { key: 'bn', label: 'বাংলা নাম', editable: true },
+    { key: 'en', label: 'ইংরেজি নাম', editable: true },
+    { key: 'dob', label: 'জন্ম তারিখ', editable: true },
+    { key: 'bl', label: 'রক্তের গ্রুপ', editable: true, type: 'select', opts: ['A+','A-','B+','B-','AB+','AB-','O+','O-'] },
+    { key: 'nid', label: 'NID নম্বর', editable: true },
+    { key: 'mb', label: 'মোবাইল', editable: true },
+    { key: 'wa', label: 'হোয়াটসঅ্যাপ', editable: true },
+    { key: 'ad', label: 'স্থায়ী ঠিকানা', editable: true, type: 'textarea' },
+    { key: 'dist', label: 'জেলা', editable: true },
+    { key: 'ed_bn', label: 'শিক্ষা', editable: true },
+    { key: 'em', label: 'জরুরি যোগাযোগ', editable: true },
   ] : [
-    { key: 'bn', label: t('বাংলা নাম'), editable: false },
-    { key: 'en', label: t('ইংরেজি নাম'), editable: false },
-    { key: 'dob', label: t('জন্ম তারিখ'), editable: true },
-    { key: 'bl', label: t('রক্তের গ্রুপ'), editable: true, type: 'select', opts: ['A+','A-','B+','B-','AB+','AB-','O+','O-'] },
-    { key: 'nid', label: t('NID নম্বর'), editable: true },
-    { key: 'mb', label: t('মোবাইল'), editable: true },
-    { key: 'ad', label: t('স্থায়ী ঠিকানা'), editable: true, type: 'textarea' },
-    { key: 'ed_bn', label: t('শিক্ষা'), editable: true },
+    { key: 'bn', label: 'বাংলা নাম', editable: false },
+    { key: 'en', label: 'ইংরেজি নাম', editable: false },
+    { key: 'dob', label: 'জন্ম তারিখ', editable: true },
+    { key: 'bl', label: 'রক্তের গ্রুপ', editable: true, type: 'select', opts: ['A+','A-','B+','B-','AB+','AB-','O+','O-'] },
+    { key: 'nid', label: 'NID নম্বর', editable: true },
+    { key: 'mb', label: 'মোবাইল', editable: true },
+    { key: 'wa', label: 'হোয়াটসঅ্যাপ', editable: true },
+    { key: 'ad', label: 'স্থায়ী ঠিকানা', editable: true, type: 'textarea' },
+    { key: 'dist', label: 'জেলা', editable: true },
+    { key: 'ed_bn', label: 'শিক্ষা', editable: true },
   ];
   renderFields('personalFields', personalDef);
 
-  // অ্যাডমিনের জন্য আলাদা ফিল্ড সেট
+  // Military fields
   const militaryDef = isAdminUser ? [
-    { key: 'no', label: t('সেনা নম্বর'), editable: true },
-    { key: 'r_bn', label: t('পদবী'), editable: true },
-    { key: 'co_bn', label: t('কোম্পানী'), editable: true },
-    { key: 'niyog', label: t('নিয়োগ'), editable: true },
+    { key: 'no', label: 'সেনা নম্বর', editable: true },
+    { key: 'r_bn', label: 'পদবী', editable: true, type: 'select', opts: RANKS },
+    { key: 'tr_bn', label: 'ট্রেড', editable: true, type: 'select', opts: TRADES },
+    { key: 'co_bn', label: 'কোম্পানী', editable: true },
+    { key: 'niyog', label: 'নিয়োগ', editable: true },
+    { key: 'jd', label: 'ভর্তির তারিখ', editable: true },
+    { key: 'oath_date', label: 'শপথের তারিখ', editable: true },
+    { key: 'promo_date', label: 'প্রমোশনের তারিখ', editable: true },
+    { key: 'prev_units', label: 'পূর্বের ইউনিট', editable: true, type: 'textarea' },
+    { key: 'license', label: 'লাইসেন্স', editable: true },
+    { key: 'pn', label: 'সাজা', editable: true },
+    { key: 'pd', label: 'পেনশন তারিখ', editable: true },
   ] : [
-    { key: 'no', label: t('সেনা নম্বর'), editable: false },
-    { key: 'r_bn', label: t('পদবী'), editable: false },
-    { key: 'tr_bn', label: t('ট্রেড'), editable: false, type: 'select', opts: ['ইঞ্জিনিয়ার', 'ড্রাইভার মেকানিক', 'ইলেকট্রিশিয়ান', 'কার্পেন্টার', 'প্লাম্বার', 'মেসন', 'পেইন্টার', 'ওয়েল্ডার', 'স্টোরকিপার', 'ক্লার্ক', 'কুক', 'সিগন্যালম্যান', 'মেডিক', 'এইসি', 'অর্ডারলি', 'এনবিসি', 'বিজিআই', 'পিটি ইন্সট্রাক্টর'] },
-    { key: 'co_bn', label: t('কোম্পানী'), editable: false },
-    { key: 'jd', label: t('ভর্তির তারিখ'), editable: false },
+    { key: 'no', label: 'সেনা নম্বর', editable: false },
+    { key: 'r_bn', label: 'পদবী', editable: false },
+    { key: 'tr_bn', label: 'ট্রেড', editable: false },
+    { key: 'co_bn', label: 'কোম্পানী', editable: false },
+    { key: 'niyog', label: 'নিয়োগ', editable: false },
+    { key: 'jd', label: 'ভর্তির তারিখ', editable: false },
+    { key: 'oath_date', label: 'শপথের তারিখ', editable: false },
+    { key: 'promo_date', label: 'প্রমোশনের তারিখ', editable: false },
+    { key: 'prev_units', label: 'পূর্বের ইউনিট', editable: false },
+    { key: 'license', label: 'লাইসেন্স', editable: false },
   ];
   renderFields('militaryFields', militaryDef);
 
+  // Family fields — dynamic children support
+  const childCount = Math.max(3, Object.keys(m).filter(k => k.match(/^c\dn$/)).length + 1);
   const familyDef = [
+    { key: 'ma_bn', label: 'বৈবাহিক অবস্থা', editable: true, type: 'select', opts: ['অবিবাহিত','বিবাহিত','বিধবা/বিপত্নীক','তালাকপ্রাপ্ত'] },
     { key: 'sp', label: 'স্ত্রীর নাম', editable: true },
     { key: 'sd', label: 'স্ত্রীর জন্ম', editable: true },
     { key: 'wd', label: 'বিবাহের তারিখ', editable: true },
     { key: 'em', label: 'জরুরি যোগাযোগ', editable: true },
-    { key: 'c1n', label: 'সন্তান ১ নাম', editable: true },
-    { key: 'c1d', label: 'সন্তান ১ জন্ম', editable: true },
-    { key: 'c2n', label: 'সন্তান ২ নাম', editable: true },
-    { key: 'c2d', label: 'সন্তান ২ জন্ম', editable: true },
   ];
+  for (let i = 1; i <= childCount; i++) {
+    familyDef.push({ key: `c${i}n`, label: `সন্তান ${i} নাম`, editable: true });
+    familyDef.push({ key: `c${i}d`, label: `সন্তান ${i} জন্ম`, editable: true });
+  }
   renderFields('familyFields', familyDef);
 
   // Check pending edits
@@ -1764,6 +1892,45 @@ async function saveModal() {
   const btn = document.getElementById('modalSaveBtn');
   btn.textContent = 'সংরক্ষণ হচ্ছে...';
   btn.disabled = true;
+
+  // ── ছুটি যোগ ──
+  if (currentEditField.key === '_addLeave' || currentEditField.key === '_editLeave') {
+    const leaveType = document.getElementById('leaveType')?.value;
+    const from = document.getElementById('leaveFrom')?.value.trim();
+    const to = document.getElementById('leaveTo')?.value.trim();
+    if (!leaveType || !from || !to) { showToast('সব তথ্য পূরণ করুন', 'error'); btn.textContent='সংরক্ষণ করুন'; btn.disabled=false; return; }
+    const days = calcDays(from, to);
+    if (days <= 0) { showToast('তারিখ সঠিক নয়', 'error'); btn.textContent='সংরক্ষণ করুন'; btn.disabled=false; return; }
+
+    const docId = currentMemberData.id || String(currentMemberData.no || '').replace(/[^A-Z0-9]/gi, '');
+    try {
+      if (currentEditField.key === '_addLeave') {
+        await db.collection('members').doc(docId).collection('leaves').add({
+          leave_type: leaveType,
+          from_date: from,
+          to_date: to,
+          total_days: days,
+          edit_count: 0,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          createdBy: currentUser.uid,
+        });
+        showToast('✅ ছুটি যোগ হয়েছে — ' + days + ' দিন', 'success');
+      } else {
+        const leaveRef = db.collection('members').doc(docId).collection('leaves').doc(currentEditField.leaveId);
+        const existing = await leaveRef.get();
+        const editCount = (existing.data()?.edit_count || 0) + 1;
+        await leaveRef.update({
+          leave_type: leaveType, from_date: from, to_date: to,
+          total_days: days, edit_count: editCount,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+        showToast('✅ ছুটি সংশোধন হয়েছে', 'success');
+      }
+      closeModal();
+      loadLeave();
+    } catch(e) { showToast('ব্যর্থ: ' + e.message, 'error'); }
+    btn.textContent='সংরক্ষণ করুন'; btn.disabled=false; return;
+  }
 
   // ── পাসওয়ার্ড পরিবর্তন ──
   if (currentEditField.key === '_changePass') {
@@ -2240,6 +2407,181 @@ function openAddCourse() {
   `;
   currentEditField = { key: '_addCourse', label: 'নতুন কোর্স' };
   document.getElementById('editModal').classList.add('open');
+}
+
+/* ══════════════════════════════════════════
+   LEAVE (ছুটি) PAGE
+══════════════════════════════════════════ */
+const LEAVE_TYPES = ['সাময়িক ছুটি', 'সুযোগী ছুটি', 'চিত্তবিনোদন ছুটি', 'সাপ্তাহিক ছুটি'];
+
+async function loadLeave() {
+  const box = document.getElementById('leaveList');
+  const summaryCard = document.getElementById('leaveSummaryCard');
+  const summaryBox = document.getElementById('leaveSummary');
+  box.innerHTML = '<div style="color:var(--text2);text-align:center;padding:20px;font-size:0.85rem">লোড হচ্ছে...</div>';
+
+  const docId = currentMemberData.id || String(currentMemberData.no || '').replace(/[^A-Z0-9]/gi, '');
+  if (!docId) { box.innerHTML = '<div style="color:var(--danger);text-align:center;padding:20px">সদস্য ID পাওয়া যায়নি</div>'; return; }
+
+  try {
+    const snap = await db.collection('members').doc(docId).collection('leaves')
+      .orderBy('from_date', 'desc').get();
+
+    if (snap.empty) {
+      box.innerHTML = '<div style="color:var(--text2);text-align:center;padding:30px;font-size:0.85rem">📋 কোনো ছুটির রেকর্ড নেই</div>';
+      summaryCard.style.display = 'none';
+      return;
+    }
+
+    // যোগফল হিসাব
+    const totals = {};
+    LEAVE_TYPES.forEach(lt => totals[lt] = 0);
+
+    let html = '';
+    snap.docs.forEach((d, idx) => {
+      const lv = d.data();
+      const days = lv.total_days || calcDays(lv.from_date, lv.to_date);
+      totals[lv.leave_type] = (totals[lv.leave_type] || 0) + days;
+      const isAdmin = userRole === 'admin' || userRole === 'superadmin';
+      // একবারের বেশি সংশোধন করা যাবে না — edit_count চেক
+      const canEdit = (lv.edit_count || 0) < 1;
+
+      html += `<div style="background:var(--dark3);border:1px solid var(--border2);border-radius:10px;padding:12px 14px;margin-bottom:10px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+          <span style="font-family:'Rajdhani',sans-serif;font-size:0.7rem;letter-spacing:1.5px;text-transform:uppercase;
+            padding:2px 8px;border-radius:20px;border:1px solid;
+            ${lv.leave_type==='সাময়িক ছুটি'?'color:#3fb950;border-color:rgba(63,185,80,0.4);background:rgba(63,185,80,0.08)':
+              lv.leave_type==='সুযোগী ছুটি'?'color:var(--info);border-color:rgba(56,139,253,0.4);background:rgba(56,139,253,0.08)':
+              lv.leave_type==='চিত্তবিনোদন ছুটি'?'color:var(--gold);border-color:rgba(200,169,74,0.4);background:rgba(200,169,74,0.08)':
+              'color:var(--text2);border-color:var(--border2);background:transparent'}">${lv.leave_type||'—'}</span>
+          <div style="display:flex;gap:6px">
+            ${canEdit ? `<button onclick="editLeave('${d.id}')" style="background:transparent;border:1px solid rgba(200,169,74,0.3);border-radius:6px;padding:3px 8px;color:var(--gold);cursor:pointer;font-size:11px;font-family:'Rajdhani',sans-serif">✏️ সংশোধন</button>` : '<span style="font-size:10px;color:var(--text3);font-family:\'Rajdhani\',sans-serif">🔒 লক</span>'}
+            ${isAdmin ? `<button onclick="deleteLeave('${d.id}')" style="background:transparent;border:1px solid rgba(224,85,85,0.3);border-radius:6px;padding:3px 8px;color:var(--danger);cursor:pointer;font-size:11px;font-family:'Rajdhani',sans-serif">🗑</button>` : ''}
+          </div>
+        </div>
+        <div style="display:flex;gap:16px;font-size:0.82rem;color:var(--text2)">
+          <span>📅 ${lv.from_date||'—'} হইতে ${lv.to_date||'—'}</span>
+        </div>
+        <div style="margin-top:6px;font-family:'Rajdhani',sans-serif;font-size:1.1rem;font-weight:700;color:var(--gold)">
+          মোট: ${days} দিন
+        </div>
+      </div>`;
+    });
+
+    box.innerHTML = html;
+
+    // যোগফল দেখাও
+    summaryCard.style.display = 'block';
+    let totalAll = 0;
+    summaryBox.innerHTML = LEAVE_TYPES.map(lt => {
+      totalAll += totals[lt];
+      return `<div style="background:var(--dark3);border:1px solid var(--border2);border-radius:10px;padding:12px;text-align:center">
+        <div style="font-size:1.4rem;font-weight:700;color:var(--gold)">${totals[lt]}</div>
+        <div style="font-size:0.68rem;font-family:'Rajdhani',sans-serif;letter-spacing:1px;color:var(--text2);margin-top:3px">${lt}</div>
+      </div>`;
+    }).join('') +
+    `<div style="background:linear-gradient(135deg,rgba(200,169,74,0.15),rgba(200,169,74,0.05));border:1px solid rgba(200,169,74,0.35);border-radius:10px;padding:12px;text-align:center;grid-column:1/-1">
+      <div style="font-size:1.8rem;font-weight:700;color:var(--gold)">${totalAll}</div>
+      <div style="font-size:0.7rem;font-family:'Rajdhani',sans-serif;letter-spacing:2px;color:var(--text2);margin-top:3px">মোট ছুটি (দিন)</div>
+    </div>`;
+
+  } catch(e) {
+    box.innerHTML = `<div style="color:var(--danger);text-align:center;padding:20px;font-size:0.82rem">লোড ব্যর্থ: ${e.message}</div>`;
+  }
+}
+
+function calcDays(from, to) {
+  if (!from || !to) return 0;
+  try {
+    const [fd, fm, fy] = from.split('/').map(Number);
+    const [td, tm, ty] = to.split('/').map(Number);
+    const f = new Date(fy, fm-1, fd);
+    const t = new Date(ty, tm-1, td);
+    const diff = Math.round((t - f) / (1000*60*60*24)) + 1;
+    return diff > 0 ? diff : 0;
+  } catch(e) { return 0; }
+}
+
+function openAddLeave() {
+  document.getElementById('modalTitle').textContent = 'নতুন ছুটি যোগ করুন';
+  document.getElementById('modalBody').innerHTML = `
+    <div class="form-group">
+      <label class="form-label">ছুটির প্রকার *</label>
+      <select class="form-input" id="leaveType" style="background:var(--dark3)">
+        ${LEAVE_TYPES.map(lt => `<option value="${lt}">${lt}</option>`).join('')}
+      </select>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="form-group">
+        <label class="form-label">হইতে তারিখ * (DD/MM/YYYY)</label>
+        <input type="text" class="form-input" id="leaveFrom" placeholder="01/01/2025">
+      </div>
+      <div class="form-group">
+        <label class="form-label">পর্যন্ত তারিখ * (DD/MM/YYYY)</label>
+        <input type="text" class="form-input" id="leaveTo" placeholder="07/01/2025" oninput="calcLeavePreview()">
+      </div>
+    </div>
+    <div id="leaveDaysPreview" style="background:rgba(200,169,74,0.1);border:1px solid rgba(200,169,74,0.3);border-radius:8px;padding:10px 14px;font-family:'Rajdhani',sans-serif;font-size:1rem;color:var(--gold);display:none;margin-top:4px;text-align:center"></div>
+  `;
+  currentEditField = { key: '_addLeave' };
+  document.getElementById('editModal').classList.add('open');
+}
+
+function calcLeavePreview() {
+  const from = document.getElementById('leaveFrom')?.value;
+  const to = document.getElementById('leaveTo')?.value;
+  const preview = document.getElementById('leaveDaysPreview');
+  if (!preview) return;
+  const days = calcDays(from, to);
+  if (days > 0) {
+    preview.style.display = 'block';
+    preview.textContent = 'মোট: ' + days + ' দিন';
+  } else {
+    preview.style.display = 'none';
+  }
+}
+
+async function editLeave(leaveId) {
+  const docId = currentMemberData.id || String(currentMemberData.no || '').replace(/[^A-Z0-9]/gi, '');
+  const snap = await db.collection('members').doc(docId).collection('leaves').doc(leaveId).get();
+  if (!snap.exists) { showToast('ছুটির তথ্য পাওয়া যায়নি', 'error'); return; }
+  const lv = snap.data();
+
+  document.getElementById('modalTitle').textContent = 'ছুটি সংশোধন';
+  document.getElementById('modalBody').innerHTML = `
+    <div style="background:rgba(210,153,34,0.1);border:1px solid rgba(210,153,34,0.3);border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:0.78rem;color:var(--warn)">
+      ⚠️ একবারের বেশি সংশোধন করা যাবে না।
+    </div>
+    <div class="form-group">
+      <label class="form-label">ছুটির প্রকার</label>
+      <select class="form-input" id="leaveType" style="background:var(--dark3)">
+        ${LEAVE_TYPES.map(lt => `<option value="${lt}" ${lv.leave_type===lt?'selected':''}>${lt}</option>`).join('')}
+      </select>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="form-group">
+        <label class="form-label">হইতে তারিখ</label>
+        <input type="text" class="form-input" id="leaveFrom" value="${lv.from_date||''}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">পর্যন্ত তারিখ</label>
+        <input type="text" class="form-input" id="leaveTo" value="${lv.to_date||''}" oninput="calcLeavePreview()">
+      </div>
+    </div>
+    <div id="leaveDaysPreview" style="background:rgba(200,169,74,0.1);border:1px solid rgba(200,169,74,0.3);border-radius:8px;padding:10px 14px;font-family:'Rajdhani',sans-serif;font-size:1rem;color:var(--gold);margin-top:4px;text-align:center">মোট: ${lv.total_days||0} দিন</div>
+  `;
+  currentEditField = { key: '_editLeave', leaveId };
+  document.getElementById('editModal').classList.add('open');
+}
+
+async function deleteLeave(leaveId) {
+  if (!confirm('এই ছুটির রেকর্ড মুছে দেবেন?')) return;
+  const docId = currentMemberData.id || String(currentMemberData.no || '').replace(/[^A-Z0-9]/gi, '');
+  try {
+    await db.collection('members').doc(docId).collection('leaves').doc(leaveId).delete();
+    showToast('✅ ছুটি মুছে দেওয়া হয়েছে', 'success');
+    loadLeave();
+  } catch(e) { showToast('ব্যর্থ: ' + e.message, 'error'); }
 }
 
 /* ══════════════════════════════════════════
@@ -2788,10 +3130,10 @@ function renderAdminFields() {
   ];
   const militaryFields = [
     { key: 'no', label: 'সেনা নম্বর' },
-    { key: 'r_bn', label: 'পদবী (বাংলা)', type: 'select', opts: ['মাস্টার ওয়ারেন্ট অফিসার', 'সিনিয়র ওয়ারেন্ট অফিসার', 'ওয়ারেন্ট অফিসার', 'সার্জেন্ট', 'কর্পোরাল', 'ল্যান্স কর্পোরাল', 'সৈনিক', 'এনসি (ই)'] },
+    { key: 'r_bn', label: 'পদবী (বাংলা)', type: 'select', opts: ['লেঃ কর্নেল', 'মেজর', 'ক্যাপ্টেন', 'লেফটেন্যান্ট', 'মাস্টার ওয়ারেন্ট অফিসার', 'সিনিয়র ওয়ারেন্ট অফিসার', 'ওয়ারেন্ট অফিসার', 'সার্জেন্ট', 'কর্পোরাল', 'ল্যান্স কর্পোরাল', 'সৈনিক', 'এনসি (ই)'] },
     { key: 'r_en', label: 'পদবী (ইংরেজি)' },
-    { key: 'tr_bn', label: 'ট্রেড (বাংলা)', type: 'select', opts: ['আরএমটি', 'আরসিটি', 'ইএন্ডবিআর', 'ইলেক্টিশিয়ান', 'এ/ই', 'এইসি', 'এনসি (ই)', 'এমএ', 'এসএমটি', 'ওইপি', 'ওবিএম', 'ওসিইউ', 'ওয়েল্ডার', 'করনিক', 'কার্পেন্টার', 'কুক (ইউ)', 'টিএসএ', 'টিবিভি', 'টিসিভি', 'টেইলার', 'ডিএমটি', 'ডিএসভি', 'ড্রাফটসম্যান', 'পিডি', 'পেইন্টার', 'বিটিএস', 'মেশন', 'মেশিনিষ্ট', 'সার্ভেয়ার'] },
-    { key: 'tr_en', label: 'ট্রেড (ইংরেজি)', type: 'select', opts: ['আরএমটি', 'আরসিটি', 'ইএন্ডবিআর', 'ইলেক্টিশিয়ান', 'এ/ই', 'এইসি', 'এনসি (ই)', 'এমএ', 'এসএমটি', 'ওইপি', 'ওবিএম', 'ওসিইউ', 'ওয়েল্ডার', 'করনিক', 'কার্পেন্টার', 'কুক (ইউ)', 'টিএসএ', 'টিবিভি', 'টিসিভি', 'টেইলার', 'ডিএমটি', 'ডিএসভি', 'ড্রাফটসম্যান', 'পিডি', 'পেইন্টার', 'বিটিএস', 'মেশন', 'মেশিনিষ্ট', 'সার্ভেয়ার'] },
+    { key: 'tr_bn', label: 'ট্রেড (বাংলা)', type: 'select', opts: ['অফিসার', 'আরএমটি', 'আরসিটি', 'ইএন্ডবিআর', 'ইলেক্টিশিয়ান', 'এ/ই', 'এইসি', 'এনসি (ই)', 'এমএ', 'এসএমটি', 'ওইপি', 'ওবিএম', 'ওসিইউ', 'ওয়েল্ডার', 'করনিক', 'কার্পেন্টার', 'কুক (ইউ)', 'টিএসএ', 'টিবিভি', 'টিসিভি', 'টেইলার', 'ডিএমটি', 'ডিএসভি', 'ড্রাফটসম্যান', 'পিডি', 'পেইন্টার', 'বিটিএস', 'মেশন', 'মেশিনিষ্ট', 'সার্ভেয়ার'] },
+    { key: 'tr_en', label: 'ট্রেড (ইংরেজি)', type: 'select', opts: ['অফিসার', 'আরএমটি', 'আরসিটি', 'ইএন্ডবিআর', 'ইলেক্টিশিয়ান', 'এ/ই', 'এইসি', 'এনসি (ই)', 'এমএ', 'এসএমটি', 'ওইপি', 'ওবিএম', 'ওসিইউ', 'ওয়েল্ডার', 'করনিক', 'কার্পেন্টার', 'কুক (ইউ)', 'টিএসএ', 'টিবিভি', 'টিসিভি', 'টেইলার', 'ডিএমটি', 'ডিএসভি', 'ড্রাফটসম্যান', 'পিডি', 'পেইন্টার', 'বিটিএস', 'মেশন', 'মেশিনিষ্ট', 'সার্ভেয়ার'] },
     { key: 'co_bn', label: 'কোম্পানী (বাংলা)' },
     { key: 'co_en', label: 'কোম্পানী (ইংরেজি)' },
     { key: 'jd', label: 'ভর্তির তারিখ' },
@@ -3123,26 +3465,75 @@ async function showStatDetail(type) {
       }).join('');
 
     } else if (type === 'admins') {
-      icon.textContent = '🔑'; title.textContent = 'অ্যাডমিন তালিকা';
-      const snap = await db.collection('users')
-        .where('role', 'in', ['admin','superadmin']).get();
-      if (snap.empty) { body.innerHTML = noData(); return; }
+      icon.textContent = '🔑'; title.textContent = 'ইউজার ম্যানেজমেন্ট';
 
-      body.innerHTML = snap.docs.map(d => {
-        const u = d.data();
+      // সব user লোড করো
+      const snapAll = await db.collection('users').get();
+      if (snapAll.empty) { body.innerHTML = noData(); return; }
+
+      const allUsers = snapAll.docs.map(d => ({ uid: d.id, ...d.data() }));
+      const admins = allUsers.filter(u => u.role === 'admin' || u.role === 'superadmin');
+      const members = allUsers.filter(u => !u.role || u.role === 'member');
+
+      function userCard(u, showDelete) {
         const ini = (u.name||u.armyNo||'?')[0].toUpperCase();
-        const roleBadge = u.role === 'superadmin'
-          ? '<span class="badge badge-red">সুপার অ্যাডমিন</span>'
-          : '<span class="badge badge-blue">অ্যাডমিন</span>';
-        return `<div class="stat-list-item">
+        const isAdmin = u.role === 'admin' || u.role === 'superadmin';
+        const isSuperAdmin = u.role === 'superadmin';
+        const roleBadge = isSuperAdmin
+          ? '<span class="badge badge-red" style="font-size:10px">সুপার অ্যাডমিন</span>'
+          : isAdmin
+          ? '<span class="badge badge-blue" style="font-size:10px">অ্যাডমিন</span>'
+          : '<span class="badge" style="font-size:10px;color:var(--text2);border-color:var(--border2)">সদস্য</span>';
+
+        // বাটন লজিক
+        let actionBtns = '';
+        if (userRole === 'superadmin' && u.uid !== currentUser.uid) {
+          if (isAdmin) {
+            // demote to member
+            actionBtns += `<button onclick="promoteUser('${u.uid}','member','${u.name||u.armyNo||''}','${u.armyNo||''}')"
+              style="padding:4px 8px;font-size:10px;border-radius:6px;border:1px solid rgba(210,153,34,0.4);background:rgba(210,153,34,0.1);color:var(--warn);cursor:pointer;font-family:'Rajdhani',sans-serif;font-weight:700;white-space:nowrap">
+              ↓ সদস্য</button>`;
+          } else {
+            // promote to admin
+            actionBtns += `<button onclick="promoteUser('${u.uid}','admin','${u.name||u.armyNo||''}','${u.armyNo||''}')"
+              style="padding:4px 8px;font-size:10px;border-radius:6px;border:1px solid rgba(56,139,253,0.4);background:rgba(56,139,253,0.1);color:var(--info);cursor:pointer;font-family:'Rajdhani',sans-serif;font-weight:700;white-space:nowrap">
+              ↑ অ্যাডমিন</button>`;
+          }
+          // password reset
+          actionBtns += `<button onclick="adminResetPassword('${u.uid}','${u.armyNo||''}')"
+            style="padding:4px 8px;font-size:10px;border-radius:6px;border:1px solid rgba(200,169,74,0.4);background:rgba(200,169,74,0.1);color:var(--gold);cursor:pointer;font-family:'Rajdhani',sans-serif;font-weight:700;white-space:nowrap">
+            🔑 রিসেট</button>`;
+          // delete (superadmin only)
+          actionBtns += `<button onclick="deleteUser('${u.uid}','${u.name||u.armyNo||''}')"
+            style="padding:4px 8px;font-size:10px;border-radius:6px;border:1px solid rgba(224,85,85,0.4);background:rgba(224,85,85,0.1);color:var(--danger);cursor:pointer;font-family:'Rajdhani',sans-serif;font-weight:700;white-space:nowrap">
+            🗑 ডিলিট</button>`;
+        } else if (userRole === 'admin' && !isAdmin) {
+          // admin can reset password of members in their company
+          actionBtns += `<button onclick="adminResetPassword('${u.uid}','${u.armyNo||''}')"
+            style="padding:4px 8px;font-size:10px;border-radius:6px;border:1px solid rgba(200,169,74,0.4);background:rgba(200,169,74,0.1);color:var(--gold);cursor:pointer;font-family:'Rajdhani',sans-serif;font-weight:700;white-space:nowrap">
+            🔑 পাসওয়ার্ড রিসেট</button>`;
+        }
+
+        return `<div class="stat-list-item" style="flex-wrap:wrap;gap:6px">
           <div class="stat-list-avatar">${ini}</div>
           <div style="flex:1;min-width:0">
-            <div class="stat-list-name">${u.name||u.armyNo||'—'}</div>
-            <div class="stat-list-sub">সেনা নম্বর: ${u.armyNo||'—'}</div>
+            <div class="stat-list-name">${u.name||u.armyNo||'—'} ${roleBadge}</div>
+            <div class="stat-list-sub">সেনা নম্বর: ${u.armyNo||'—'} · ${u.co||u.company||'—'}</div>
           </div>
-          ${roleBadge}
+          <div style="display:flex;gap:4px;flex-wrap:wrap">${actionBtns}</div>
         </div>`;
-      }).join('');
+      }
+
+      let html = '';
+      if (admins.length) {
+        html += `<div style="font-family:'Rajdhani',sans-serif;font-size:0.72rem;letter-spacing:2px;text-transform:uppercase;color:var(--gold);padding:6px 0;border-bottom:1px solid var(--border);margin-bottom:8px">🔑 অ্যাডমিনগণ — ${admins.length} জন</div>`;
+        html += admins.map(u => userCard(u, true)).join('');
+      }
+      if (members.length) {
+        html += `<div style="font-family:'Rajdhani',sans-serif;font-size:0.72rem;letter-spacing:2px;text-transform:uppercase;color:var(--text2);padding:6px 0;border-bottom:1px solid var(--border);margin:12px 0 8px">👥 সদস্যগণ — ${members.length} জন</div>`;
+        html += members.map(u => userCard(u, false)).join('');
+      }
+      body.innerHTML = html || noData();
 
     } else if (type === 'today') {
       icon.textContent = '📝'; title.textContent = 'আজকের এডিট';
@@ -3333,55 +3724,175 @@ function triggerPhotoUpload() {
 async function uploadPhoto(input) {
   const file = input.files[0];
   if (!file) return;
-  if (file.size > 2 * 1024 * 1024) { showToast('ছবি ২ MB এর বেশি নয়', 'error'); return; }
+  if (file.size > 3 * 1024 * 1024) { showToast('ছবি ৩ MB এর বেশি নয়', 'error'); return; }
 
-  showLoading('ছবি আপলোড হচ্ছে...');
+  showLoading('ছবি প্রক্রিয়া হচ্ছে...');
   try {
-    // Storage path
+    // ছবি compress করে base64 এ রূপান্তর করো
+    const base64 = await compressImage(file, 400, 0.7);
+
     const isAdmin = userRole === 'admin' || userRole === 'superadmin';
-    const storagePath = isAdmin
-      ? `admin-photos/${currentUser.uid}`
-      : `photos/${String(currentMemberData.no || currentMemberData.armyNo || currentUser.uid).replace(/[^A-Z0-9]/gi,'')}`;
 
-    const ref = storage.ref(storagePath);
-    await ref.put(file);
-    const url = await ref.getDownloadURL();
-
-    // DB আপডেট
     if (isAdmin) {
       await db.collection('adminProfiles').doc(currentUser.uid).set({
-        ph: url,
+        ph: base64,
         armyNo: currentMemberData.armyNo || currentMemberData.no,
         updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
       }, { merge: true });
     } else {
       const docId = currentMemberData.id ||
         String(currentMemberData.no || currentMemberData.armyNo || '').replace(/[^A-Z0-9]/gi, '');
-      if (docId) {
-        const docRef = db.collection('members').doc(docId);
-        const snap = await docRef.get();
-        if (snap.exists) {
-          await docRef.update({ ph: url, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
-        } else {
-          await docRef.set({ ph: url, no: currentMemberData.no }, { merge: true });
-        }
+      if (!docId) { showToast('সদস্য ID পাওয়া যায়নি', 'error'); hideLoading(); return; }
+      const docRef = db.collection('members').doc(docId);
+      const snap = await docRef.get();
+      if (snap.exists) {
+        await docRef.update({ ph: base64, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+      } else {
+        await docRef.set({ ph: base64, no: currentMemberData.no }, { merge: true });
       }
     }
-    currentMemberData.ph = url;
+
+    currentMemberData.ph = base64;
 
     // Topbar avatar আপডেট
     const av1 = document.getElementById('topbarAvatar');
-    av1.innerHTML = `<img src="${url}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
+    av1.innerHTML = `<img src="${base64}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
 
     // Big avatar আপডেট
     const av2 = document.getElementById('bigAvatar');
-    av2.innerHTML = `<img src="${url}" alt="" style="width:100%;height:100%;object-fit:cover">
+    av2.innerHTML = `<img src="${base64}" alt="" style="width:100%;height:100%;object-fit:cover">
       <div class="photo-overlay">ছবি পরিবর্তন</div>`;
 
     showToast('✅ ছবি আপডেট হয়েছে', 'success');
   } catch(e) {
     console.error('Photo upload error:', e);
     showToast('আপলোড ব্যর্থ: ' + (e.code || e.message), 'error');
+  }
+  hideLoading();
+}
+
+// ছবি compress করার helper function
+function compressImage(file, maxSize, quality) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let w = img.width, h = img.height;
+        if (w > h) { if (w > maxSize) { h = h * maxSize / w; w = maxSize; } }
+        else { if (h > maxSize) { w = w * maxSize / h; h = maxSize; } }
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+/* ══════════════════════════════════════════
+   PROMOTE / DEMOTE / DELETE USER
+══════════════════════════════════════════ */
+async function promoteUser(uid, newRole, name, armyNo) {
+  if (userRole !== 'superadmin') { showToast('অনুমতি নেই', 'error'); return; }
+  const roleLabel = newRole === 'admin' ? 'অ্যাডমিন' : newRole === 'superadmin' ? 'সুপার অ্যাডমিন' : 'সাধারণ সদস্য';
+  if (!confirm(`"${name}" কে "${roleLabel}" করবেন?`)) return;
+
+  showLoading('আপডেট হচ্ছে...');
+  try {
+    await db.collection('users').doc(uid).update({
+      role: newRole,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      updatedBy: currentUser.uid,
+    });
+
+    // adminProfiles আপডেট
+    if (newRole === 'admin' || newRole === 'superadmin') {
+      const existing = await db.collection('adminProfiles').doc(uid).get();
+      if (!existing.exists) {
+        await db.collection('adminProfiles').doc(uid).set({
+          armyNo, no: armyNo, bn: name, en: name, role: newRole,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        }, { merge: true });
+      } else {
+        await db.collection('adminProfiles').doc(uid).update({ role: newRole });
+      }
+    }
+
+    showToast(`✅ "${name}" — ${roleLabel} হিসেবে আপডেট হয়েছে`, 'success');
+    // রিফ্রেশ
+    setTimeout(() => showStatDetail('admins'), 800);
+  } catch(e) {
+    showToast('ব্যর্থ: ' + (e.code || e.message), 'error');
+  }
+  hideLoading();
+}
+
+async function deleteUser(uid, name) {
+  if (userRole !== 'superadmin') { showToast('অনুমতি নেই', 'error'); return; }
+  if (!confirm(`⚠️ "${name}" এর প্রোফাইল সম্পূর্ণ মুছে দেবেন? এটি পূর্বাবস্থায় ফেরানো যাবে না!`)) return;
+  if (!confirm(`নিশ্চিত করুন — "${name}" ডিলিট করবেন?`)) return;
+
+  showLoading('ডিলিট হচ্ছে...');
+  try {
+    const batch = db.batch();
+    batch.delete(db.collection('users').doc(uid));
+    const adminProfileRef = db.collection('adminProfiles').doc(uid);
+    const apSnap = await adminProfileRef.get();
+    if (apSnap.exists) batch.delete(adminProfileRef);
+    await batch.commit();
+
+    showToast(`✅ "${name}" ডিলিট হয়েছে`, 'success');
+    setTimeout(() => showStatDetail('admins'), 800);
+  } catch(e) {
+    showToast('ডিলিট ব্যর্থ: ' + (e.code || e.message), 'error');
+  }
+  hideLoading();
+}
+
+async function adminResetPassword(uid, armyNo) {
+  const newPass = prompt('নতুন পাসওয়ার্ড দিন (খালি রাখলে ডিফল্ট হবে):');
+  if (newPass === null) return; // cancel
+  const password = newPass.trim() || makeDefaultPassword(armyNo);
+  if (password.length < 6) { showToast('পাসওয়ার্ড কমপক্ষে ৬ অক্ষর', 'error'); return; }
+
+  showLoading('রিসেট হচ্ছে...');
+  try {
+    const docId = String(armyNo).replace(/[^A-Z0-9]/gi, '');
+    await db.collection('passwordResets').doc(docId).set({
+      armyNo, newPassword: password,
+      resetBy: currentUser.uid, resetByRole: userRole,
+      resetAt: firebase.firestore.FieldValue.serverTimestamp(),
+      used: false,
+    });
+    showToast(`✅ পাসওয়ার্ড রিসেট হয়েছে: ${password}`, 'success');
+  } catch(e) {
+    showToast('রিসেট ব্যর্থ: ' + (e.code || e.message), 'error');
+  }
+  hideLoading();
+}
+
+/* ══════════════════════════════════════════
+   ADMIN SELF-PROFILE EDIT
+══════════════════════════════════════════ */
+async function saveAdminSelfField(key, value) {
+  if (!value || !value.trim()) { showToast('মান খালি রাখা যাবে না', 'error'); return; }
+  showLoading('আপডেট হচ্ছে...');
+  try {
+    await db.collection('adminProfiles').doc(currentUser.uid).set({
+      [key]: value.trim(),
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    }, { merge: true });
+    currentMemberData[key] = value.trim();
+    showToast('✅ আপডেট হয়েছে', 'success');
+    renderProfile();
+  } catch(e) {
+    showToast('ব্যর্থ: ' + (e.code || e.message), 'error');
   }
   hideLoading();
 }
