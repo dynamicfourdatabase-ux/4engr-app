@@ -1003,121 +1003,33 @@ body {
 
             <!-- নতুন সদস্য যোগ ট্যাব -->
             <div id="superTabNewmember" style="display:none">
-              <div style="background:rgba(63,185,80,0.06);border:1px solid rgba(63,185,80,0.2);border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:0.82rem;color:var(--text2);line-height:1.7">
-                ℹ️ নতুন সদস্যের তথ্য এখানে যোগ করুন। তারপর সে নিজে <strong style="color:var(--success)">Self-Registration</strong> করে অ্যাকাউন্ট তৈরি করতে পারবে।
+              <div style="background:rgba(63,185,80,0.06);border:1px solid rgba(63,185,80,0.2);border-radius:10px;padding:14px 16px;margin-bottom:16px;font-size:0.82rem;color:var(--text2);line-height:1.9">
+                <div style="font-family:'Rajdhani',sans-serif;font-size:0.8rem;font-weight:700;letter-spacing:1px;color:var(--success);margin-bottom:8px">📋 নিবন্ধন পদ্ধতি</div>
+                <div>① Admin শুধু <strong style="color:var(--text)">সেনা নম্বর</strong> ও <strong style="color:var(--text)">জন্ম তারিখ</strong> যোগ করবেন</div>
+                <div>② সদস্য অ্যাপে গিয়ে <strong style="color:var(--success)">নিবন্ধন</strong> করবেন — সেনা নম্বর ও জন্ম তারিখ দিয়ে যাচাই হবে</div>
+                <div>③ নিবন্ধনের পর সদস্য নিজে তার সকল তথ্য অ্যাপ থেকে পূরণ করবেন</div>
               </div>
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
                 <div class="form-group">
                   <label class="form-label">সেনা নম্বর *</label>
-                  <input type="text" class="form-input" id="nm_no" placeholder="যেমন: 12345">
+                  <input type="text" class="form-input" id="nm_no"
+                    placeholder="যেমন: 32273"
+                    oninput="this.value=this.value.toUpperCase()"
+                    autocomplete="off">
                 </div>
-                <div class="form-group">
-                  <label class="form-label">পদবী *</label>
-                  <select class="form-input" id="nm_rank" style="background:var(--dark3)">
-                  <option value="">নির্বাচন করুন</option>
-                  <option value='লেঃ কর্নেল'>লেঃ কর্নেল</option>
-                  <option value='মেজর'>মেজর</option>
-                  <option value='ক্যাপ্টেন'>ক্যাপ্টেন</option>
-                  <option value='লেফটেন্যান্ট'>লেফটেন্যান্ট</option>
-                  <option value='মাস্টাঃ ওয়াঃ অফিঃ'>মাস্টাঃ ওয়াঃ অফিঃ</option>
-                  <option value='সিনিঃ ওয়াঃ অফিঃ'>সিনিঃ ওয়াঃ অফিঃ</option>
-                  <option value='ওয়ারেন্ট অফিসার'>ওয়ারেন্ট অফিসার</option>
-                  <option value='সার্জেন্ট'>সার্জেন্ট</option>
-                  <option value='কর্পোরাল'>কর্পোরাল</option>
-                  <option value='ল্যান্স কর্পোরাল'>ল্যান্স কর্পোরাল</option>
-                  <option value='সৈনিক'>সৈনিক</option>
-                  <option value='এনসি (ই)'>এনসি (ই)</option>
-                </select>
-                </div>
-              </div>
-              <div class="form-group">
-                <label class="form-label">বাংলা নাম *</label>
-                <input type="text" class="form-input" id="nm_bn" placeholder="পূর্ণ নাম বাংলায়">
-              </div>
-              <div class="form-group">
-                <label class="form-label">ইংরেজি নাম</label>
-                <input type="text" class="form-input" id="nm_en" placeholder="Full name in English">
-              </div>
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
                 <div class="form-group">
                   <label class="form-label">জন্ম তারিখ *</label>
-                  <input type="text" class="form-input" id="nm_dob" placeholder="DD/MM/YYYY">
-                </div>
-                <div class="form-group">
-                  <label class="form-label">রক্তের গ্রুপ</label>
-                  <select class="form-input" id="nm_bl" style="background:var(--dark3)">
-                    <option value="">নির্বাচন করুন</option>
-                    <option>A+</option><option>A-</option>
-                    <option>B+</option><option>B-</option>
-                    <option>AB+</option><option>AB-</option>
-                    <option>O+</option><option>O-</option>
-                  </select>
+                  <input type="text" class="form-input" id="nm_dob"
+                    placeholder="DD/MM/YYYY"
+                    autocomplete="off">
                 </div>
               </div>
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-                <div class="form-group">
-                  <label class="form-label">ট্রেড</label>
-                  <select id="nm_trade" style="width:100%;background:var(--dark3);border:1px solid var(--border2);border-radius:8px;padding:9px 12px;color:var(--text);font-size:0.88rem;outline:none">
-                  <option value="">নির্বাচন করুন</option>
-                  <option value='অফিসার'>অফিসার</option>
-                  <option value='আরএমটি'>আরএমটি</option>
-                  <option value='আরসিটি'>আরসিটি</option>
-                  <option value='ইএন্ডবিআর'>ইএন্ডবিআর</option>
-                  <option value='ইলেক্টিশিয়ান'>ইলেক্টিশিয়ান</option>
-                  <option value='এ/ই'>এ/ই</option>
-                  <option value='এইসি'>এইসি</option>
-                  <option value='এনসি (ই)'>এনসি (ই)</option>
-                  <option value='এমএ'>এমএ</option>
-                  <option value='এসএমটি'>এসএমটি</option>
-                  <option value='ওইপি'>ওইপি</option>
-                  <option value='ওবিএম'>ওবিএম</option>
-                  <option value='ওসিইউ'>ওসিইউ</option>
-                  <option value='ওয়েল্ডার'>ওয়েল্ডার</option>
-                  <option value='করনিক'>করনিক</option>
-                  <option value='কার্পেন্টার'>কার্পেন্টার</option>
-                  <option value='কুক (ইউ)'>কুক (ইউ)</option>
-                  <option value='টিএসএ'>টিএসএ</option>
-                  <option value='টিবিভি'>টিবিভি</option>
-                  <option value='টিসিভি'>টিসিভি</option>
-                  <option value='টেইলার'>টেইলার</option>
-                  <option value='ডিএমটি'>ডিএমটি</option>
-                  <option value='ডিএসভি'>ডিএসভি</option>
-                  <option value='ড্রাফটসম্যান'>ড্রাফটসম্যান</option>
-                  <option value='পিডি'>পিডি</option>
-                  <option value='পেইন্টার'>পেইন্টার</option>
-                  <option value='বিটিএস'>বিটিএস</option>
-                  <option value='মেশন'>মেশন</option>
-                  <option value='মেশিনিষ্ট'>মেশিনিষ্ট</option>
-                  <option value='সার্ভেয়ার'>সার্ভেয়ার</option>
-                </select>
-                </div>
-                <div class="form-group">
-                  <label class="form-label">কোম্পানী *</label>
-                  <select class="form-input" id="nm_co" style="background:var(--dark3)">
-                    <option value="">নির্বাচন করুন</option>
-                    <option value="৪৮ ফিল্ড কোম্পানী">৪৮ ফিল্ড কোম্পানী</option>
-                    <option value="৪৯ ফিল্ড কোম্পানী">৪৯ ফিল্ড কোম্পানী</option>
-                    <option value="৫০ ফিল্ড কোম্পানী">৫০ ফিল্ড কোম্পানী</option>
-                    <option value="প্লান্ট কোম্পানী">প্লান্ট কোম্পানী</option>
-                    <option value="ব্রীজ কোম্পানী">ব্রীজ কোম্পানী</option>
-                    <option value="সদর কোম্পানী">সদর কোম্পানী</option>
-                    <option value="ইএমই">ইএমই</option>
-                  </select>
-                </div>
-              </div>
-              <div class="form-group">
-                <label class="form-label">জেলা</label>
-                <input type="text" class="form-input" id="nm_dist" placeholder="স্থায়ী জেলা">
-              </div>
-              <div class="form-group">
-                <label class="form-label">মোবাইল</label>
-                <input type="text" class="form-input" id="nm_mb" placeholder="01XXXXXXXXX">
-              </div>
-              <div class="form-group">
-                <label class="form-label">স্থায়ী ঠিকানা</label>
-                <textarea class="form-input" id="nm_ad" rows="2" placeholder="গ্রাম, পোস্ট, উপজেলা, জেলা"></textarea>
-              </div>
-              <div style="display:flex;gap:8px">
+
+              <!-- duplicate check indicator -->
+              <div id="nmCheckStatus" style="display:none;border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:0.8rem;font-family:'Rajdhani',sans-serif;letter-spacing:0.5px"></div>
+
+              <div style="display:flex;gap:8px;margin-top:4px">
                 <button class="btn-save" onclick="addNewMember()" id="btnAddMember"
                   style="flex:1;padding:13px;border-radius:10px">
                   ➕ সদস্য যোগ করুন
@@ -1430,6 +1342,8 @@ let currentMemberData = null;
 let currentEditField = null;
 let userRole = 'member'; // 'member' | 'admin' | 'superadmin'
 let _lastPersonalDef = [];
+let _lastMilitaryDef = [];
+let _lastFamilyDef   = [];
 
 function getStoredConfig() {
   try { return JSON.parse(localStorage.getItem('4engr_fb_config') || 'null'); }
@@ -1861,6 +1775,9 @@ function renderProfile() {
 
   const RANKS = ['লেঃ কর্নেল','মেজর','ক্যাপ্টেন','লেফটেন্যান্ট','মাস্টাঃ ওয়াঃ অফিঃ','সিনিঃ ওয়াঃ অফিঃ','ওয়ারেন্ট অফিসার','সার্জেন্ট','কর্পোরাল','ল্যান্স কর্পোরাল','সৈনিক','এনসি (ই)'];
   const TRADES = ['অফিসার','আরএমটি','আরসিটি','ইএন্ডবিআর','ইলেক্টিশিয়ান','এ/ই','এইসি','এনসি (ই)','এমএ','এসএমটি','ওইপি','ওবিএম','ওসিইউ','ওয়েল্ডার','করনিক','কার্পেন্টার','কুক (ইউ)','টিএসএ','টিবিভি','টিসিভি','টেইলার','ডিএমটি','ডিএসভি','ড্রাফটসম্যান','পিডি','পেইন্টার','বিটিএস','মেশন','মেশিনিষ্ট','সার্ভেয়ার'];
+  const COMPANIES = ['৪৮ ফিল্ড কোম্পানী','৪৯ ফিল্ড কোম্পানী','৫০ ফিল্ড কোম্পানী','প্লান্ট কোম্পানী','ব্রীজ কোম্পানী','সদর কোম্পানী','ইএমই'];
+  const DISTRICTS = ['ঢাকা','চট্টগ্রাম','সিলেট','রাজশাহী','খুলনা','বরিশাল','রংপুর','ময়মনসিংহ','কুমিল্লা','নোয়াখালী','ফেনী','লক্ষ্মীপুর','চাঁদপুর','ব্রাহ্মণবাড়িয়া','হবিগঞ্জ','মৌলভীবাজার','সুনামগঞ্জ','কিশোরগঞ্জ','নেত্রকোণা','ময়মনসিংহ','জামালপুর','শেরপুর','টাঙ্গাইল','গাজীপুর','নারায়ণগঞ্জ','মুন্সিগঞ্জ','মানিকগঞ্জ','ফরিদপুর','মাদারীপুর','শরীয়তপুর','রাজবাড়ী','গোপালগঞ্জ','নরসিংদী','বগুড়া','রাজশাহী','চাঁপাইনবাবগঞ্জ','নওগাঁ','নাটোর','সিরাজগঞ্জ','পাবনা','জয়পুরহাট','কুষ্টিয়া','মেহেরপুর','চুয়াডাঙ্গা','ঝিনাইদহ','মাগুরা','নড়াইল','যশোর','সাতক্ষীরা','খুলনা','বাগেরহাট','পিরোজপুর','বরিশাল','ভোলা','পটুয়াখালী','বরগুনা','ঝালকাঠি','দিনাজপুর','ঠাকুরগাঁও','পঞ্চগড়','নীলফামারী','লালমনিরহাট','কুড়িগ্রাম','গাইবান্ধা','রংপুর','কক্সবাজার','বান্দরবান','রাঙ্গামাটি','খাগড়াছড়ি'];
+  const EDUCATIONS = ['প্রাথমিক (৫ম শ্রেণি)','জুনিয়র স্কুল সার্টিফিকেট (জেএসসি)','মাধ্যমিক (এসএসসি)','উচ্চ মাধ্যমিক (এইচএসসি)','ডিপ্লোমা','ডিগ্রী/অনার্স','মাস্টার্স','অন্যান্য'];
 
   // Personal fields — keys match roster.html Firestore fields
   const personalDef = isAdminUser ? [
@@ -1889,8 +1806,8 @@ function renderProfile() {
     { key: 'wa',    label: 'হোয়াটসঅ্যাপ',      editable: true },
     { key: 'em',    label: 'জরুরি যোগাযোগ',    editable: true },
     { key: 'ad',    label: 'স্থায়ী ঠিকানা',    editable: true, type: 'textarea' },
-    { key: 'di_bn', label: 'জেলা',              editable: true },
-    { key: 'ed_bn', label: 'শিক্ষাগত যোগ্যতা',  editable: true },
+    { key: 'di_bn', label: 'জেলা',              editable: true, type: 'select', opts: DISTRICTS },
+    { key: 'ed_bn', label: 'শিক্ষাগত যোগ্যতা',  editable: true, type: 'select', opts: EDUCATIONS },
   ];
   renderFields('personalFields', personalDef);
   _lastPersonalDef = personalDef;
@@ -1916,10 +1833,10 @@ function renderProfile() {
     { key: 'pd',         label: 'পেনশন তারিখ',           editable: true },
   ] : [
     { key: 'no',         label: 'সেনা নম্বর',            editable: false },
-    { key: 'r_bn',       label: 'পদবী',                   editable: false },
-    { key: 'tr_bn',      label: 'ট্রেড',                  editable: false },
-    { key: 'co_bn',      label: 'কোম্পানী',               editable: false },
-    { key: 'niyog',      label: 'নিয়োগ',                 editable: false },
+    { key: 'r_bn',       label: 'পদবী',                   editable: true,  type: 'select', opts: RANKS },
+    { key: 'tr_bn',      label: 'ট্রেড',                  editable: true,  type: 'select', opts: TRADES },
+    { key: 'co_bn',      label: 'কোম্পানী',               editable: true,  type: 'select', opts: COMPANIES },
+    { key: 'niyog',      label: 'নিয়োগ',                 editable: true },
     { key: 'jd',         label: 'ভর্তির তারিখ',           editable: false },
     { key: 'od',         label: 'শপথের তারিখ',            editable: false },
     { key: 'promo_date', label: 'প্রমোশনের তারিখ',        editable: false },
@@ -1933,6 +1850,7 @@ function renderProfile() {
     { key: 'pn',         label: 'সাজা',                   editable: false },
   ];
   renderFields('militaryFields', militaryDef);
+  _lastMilitaryDef = militaryDef;
 
   // Family fields — dynamic children, keys match roster.html
   const childCount = Math.max(5, Object.keys(m).filter(k => k.match(/^c\dn$/)).length + 1);
@@ -1947,6 +1865,7 @@ function renderProfile() {
     familyDef.push({ key: `c${i}d`, label: `সন্তান ${i} জন্ম`, editable: true });
   }
   renderFields('familyFields', familyDef);
+  _lastFamilyDef = familyDef;
 
   // Check pending edits
   checkPendingStatus();
@@ -1962,15 +1881,22 @@ function renderProfile() {
 
 function renderFields(containerId, fields) {
   const m = currentMemberData;
+  const isMember = userRole === 'member';
   const html = fields.map(f => {
     const val = m[f.key] || '—';
     const locked = isFieldLocked(f.key);
+    const canEditOnce = isMember && MEMBER_EDITABLE_FIELDS.includes(f.key);
     let editBtn = '';
     if (f.editable) {
       if (locked) {
-        editBtn = `<span title="এই তথ্য একবার পরিবর্তন করা হয়েছে। Admin এর সাথে যোগাযোগ করুন।" style="font-size:13px;color:var(--text3);cursor:help">🔒</span>`;
+        editBtn = `<span
+          title="এই তথ্য আপনি একবার পরিবর্তন করেছেন। Admin এর সাথে যোগাযোগ করুন।"
+          style="font-size:13px;color:var(--text3);cursor:help">🔒</span>`;
       } else {
-        editBtn = `<button class="field-edit-btn" onclick="openEdit('${f.key}','${f.label}','${f.type||'text'}','${(f.opts||[]).join(',')}')">✏️</button>`;
+        const warningIcon = canEditOnce
+          ? `<span style="font-size:9px;color:var(--warn);vertical-align:super;margin-left:1px" title="একবারই পরিবর্তন করা যাবে">1×</span>`
+          : '';
+        editBtn = `<button class="field-edit-btn" onclick="openEdit('${f.key}','${f.label}','${f.type||'text'}','${(f.opts||[]).join(',')}')" title="${canEditOnce ? 'একবারই পরিবর্তন করা যাবে' : f.label + ' সম্পাদনা'}">✏️${warningIcon}</button>`;
       }
     }
     return `<div class="field-row">
@@ -2218,7 +2144,10 @@ async function saveModal() {
     closeModal();
     showToast('✅ অনুমোদনের জন্য জমা দেওয়া হয়েছে', 'success');
     checkPendingStatus();
-    renderFields('personalFields', _lastPersonalDef || []);
+    // সব section re-render করো যাতে lock icon দেখায়
+    renderFields('personalFields',  _lastPersonalDef   || []);
+    renderFields('militaryFields',  _lastMilitaryDef   || []);
+    renderFields('familyFields',    _lastFamilyDef     || []);
   } catch(e) {
     console.error(e);
     showToast('সংরক্ষণ ব্যর্থ: ' + e.message, 'error');
@@ -2967,7 +2896,8 @@ function switchAdminTab(tab, btn) {
   parent.querySelectorAll('.admin-tab-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   document.querySelectorAll('.admin-tab-content').forEach(c => c.style.display = 'none');
-  document.getElementById('adminTab' + tab.charAt(0).toUpperCase() + tab.slice(1)).style.display = 'block';
+  const tabEl = document.getElementById('adminTab' + tab.charAt(0).toUpperCase() + tab.slice(1));
+  if (tabEl) tabEl.style.display = 'block';
 }
 
 function switchSuperTab(tab, btn) {
@@ -3115,12 +3045,8 @@ async function removeAdmin(uid, name) {
 
 /* ── নতুন সদস্য যোগ ── */
 async function addNewMember() {
-  const get = id => document.getElementById(id)?.value.trim() || '';
-  const no = get('nm_no');
-  const bn = get('nm_bn');
-  const dob = get('nm_dob');
-  const rank = get('nm_rank');
-  const co = get('nm_co');
+  const no  = (document.getElementById('nm_no')?.value  || '').trim().toUpperCase();
+  const dob = (document.getElementById('nm_dob')?.value || '').trim();
   const res = document.getElementById('addMemberResult');
 
   const showRes = (msg, ok) => {
@@ -3128,8 +3054,13 @@ async function addNewMember() {
     res.textContent = msg;
   };
 
-  if (!no || !bn || !dob || !rank || !co) {
-    showRes('* চিহ্নিত তথ্য আবশ্যিক।', false); return;
+  if (!no)  { showRes('সেনা নম্বর দিন।', false); return; }
+  if (!dob) { showRes('জন্ম তারিখ দিন (DD/MM/YYYY)।', false); return; }
+
+  // DOB format check — DD/MM/YYYY
+  const dobParts = dob.split('/');
+  if (dobParts.length !== 3 || dobParts[2].length !== 4) {
+    showRes('জন্ম তারিখ সঠিক ফরম্যাটে দিন: DD/MM/YYYY', false); return;
   }
 
   const docId = no.replace(/[^A-Z0-9]/gi, '');
@@ -3137,37 +3068,49 @@ async function addNewMember() {
 
   const btn = document.getElementById('btnAddMember');
   btn.disabled = true; btn.textContent = '⏳ যোগ হচ্ছে...';
+  res.style.display = 'none';
 
   try {
     // ইতিমধ্যে আছে কিনা চেক
     const existing = await db.collection('members').doc(docId).get();
     if (existing.exists) {
-      showRes('⚠️ এই সেনা নম্বরে ইতিমধ্যে সদস্য আছে।', false);
+      const d = existing.data();
+      // DOB আলাদা হলে update করো, না হলে warn করো
+      if (d.dob && d.dob.trim() === dob.trim()) {
+        showRes('⚠️ এই সেনা নম্বর ও জন্ম তারিখ ইতিমধ্যে যোগ করা আছে। সদস্য নিবন্ধন করতে পারবেন।', false);
+      } else if (d.dob) {
+        showRes('⚠️ এই সেনা নম্বরে ইতিমধ্যে সদস্য আছে (ভিন্ন জন্ম তারিখ সহ)।', false);
+      } else {
+        // DOB নেই — update করো
+        await db.collection('members').doc(docId).update({
+          dob,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          updatedBy: currentUser.uid,
+        });
+        showRes('✅ জন্ম তারিখ আপডেট হয়েছে। সদস্য এখন নিবন্ধন করতে পারবেন।\nসেনা নং: ' + no, true);
+        clearNewMemberForm();
+      }
       btn.disabled = false; btn.textContent = '➕ সদস্য যোগ করুন'; return;
     }
 
-    const memberData = {
-      no, bn, en: get('nm_en') || bn,
-      r_bn: rank, r_en: rank,
-      dob, bl: get('nm_bl'),
-      tr_bn: get('nm_trade'), tr_en: get('nm_trade'),
-      co_bn: co, co_en: co,
-      di_bn: get('nm_dist'), di_en: get('nm_dist'),
-      mb: get('nm_mb'),
-      ad: get('nm_ad'),
+    // নতুন doc তৈরি — শুধু no ও dob
+    await db.collection('members').doc(docId).set({
+      no,
+      dob,
       addedBy: currentUser.uid,
       addedAt: firebase.firestore.FieldValue.serverTimestamp(),
       updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-    };
+    });
 
-    await db.collection('members').doc(docId).set(memberData);
-
-    // Cache invalidate করো
     _adminMemberCache = null;
 
-    showRes('✅ সদস্য যোগ সফল! নাম: ' + bn + ' | সেনা নং: ' + no + ' | এখন Self-Registration করতে পারবে।', true);
-
+    showRes(
+      '✅ সদস্য যোগ সফল!\n\nসেনা নং: ' + no + '\nজন্ম তারিখ: ' + dob +
+      '\n\nসদস্য এখন অ্যাপে গিয়ে সেনা নম্বর ও জন্ম তারিখ দিয়ে নিবন্ধন করতে পারবেন।',
+      true
+    );
     clearNewMemberForm();
+
   } catch(e) {
     showRes('যোগ ব্যর্থ: ' + (e.code || e.message), false);
   }
@@ -3175,14 +3118,14 @@ async function addNewMember() {
 }
 
 function clearNewMemberForm() {
-  ['nm_no','nm_bn','nm_en','nm_rank','nm_dob','nm_trade','nm_mb','nm_ad','nm_dist'].forEach(id => {
+  ['nm_no', 'nm_dob'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
-  const bl = document.getElementById('nm_bl');
-  const co = document.getElementById('nm_co');
-  if (bl) bl.value = '';
-  if (co) co.value = '';
+  const status = document.getElementById('nmCheckStatus');
+  if (status) status.style.display = 'none';
+  const res = document.getElementById('addMemberResult');
+  if (res) res.style.display = 'none';
 }
 
 // ডিফল্ট পাসওয়ার্ড তৈরি — সেনা নম্বর ৬ সংখ্যায় pad করো
@@ -4265,29 +4208,28 @@ async function approveEdit(docId) {
     const r = doc.data();
     const batch = db.batch();
 
-    // memberId থেকে সঠিক member doc খোঁজো
-    // memberId হয় UID (superadmin) অথবা armyNo-based docId
     let memberRef;
     const memberDocDirect = await db.collection('members').doc(r.memberId).get();
     if (memberDocDirect.exists) {
       memberRef = db.collection('members').doc(r.memberId);
     } else {
-      // armyNo দিয়ে খোঁজো
       const q = await db.collection('members').where('no', '==', r.memberNo).get();
-      if (!q.empty) {
-        memberRef = db.collection('members').doc(q.docs[0].id);
-      }
+      if (!q.empty) memberRef = db.collection('members').doc(q.docs[0].id);
     }
 
     if (memberRef) {
-      batch.update(memberRef, {
+      const updateData = {
         [r.field]: r.newValue,
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
+      };
+      // _bn → _en auto sync
+      const syncMap = { r_bn:'r_en', tr_bn:'tr_en', co_bn:'co_en', di_bn:'di_en', ma_bn:'ma_en' };
+      if (syncMap[r.field]) updateData[syncMap[r.field]] = r.newValue;
+
+      batch.update(memberRef, updateData);
     }
 
-    const reqRef = db.collection('editRequests').doc(docId);
-    batch.update(reqRef, {
+    batch.update(db.collection('editRequests').doc(docId), {
       status: 'approved',
       approvedAt: firebase.firestore.FieldValue.serverTimestamp(),
       approvedBy: currentUser.uid
@@ -4581,18 +4523,25 @@ function _yearsSince(date) {
 }
 
 /* ══════════════════════════════════════════
-   (২) ONE-TIME FIELD EDIT LOCK
-   কিছু field সদস্য একবারই নিজে edit করতে পারবে।
-   Admin সবসময় edit করতে পারবে।
+   (২) UNIVERSAL ONE-TIME FIELD EDIT LOCK
+   Member প্রতিটি editable field একবারই নিজে
+   edit করতে পারবে। Admin সবসময় edit করতে পারবে।
+   Flag: members/{docId}/_selfEdited_<key> = true
 ══════════════════════════════════════════ */
-// এই field গুলো member নিজে একবার set করলে lock হয়ে যাবে
-const ONE_TIME_LOCK_FIELDS = ['dob', 'nid', 'bl', 'gn_bn'];
+
+// Member যে fields edit করতে পারে — সবই one-time lock এর আওতায়
+const MEMBER_EDITABLE_FIELDS = [
+  'dob','bl','gn_bn','nid','mb','nm','wa','em','ad','di_bn','ed_bn',
+  'r_bn','tr_bn','co_bn','niyog','ma_bn','sp','sd','wd',
+  'c1n','c1d','c2n','c2d','c3n','c3d','c4n','c4d','c5n','c5d',
+];
 
 function isFieldLocked(key) {
+  // Admin সবসময় edit করতে পারে
   if (userRole === 'admin' || userRole === 'superadmin') return false;
-  if (!ONE_TIME_LOCK_FIELDS.includes(key)) return false;
-  const val = currentMemberData[key];
-  // Firebase থেকে আসা ডেটায় 'selfEdited_<key>' flag থাকলে locked
+  // Member-editable field না হলে lock প্রযোজ্য নয়
+  if (!MEMBER_EDITABLE_FIELDS.includes(key)) return false;
+  // Firestore এ _selfEdited_ flag থাকলে locked
   return !!currentMemberData['_selfEdited_' + key];
 }
 
@@ -4617,9 +4566,9 @@ function openEdit(key, label, type = 'text', optsStr = '') {
     input = `<input type="text" class="form-input" id="editInput" value="${val}" placeholder="${label} লিখুন">`;
   }
 
-  const lockNote = ONE_TIME_LOCK_FIELDS.includes(key) && userRole === 'member'
+  const lockNote = MEMBER_EDITABLE_FIELDS.includes(key) && userRole === 'member'
     ? `<div style="background:rgba(210,153,34,0.1);border:1px solid rgba(210,153,34,0.3);border-radius:8px;padding:8px 12px;margin-top:8px;font-size:0.78rem;color:var(--warn)">
-        ⚠️ এই তথ্য আপনি <strong>একবারই</strong> পরিবর্তন করতে পারবেন। পরবর্তীতে Admin এর সাহায্য নিতে হবে।
+        ⚠️ এই তথ্য আপনি <strong>একবারই</strong> পরিবর্তন করতে পারবেন। সংরক্ষণের পরে আর পরিবর্তন করা যাবে না। Admin এর সাহায্য নিতে হবে।
        </div>`
     : `<div style="font-size:0.78rem;color:var(--text2);margin-top:8px">ℹ️ এই পরিবর্তন Admin এর অনুমোদনের পরে কার্যকর হবে।</div>`;
 
@@ -4636,10 +4585,9 @@ function openEdit(key, label, type = 'text', optsStr = '') {
 // saveModal এর পরে lock flag সেট করার hook — saveModal function এর ভেতরে inject করা হবে editRequests submit এর পরে
 function _markFieldSelfEdited(key) {
   if (userRole === 'admin' || userRole === 'superadmin') return;
-  if (!ONE_TIME_LOCK_FIELDS.includes(key)) return;
+  if (!MEMBER_EDITABLE_FIELDS.includes(key)) return;
   const docId = currentMemberData.id || String(currentMemberData.no || '').replace(/[^A-Z0-9]/gi, '');
   if (!docId) return;
-  // Firestore এ flag সেট করো
   db.collection('members').doc(docId).set(
     { ['_selfEdited_' + key]: true, updatedAt: firebase.firestore.FieldValue.serverTimestamp() },
     { merge: true }
