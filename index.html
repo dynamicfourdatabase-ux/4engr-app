@@ -1575,6 +1575,7 @@ let _lastPersonalDef = [];
 let _lastMilitaryDef = [];
 let _lastFamilyDef   = [];
 let _isRegistering   = false; // registration এর পরে signOut এ login screen এ না যেতে
+let _lastLoginPassword = null; // pending password reset apply করতে
 
 function getStoredConfig() {
   try { return JSON.parse(localStorage.getItem('4engr_fb_config') || 'null'); }
@@ -1862,34 +1863,43 @@ function setupAuthListener() {
 
 async function checkPendingPasswordReset(user) {
   try {
-    // ইউজারের armyNo বের করো
     const userDoc = await db.collection('users').doc(user.uid).get();
     if (!userDoc.exists) return;
     const armyNo = userDoc.data().armyNo || '';
-    const docId = armyNo.replace(/[^A-Z0-9]/gi, '');
+    const docId  = armyNo.replace(/[^A-Z0-9]/gi, '');
     if (!docId) return;
 
     const resetDoc = await db.collection('passwordResets').doc(docId).get();
     if (!resetDoc.exists) return;
     const resetData = resetDoc.data();
-    if (resetData.used) return;
 
-    // নতুন পাসওয়ার্ড প্রয়োগ করো
+    // সরাসরি apply হয়েছে বা already used — skip
+    if (resetData.used || resetData.appliedDirect) return;
+
     const newPass = resetData.newPassword;
     if (!newPass || newPass.length < 6) return;
 
+    // ── user এর current password (যা দিয়ে সে এইমাত্র login করেছে) দিয়ে re-auth ──
+    // login এর সময় যে password দিয়েছে সেটা loginPassword global এ store করা আছে
     try {
+      if (_lastLoginPassword) {
+        const email = docId.toLowerCase() + '@4engr.bd';
+        const credential = firebase.auth.EmailAuthProvider.credential(email, _lastLoginPassword);
+        await user.reauthenticateWithCredential(credential);
+      }
       await user.updatePassword(newPass);
-      // রিসেট ব্যবহার হয়ে গেছে
-      await db.collection('passwordResets').doc(docId).update({ used: true, usedAt: firebase.firestore.FieldValue.serverTimestamp() });
-      showToast('🔑 আপনার পাসওয়ার্ড Admin রিসেট করেছেন। নতুন পাসওয়ার্ড দিয়ে লগইন করুন।', 'success');
-      setTimeout(() => auth.signOut(), 3000);
+      await db.collection('passwordResets').doc(docId).update({
+        used: true,
+        usedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      });
+      _lastLoginPassword = null;
+      showToast('🔑 Admin আপনার পাসওয়ার্ড পরিবর্তন করেছেন। নতুন পাসওয়ার্ড সক্রিয় হয়েছে।', 'success');
     } catch(e) {
-      // পুনরায় auth করতে হবে (recent login দরকার)
-      console.log('Password reset needs re-auth:', e.code);
+      console.log('Pending reset apply failed:', e.code);
+      // Silent fail — user পরে try করবে
     }
   } catch(e) {
-    console.log('Password reset check error:', e);
+    console.log('checkPendingPasswordReset error:', e);
   }
 }
 
@@ -1913,6 +1923,7 @@ async function doLogin() {
     // সেনা নম্বর থেকে email তৈরি: SUPERADMIN → superadmin@4engr.bd
     const email = armyNo.replace(/[^A-Z0-9]/g, '').toLowerCase() + '@4engr.bd';
     console.log('লগইন চেষ্টা:', email);
+    _lastLoginPassword = password; // pending reset apply করতে
     await auth.signInWithEmailAndPassword(email, password);
     // onAuthStateChanged handles the rest
   } catch(e) {
@@ -3791,48 +3802,136 @@ function makeDefaultPassword(armyNo) {
 }
 
 async function doMemberPasswordReset() {
-  const armyNo = document.getElementById('resetMemberNo').value.trim();
-  const customPass = document.getElementById('resetCustomPass').value.trim();
-  const res = document.getElementById('resetMemberResult');
+  const armyNo    = document.getElementById('resetMemberNo')?.value.trim().toUpperCase();
+  const customPass = document.getElementById('resetCustomPass')?.value.trim();
+  const res       = document.getElementById('resetMemberResult');
 
   const showRes = (msg, ok) => {
-    res.style.cssText = 'display:block;background:rgba(' + (ok?'63,185,80':'224,85,85') + ',0.1);border:1px solid rgba(' + (ok?'63,185,80':'224,85,85') + ',0.3);color:' + (ok?'var(--success)':'var(--danger)') + ';border-radius:8px;padding:12px 14px;font-size:0.82rem;line-height:1.7';
-    res.textContent = msg;
+    res.style.cssText = 'display:block;background:rgba('+(ok?'63,185,80':'224,85,85')+',0.1);border:1px solid rgba('+(ok?'63,185,80':'224,85,85')+',0.3);color:'+(ok?'var(--success)':'var(--danger)')+';border-radius:8px;padding:12px 14px;font-size:0.82rem;line-height:1.7;white-space:pre-line';
+    res.innerHTML = msg;
   };
 
   if (!armyNo) { showRes('সেনা নম্বর দিন।', false); return; }
 
-  const password = customPass || makeDefaultPassword(armyNo);
-  if (password.length < 6) { showRes('পাসওয়ার্ড কমপক্ষে ৬ অক্ষর হতে হবে।', false); return; }
+  const docId   = armyNo.replace(/[^A-Z0-9]/gi, '');
+  const email   = docId.toLowerCase() + '@4engr.bd';
+  const newPass = customPass || makeDefaultPassword(armyNo);
 
-  showRes('রিসেট হচ্ছে...', true);
+  if (newPass.length < 6) { showRes('পাসওয়ার্ড কমপক্ষে ৬ অক্ষর হতে হবে।', false); return; }
+
+  showRes('⏳ পাসওয়ার্ড পরিবর্তন হচ্ছে...', true);
 
   try {
-    // Firestore এ passwordResets collection এ রাখো
-    const docId = armyNo.replace(/[^A-Z0-9]/gi, '');
-    await db.collection('passwordResets').doc(docId).set({
-      armyNo,
-      newPassword: password,
-      resetBy: currentUser.uid,
-      resetByRole: userRole,
-      resetAt: firebase.firestore.FieldValue.serverTimestamp(),
-      used: false,
-    });
-
-    // member নাম বের করার চেষ্টা
+    // member নাম বের করো
     let memberName = armyNo;
     try {
       const mDoc = await db.collection('members').doc(docId).get();
       if (mDoc.exists) memberName = mDoc.data().bn || mDoc.data().en || armyNo;
-    } catch(e2) {}
+    } catch(_) {}
 
-    showRes('✅ রিসেট সফল! সদস্য: ' + memberName + ' | নতুন পাসওয়ার্ড: ' + password + ' | পরবর্তী লগইনে প্রযোজ্য।', true);
+    // ── পদ্ধতি ১: Secondary Firebase App দিয়ে সরাসরি password change ──
+    // এটা user কে sign in করে তারপর password update করে
+    // Admin এর current session নষ্ট হয় না
+    let secondaryApp;
+    try {
+      secondaryApp = firebase.app('pwReset');
+    } catch(_) {
+      secondaryApp = firebase.initializeApp(firebase.app().options, 'pwReset');
+    }
+    const secondaryAuth = secondaryApp.auth();
 
-    document.getElementById('resetMemberNo').value = '';
+    // প্রথমে current password (যা admin জানে) দিয়ে login করার চেষ্টা
+    // current password হয়: makeDefaultPassword(armyNo) অথবা passwordResets এ stored
+    let oldPass = null;
+
+    // passwordResets collection এ আগের password আছে কিনা দেখো
+    try {
+      const prevReset = await db.collection('passwordResets').doc(docId).get();
+      if (prevReset.exists && prevReset.data().currentPassword) {
+        oldPass = prevReset.data().currentPassword;
+      }
+    } catch(_) {}
+
+    // Default password দিয়ে try করো
+    const defaultPass = makeDefaultPassword(armyNo);
+    let loginSuccess = false;
+    let secondaryUser = null;
+
+    // সম্ভাব্য current passwords এর list
+    const candidates = [oldPass, defaultPass, armyNo, docId.toLowerCase()].filter(Boolean);
+
+    for (const tryPass of candidates) {
+      try {
+        const cred = await secondaryAuth.signInWithEmailAndPassword(email, tryPass);
+        secondaryUser = cred.user;
+        loginSuccess = true;
+        break;
+      } catch(loginErr) {
+        if (loginErr.code !== 'auth/wrong-password' && loginErr.code !== 'auth/invalid-credential') {
+          throw loginErr; // অন্য error হলে throw করো
+        }
+      }
+    }
+
+    if (loginSuccess && secondaryUser) {
+      // ── সরাসরি password update ──
+      await secondaryUser.updatePassword(newPass);
+      await secondaryAuth.signOut();
+
+      // Firestore এ log রাখো (password store করবো না, শুধু log)
+      await db.collection('passwordResets').doc(docId).set({
+        armyNo,
+        resetBy: currentUser.uid,
+        resetByRole: userRole,
+        resetAt: firebase.firestore.FieldValue.serverTimestamp(),
+        used: true, // সরাসরি apply হয়েছে
+        appliedDirect: true,
+      });
+
+      showRes(
+        `✅ পাসওয়ার্ড সফলভাবে পরিবর্তন হয়েছে!\n\n` +
+        `সদস্য: ${memberName}\n` +
+        `নতুন পাসওয়ার্ড: ${newPass}\n\n` +
+        `সদস্য এখনই এই পাসওয়ার্ড দিয়ে লগইন করতে পারবেন।`,
+        true
+      );
+
+    } else {
+      // ── পদ্ধতি ২: পুরানো system — user এর পরবর্তী login এ apply হবে ──
+      await db.collection('passwordResets').doc(docId).set({
+        armyNo,
+        newPassword: newPass,
+        resetBy: currentUser.uid,
+        resetByRole: userRole,
+        resetAt: firebase.firestore.FieldValue.serverTimestamp(),
+        used: false,
+        appliedDirect: false,
+        note: 'direct login failed — will apply on next login',
+      });
+
+      showRes(
+        `⚠️ সরাসরি পরিবর্তন করা যায়নি।\n\n` +
+        `সদস্য: ${memberName}\n` +
+        `নতুন পাসওয়ার্ড সংরক্ষিত: ${newPass}\n\n` +
+        `সদস্য পরবর্তী লগইনে এই পাসওয়ার্ড ব্যবহার করতে পারবেন।\n` +
+        `অথবা Firebase Console থেকে manually delete করে নতুনভাবে নিবন্ধন করতে বলুন।`,
+        true
+      );
+    }
+
+    if (secondaryAuth) { try { await secondaryAuth.signOut(); } catch(_) {} }
+
+    document.getElementById('resetMemberNo').value  = '';
     document.getElementById('resetCustomPass').value = '';
 
   } catch(e) {
-    showRes('রিসেট ব্যর্থ: ' + (e.code || e.message), false);
+    console.error('Password reset error:', e);
+    let msg = '❌ রিসেট ব্যর্থ: ' + (e.code || e.message);
+    if (e.code === 'auth/user-not-found')
+      msg = `❌ এই সেনা নম্বরে (${armyNo}) কোনো অ্যাকাউন্ট নেই।\n\nসদস্যকে প্রথমে নিবন্ধন করতে বলুন।`;
+    else if (e.code === 'auth/too-many-requests')
+      msg = '❌ অনেকবার চেষ্টা হয়েছে। কিছুক্ষণ পরে আবার চেষ্টা করুন।';
+    showRes(msg, false);
   }
 }
 
