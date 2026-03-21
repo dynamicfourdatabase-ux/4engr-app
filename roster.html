@@ -1057,7 +1057,7 @@ function showModal(idx){
           <div class="di"><div class="lbl">${L('নিয়োগ','Appointment')}</div><div class="val">${m.niyog||'—'}</div></div>
           <div class="di"><div class="lbl">${L('ভর্তির তারিখ','Enlistment Date')}</div><div class="val">${fmtDateAge(m.jd)}</div></div>
           <div class="di"><div class="lbl">${L('শপথের তারিখ','Oath Date')}</div><div class="val">${fmtDateAge(m.oath_date||m.od)}</div></div>
-          <div class="di"><div class="lbl">${L('প্রমোশনের তারিখ','Promotion Date')}</div><div class="val">${m.promo_date||'—'}</div></div>
+
           <div class="di"><div class="lbl">${L('সম্ভাব্য পেনশন','Expected Pension')}</div><div class="val" style="color:var(--warn)">${fmtDateAge(m.pd,true)}</div></div>
           <div class="di"><div class="lbl">${L('AI ১/২০১৩ বর্ধিত','AI 1/2013 Extended')}</div><div class="val">${ai||'—'}</div></div>
           ${m.pn&&m.pn.length>2&&!['nil','no','nai','n/a','0'].includes(m.pn.toLowerCase())?`<div class="di full"><div class="lbl">${L('সাজা','Punishment')}</div><div class="val"><span class="tag red">${m.pn}</span></div></div>`:''}
@@ -1197,6 +1197,7 @@ async function webLogin() {
     // হেডারে Admin info যোগ করো
     injectAdminBar();
     loadMembersFromFirebase();
+    startPendingListener(); // Real-time pending badge
 
   } catch(e) {
     let msg = 'লগইন ব্যর্থ: ' + (e.code || e.message);
@@ -1383,6 +1384,33 @@ async function loadWebPendingCount() {
   } catch(e) { console.log('Pending count error:', e); }
 }
 
+// ── Real-time listener for pending edit requests ──
+let _pendingUnsubscribe = null;
+async function startPendingListener() {
+  if (_pendingUnsubscribe) { _pendingUnsubscribe(); _pendingUnsubscribe = null; }
+  try {
+    let ref = db.collection('editRequests').where('status','==','pending');
+    if (webUserRole !== 'superadmin') {
+      const ap = await db.collection('adminProfiles').doc(webCurrentUser.uid).get();
+      const co = ap.exists ? ap.data().co_bn || '' : '';
+      if (co) ref = ref.where('memberCompany','==',co);
+    }
+    _pendingUnsubscribe = ref.onSnapshot(snap => {
+      const badge = document.getElementById('webPendingBadge');
+      const cnt   = document.getElementById('webPendingCount');
+      if (badge && cnt) {
+        cnt.textContent = snap.size;
+        badge.style.display = snap.size > 0 ? 'inline-flex' : 'none';
+        // pulse animation যখন নতুন আসে
+        if (snap.size > 0) {
+          badge.style.animation = 'webPulse 0.4s ease';
+          setTimeout(() => badge.style.animation = '', 400);
+        }
+      }
+    });
+  } catch(e) { console.log('Pending listener error:', e); }
+}
+
 /* ── ওয়েবসাইট থেকে বিজ্ঞপ্তি পাঠানো ── */
 async function webSendAnnouncement() {
   const title = prompt('বিজ্ঞপ্তির শিরোনাম:');
@@ -1510,61 +1538,145 @@ function openPasswordReset() {
   modal.onclick = e => { if (e.target === modal) modal.remove(); };
 }
 
+/* ══════════════════════════════════════════════
+   POWERFUL PASSWORD RESET — Secondary Firebase
+   (সরাসরি Firebase Auth password পরিবর্তন)
+══════════════════════════════════════════════ */
+function _webMakeDefaultPassword(armyNo) {
+  // index4.html এর makeDefaultPassword এর মতো
+  const d = armyNo.replace(/[^A-Z0-9]/gi,'').toLowerCase();
+  return d + '@4e';
+}
+
 async function doPasswordReset() {
-  const armyNo = document.getElementById('resetArmyNo').value.trim();
-  const newPass = document.getElementById('resetNewPass').value.trim();
-  const res = document.getElementById('resetResult');
+  const armyNo  = (document.getElementById('resetArmyNo')?.value || '').trim().toUpperCase();
+  const newPass = (document.getElementById('resetNewPass')?.value || '').trim();
+  const res     = document.getElementById('resetResult');
 
-  if (!armyNo) {
-    res.style.cssText = 'display:block;background:rgba(192,64,64,0.1);border:1px solid rgba(192,64,64,0.3);color:#e05555;border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:0.82rem';
-    res.textContent = 'সেনা নম্বর দিন।'; return;
-  }
+  const showRes = (msg, ok) => {
+    res.style.cssText = `display:block;background:rgba(${ok?'63,185,80':'224,85,85'},0.08);
+      border:1px solid rgba(${ok?'63,185,80':'224,85,85'},0.25);
+      color:${ok?'#3fb950':'#e05555'};border-radius:8px;
+      padding:10px 12px;margin-bottom:12px;font-size:0.82rem;
+      font-family:'Noto Serif Bengali',serif;white-space:pre-line;line-height:1.7`;
+    res.textContent = msg;
+  };
 
-  res.style.cssText = 'display:block;background:rgba(184,144,42,0.08);border:1px solid rgba(184,144,42,0.2);color:#b8902a;border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:0.82rem';
-  res.textContent = 'যাচাই করা হচ্ছে...';
+  if (!armyNo) { showRes('সেনা নম্বর দিন।', false); return; }
+
+  const docId = armyNo.replace(/[^A-Z0-9]/gi, '');
+  const email = docId.toLowerCase() + '@4engr.bd';
+
+  showRes('⏳ সদস্যের তথ্য যাচাই করা হচ্ছে...', true);
 
   try {
-    // Member ডেটা খোঁজো
-    const docId = armyNo.replace(/[^A-Z0-9]/gi, '');
+    // ── সদস্যের ডেটা লোড ──
     const memberDoc = await db.collection('members').doc(docId).get();
     if (!memberDoc.exists) {
-      res.style.color = '#e05555'; res.textContent = '❌ এই সেনা নম্বরে কোনো সদস্য পাওয়া যায়নি।'; return;
+      showRes('❌ এই সেনা নম্বরে কোনো সদস্য পাওয়া যায়নি।', false); return;
     }
     const member = memberDoc.data();
+    const memberName = member.bn || member.en || armyNo;
 
-    // পাসওয়ার্ড নির্ধারণ — দেওয়া না থাকলে জন্ম তারিখ
+    // ── পাসওয়ার্ড নির্ধারণ ──
     let password = newPass;
     if (!password) {
       const dob = member.dob || '';
-      const p = dob.split('/');
-      password = p.length === 3 ? p[0].padStart(2,'0') + p[1].padStart(2,'0') + p[2] : '4engr1234';
+      const p   = dob.split('/');
+      password  = (p.length === 3)
+        ? p[0].padStart(2,'0') + p[1].padStart(2,'0') + p[2]
+        : _webMakeDefaultPassword(armyNo);
     }
-
     if (password.length < 6) {
-      res.style.color = '#e05555'; res.textContent = '❌ পাসওয়ার্ড কমপক্ষে ৬ অক্ষর হতে হবে।'; return;
+      showRes('❌ পাসওয়ার্ড কমপক্ষে ৬ অক্ষর হতে হবে।', false); return;
     }
 
-    // Firestore এ নতুন পাসওয়ার্ড হ্যাশ সরাসরি রাখা যায় না
-    // তাই pendingPasswordReset collection এ রাখি
-    // অ্যাপ লগইনের সময় এটি চেক করবে
-    await db.collection('passwordResets').doc(docId).set({
-      armyNo: armyNo,
-      newPassword: password,
-      resetBy: webCurrentUser.uid,
-      resetByRole: webUserRole,
-      resetAt: firebase.firestore.FieldValue.serverTimestamp(),
-      used: false,
-    });
+    showRes('⏳ পাসওয়ার্ড পরিবর্তন হচ্ছে...', true);
 
-    res.style.color = '#3fb950';
-    res.textContent = `✅ ${member.bn || member.en || armyNo} এর পাসওয়ার্ড রিসেট করা হয়েছে।
-নতুন পাসওয়ার্ড: ${password}
-পরবর্তী লগইনে স্বয়ংক্রিয়ভাবে প্রয়োগ হবে।`;
-    res.style.whiteSpace = 'pre-line';
+    // ── Secondary Firebase App দিয়ে সরাসরি password change ──
+    let secApp;
+    try { secApp = firebase.app('webPwReset'); }
+    catch(_) { secApp = firebase.initializeApp(firebase.app().options, 'webPwReset'); }
+    const secAuth = secApp.auth();
+
+    // পুরানো password candidates try করো
+    const defaultPass = _webMakeDefaultPassword(armyNo);
+    const dob = member.dob || '';
+    const dp   = dob.split('/');
+    const dobPass = (dp.length === 3)
+      ? dp[0].padStart(2,'0') + dp[1].padStart(2,'0') + dp[2]
+      : null;
+
+    // passwordResets এ আগের password আছে কিনা
+    let storedPass = null;
+    try {
+      const pr = await db.collection('passwordResets').doc(docId).get();
+      if (pr.exists && pr.data().currentPassword) storedPass = pr.data().currentPassword;
+    } catch(_) {}
+
+    const candidates = [storedPass, dobPass, defaultPass, docId.toLowerCase(), armyNo.toLowerCase()].filter(Boolean);
+
+    let secUser = null;
+    for (const tryPass of candidates) {
+      try {
+        const cred = await secAuth.signInWithEmailAndPassword(email, tryPass);
+        secUser = cred.user;
+        break;
+      } catch(err) {
+        if (err.code !== 'auth/wrong-password' && err.code !== 'auth/invalid-credential') {
+          if (err.code === 'auth/user-not-found') {
+            showRes(`❌ এই সেনা নম্বরে (${armyNo}) Firebase অ্যাকাউন্ট নেই।\nসদস্যকে আগে নিবন্ধন করতে বলুন।`, false);
+            return;
+          }
+          throw err;
+        }
+      }
+    }
+
+    if (secUser) {
+      // ── সরাসরি password update ──
+      await secUser.updatePassword(password);
+      try { await secAuth.signOut(); } catch(_) {}
+
+      // log রাখো
+      await db.collection('passwordResets').doc(docId).set({
+        armyNo, resetBy: webCurrentUser.uid, resetByRole: webUserRole,
+        resetAt: firebase.firestore.FieldValue.serverTimestamp(),
+        used: true, appliedDirect: true,
+      });
+
+      showRes(
+        `✅ পাসওয়ার্ড সফলভাবে পরিবর্তন হয়েছে!\n\n` +
+        `সদস্য: ${memberName}\n` +
+        `নতুন পাসওয়ার্ড: ${password}\n\n` +
+        `সদস্য এখনই এই পাসওয়ার্ড দিয়ে লগইন করতে পারবেন।`,
+        true
+      );
+    } else {
+      // ── Fallback: Firestore এ রাখো ──
+      await db.collection('passwordResets').doc(docId).set({
+        armyNo, newPassword: password,
+        resetBy: webCurrentUser.uid, resetByRole: webUserRole,
+        resetAt: firebase.firestore.FieldValue.serverTimestamp(),
+        used: false, appliedDirect: false,
+        note: 'web-direct-failed',
+      });
+
+      showRes(
+        `⚠️ সরাসরি পরিবর্তন করা যায়নি।\n\n` +
+        `সদস্য: ${memberName}\n` +
+        `নতুন পাসওয়ার্ড সংরক্ষিত: ${password}\n\n` +
+        `সদস্য পরবর্তী লগইনে এই পাসওয়ার্ড ব্যবহার করতে পারবেন।\n` +
+        `অথবা Firebase Console থেকে delete করে পুনরায় নিবন্ধন করতে বলুন।`,
+        true
+      );
+    }
 
   } catch(e) {
-    res.style.color = '#e05555';
-    res.textContent = '❌ ব্যর্থ: ' + e.message;
+    console.error('Password reset error:', e);
+    let msg = '❌ ব্যর্থ: ' + (e.code || e.message);
+    if (e.code === 'auth/too-many-requests') msg = '❌ অনেকবার চেষ্টা হয়েছে। কিছুক্ষণ পরে আবার চেষ্টা করুন।';
+    showRes(msg, false);
   }
 }
 
@@ -1800,7 +1912,7 @@ function openRosterEditModal(m) {
         <div>${lbl('নিয়োগ','niyog')}${inp('niyog',m.niyog)}</div>
         <div>${lbl('ভর্তির তারিখ')}${inp('jd',m.jd,'DD/MM/YYYY')}</div>
         <div>${lbl('শপথের তারিখ')}${inp('od',m.od||m.oath_date,'DD/MM/YYYY')}</div>
-        <div>${lbl('প্রমোশনের তারিখ')}${inp('promo_date',m.promo_date,'DD/MM/YYYY')}</div>
+
         <div>${lbl('লাইসেন্স')}${sel('li',m.li||m.license,VEHICLES)}</div>
         <div>${lbl('সাজা')}${inp('pn',m.pn)}</div>
         <div>${lbl('সুপারিশ')}${inp('rec',m.rec)}</div>
