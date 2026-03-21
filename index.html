@@ -1573,6 +1573,7 @@ async function doLogin() {
     if (e.code === 'auth/network-request-failed') msg = 'ইন্টারনেট সংযোগ সমস্যা।';
     errEl.textContent = msg;
     errEl.style.display = 'block';
+    const btn = document.getElementById('loginBtn');
     if (btn) { btn.textContent = 'লগইন করুন'; btn.disabled = false; }
   }
 }
