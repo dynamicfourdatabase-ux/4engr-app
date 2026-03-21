@@ -1632,7 +1632,7 @@ function navTo(page) {
   if (nav) nav.classList.add('active');
   if (page === 'admin') loadAdminData();
   if (page === 'notifications') loadNotifications();
-  if (page === 'courses') { renderCourses(); }
+  if (page === 'courses') { loadPendingCoursesAndRender(); }
   if (page === 'leave') loadLeave();
 }
 
@@ -2490,40 +2490,72 @@ async function saveModal() {
 
   // ── নতুন কোর্স যোগ ──
   if (currentEditField.key === '_addCourse') {
-    if (!newVal) { showToast('কোর্সের নাম লিখুন', 'error'); btn.textContent='সংরক্ষণ করুন'; btn.disabled=false; return; }
-    const existing = currentMemberData.cr_bn || '';
-    const updated = existing ? existing + ', ' + newVal : newVal;
-    const docId = currentMemberData.id || String(currentMemberData.no||'').replace(/[^A-Z0-9]/gi,'');
-    const isAdmin = userRole === 'admin' || userRole === 'superadmin';
+    const bnName = newVal || '';
+    const enName = (document.getElementById('newCourseNameEn')?.value || '').trim();
+    if (!bnName && !enName) { showToast('কোর্সের নাম লিখুন', 'error'); btn.textContent='সংরক্ষণ করুন'; btn.disabled=false; return; }
+    const displayBn  = bnName || enName;
+    const displayEn  = enName || bnName;
+    const posRaw     = parseInt(document.getElementById('newCoursePosition')?.value || '0') || 0;
+    const resVal     = document.getElementById('newCourseResult')?.value || '';
+    const recVal     = (document.getElementById('newCourseRec')?.value || '').trim();
+    const existingBn = currentMemberData.cr_bn || '';
+    const existingEn = currentMemberData.cr_en || '';
+    const updatedBn  = existingBn ? existingBn + ', ' + displayBn : displayBn;
+    const updatedEn  = existingEn ? existingEn + ', ' + displayEn : displayEn;
+    const crBnArr    = existingBn ? existingBn.split(',').map(s => s.trim()).filter(Boolean) : [];
+    const newIdx     = crBnArr.length;
+    const docId      = currentMemberData.id || String(currentMemberData.no||'').replace(/[^A-Z0-9]/gi,'');
+    const isAdmin    = userRole === 'admin' || userRole === 'superadmin';
     if (isAdmin) {
       try {
         const docRef = db.collection('members').doc(docId);
         const snap = await docRef.get();
+        const updateObj = {
+          cr_bn: updatedBn, cr_en: updatedEn,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+        if (resVal)    updateObj['courseResults.course_' + newIdx] = resVal;
+        if (posRaw > 0) updateObj['courseResults.pos_'   + newIdx] = posRaw;
+        if (recVal)    updateObj['courseResults.rec_'    + newIdx] = recVal;
         if (snap.exists) {
-          await docRef.update({ cr_bn: updated, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+          await docRef.update(updateObj);
         } else {
-          await docRef.set({ cr_bn: updated }, { merge: true });
+          await docRef.set(updateObj, { merge: true });
         }
-        currentMemberData.cr_bn = updated;
+        currentMemberData.cr_bn = updatedBn;
+        currentMemberData.cr_en = updatedEn;
+        if (!currentMemberData.courseResults) currentMemberData.courseResults = {};
+        if (resVal)    currentMemberData.courseResults['course_' + newIdx] = resVal;
+        if (posRaw > 0) currentMemberData.courseResults['pos_'  + newIdx] = posRaw;
+        if (recVal)    currentMemberData.courseResults['rec_'   + newIdx] = recVal;
         closeModal(); renderCourses();
         showToast('✅ কোর্স যোগ হয়েছে', 'success');
       } catch(e) { showToast('যোগ ব্যর্থ: ' + e.message, 'error'); }
     } else {
+      // সদস্য — pending request
       try {
         await db.collection('editRequests').add({
           memberId: docId,
           memberNo: currentMemberData.no,
           memberName: currentMemberData.bn || currentMemberData.en,
           memberCompany: currentMemberData.co_bn || '',
-          field: 'cr_bn', fieldLabel: 'নতুন কোর্স যোগ: ' + newVal,
-          oldValue: existing,
-          newValue: updated,
+          field: 'cr_bn',
+          fieldLabel: 'নতুন কোর্স/ক্যাডার: ' + displayBn,
+          oldValue: existingBn,
+          newValue: updatedBn,
+          oldValueEn: existingEn,
+          newValueEn: updatedEn,
+          courseExtra: { nameBn: displayBn, nameEn: displayEn, result: resVal, position: posRaw, recommendation: recVal },
+          requestType: 'addCourse',
           requestedBy: currentUser.uid,
           status: 'pending',
           createdAt: firebase.firestore.FieldValue.serverTimestamp(),
         });
+        if (!currentMemberData._pendingCourses) currentMemberData._pendingCourses = [];
+        currentMemberData._pendingCourses.push({ nameBn: displayBn, nameEn: displayEn, result: resVal, position: posRaw, rec: recVal });
         closeModal();
-        showToast('✅ অনুমোদনের জন্য জমা দেওয়া হয়েছে', 'success');
+        renderCoursesWithPending();
+        showToast('⏳ কোর্স যোগ হয়েছে — অনুমোদনের অপেক্ষায়', 'success');
         checkPendingStatus();
       } catch(e) { showToast('ব্যর্থ: ' + e.message, 'error'); }
     }
@@ -2663,14 +2695,18 @@ function renderCourses() {
 
   const isAdmin = userRole === 'admin' || userRole === 'superadmin';
 
-  // cr_bn কোর্স + dc_bn ডিভিশন কোর্স একসাথে
-  const crRaw = m.cr_bn || m.cr_en || '';
-  const dcRaw = m.dc_bn || '';
-  const crList = crRaw ? crRaw.split(/[,،\n]/).map(s => s.trim()).filter(Boolean) : [];
-  const dcList = dcRaw ? dcRaw.split(/[,،\n]/).map(s => s.trim()).filter(Boolean) : [];
-  // dc কোর্সগুলো cr তে না থাকলে যোগ করো (duplicate এড়াতে)
-  const courses = [...crList];
-  dcList.forEach(dc => { if (!courses.includes(dc)) courses.push(dc); });
+  // cr_bn / cr_en — ভাষা অনুযায়ী কোর্স নাম দেখাও
+  const crBnRaw = m.cr_bn || '';
+  const crEnRaw = m.cr_en || '';
+  const dcRaw   = m.dc_bn || '';
+  const crBnArr = crBnRaw ? crBnRaw.split(',').map(s => s.trim()).filter(Boolean) : [];
+  const crEnArr = crEnRaw ? crEnRaw.split(',').map(s => s.trim()).filter(Boolean) : [];
+  const dcArr   = dcRaw   ? dcRaw.split(',').map(s => s.trim()).filter(Boolean)   : [];
+  const useBn   = appLang !== 'en';
+  const primaryArr  = (useBn || !crEnArr.length) ? crBnArr.slice() : crEnArr.slice();
+  const altArr      = (useBn || !crEnArr.length) ? crEnArr.slice() : crBnArr.slice();
+  dcArr.forEach(dc => { if (!primaryArr.includes(dc)) { primaryArr.push(dc); altArr.push(dc); } });
+  const courses = primaryArr.map((name, i) => ({ name, alt: altArr[i] || '', idx: i }));
 
   const results = m.courseResults || {};
 
@@ -2680,7 +2716,11 @@ function renderCourses() {
     return;
   }
 
-  const html = courses.map((course, i) => {
+  const RESULT_LABELS_RC = { pass:'পাস/Pass', alpha:'Alpha', bplus:'B+', b:'B', bminus:'B-', fail:'ফেল/Fail' };
+  const html = courses.map((cObj) => {
+    const i = cObj.idx;
+    const course = cObj.name;
+    const courseAlt = cObj.alt;
     const resultKey = 'course_' + i;
     const currentResult = results[resultKey] || '';
     const grades = [
@@ -2738,15 +2778,20 @@ function renderCourses() {
            <button onclick="savePosition(${i})" style="background:linear-gradient(135deg,var(--gold),#9a7a20);border:none;border-radius:7px;padding:7px 14px;color:#0a0c10;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:0.78rem;letter-spacing:1px;cursor:pointer;white-space:nowrap">সংরক্ষণ</button>
          </div>`;
 
+    const recValRC = results['rec_' + i] || '';
     return `<div class="course-item">
       <div class="course-item-header">
         <span style="font-size:14px">📋</span>
-        <span class="course-name" id="cn_${i}">${course}</span>
-        ${currentResult ? `<span class="badge badge-green" style="font-size:0.6rem">${grades.find(g=>g.id===currentResult)?.label||''}</span>` : ''}
-        ${currentPos ? `<span class="badge badge-gold" style="font-size:0.6rem">🏆 ${currentPos}তম</span>` : ''}
+        <div style="flex:1;min-width:0">
+          <span class="course-name" id="cn_${i}">${course}</span>
+          ${courseAlt && courseAlt !== course ? `<span style="font-size:0.65rem;color:var(--text2);margin-left:6px;font-style:italic">${courseAlt}</span>` : ''}
+        </div>
+        ${currentResult ? `<span class="badge badge-green" style="font-size:0.6rem">${RESULT_LABELS_RC[currentResult]||currentResult}</span>` : ''}
+        ${currentPos ? `<span class="badge badge-gold" style="font-size:0.6rem">🏆 ${currentPos}${useBn ? 'তম' : (currentPos==1?'st':currentPos==2?'nd':currentPos==3?'rd':'th')}</span>` : ''}
         ${isLocked ? '<span style="font-size:11px;margin-left:2px">🔒</span>' : ''}
-        <button onclick="editCourseNameByIdx(${i})" style="margin-left:auto;background:transparent;border:none;color:var(--gold);cursor:pointer;font-size:12px;padding:2px 6px;border-radius:5px;opacity:0.7" title="নাম সংশোধন">✏️</button>
+        <button onclick="editCourseNameByIdx(${i})" style="margin-left:4px;background:transparent;border:none;color:var(--gold);cursor:pointer;font-size:12px;padding:2px 6px;border-radius:5px;opacity:0.7" title="নাম সংশোধন">✏️</button>
       </div>
+      ${recValRC ? `<div style="font-size:0.72rem;color:var(--text2);margin-top:4px;font-style:italic">💬 ${recValRC}</div>` : ''}
       <div style="font-size:0.72rem;color:var(--text2);margin-bottom:6px;font-family:'Rajdhani',sans-serif;letter-spacing:1px;display:flex;align-items:center;gap:6px">
         <span>${isLocked ? '🔒 ফলাফল চূড়ান্ত' : 'ফলাফল নির্বাচন করুন:'}</span>
         ${resultResetBtn}
@@ -2934,16 +2979,123 @@ function editCourseNameByIdx(idx) {
 }
 
 function openAddCourse() {
-  document.getElementById('modalTitle').textContent = 'নতুন কোর্স যোগ করুন';
+  const isBn = appLang !== 'en';
+  document.getElementById('modalTitle').textContent = isBn ? 'নতুন কোর্স / ক্যাডার যোগ করুন' : 'Add New Course / Cadre';
   document.getElementById('modalBody').innerHTML = `
+    <div style="background:rgba(56,139,253,0.08);border:1px solid rgba(56,139,253,0.2);border-radius:8px;padding:9px 12px;margin-bottom:14px;font-size:0.78rem;color:var(--info);line-height:1.7">
+      🌐 ${isBn ? 'বাংলা ও ইংরেজি <strong>উভয়</strong> নাম লিখুন — সাইট ভাষা অনুযায়ী সঠিক নাম দেখাবে।' : 'Enter <strong>both</strong> Bengali & English names — website shows the correct one by language.'}
+    </div>
     <div class="form-group">
-      <label class="form-label">কোর্সের নাম</label>
-      <input type="text" class="form-input" id="editInput" placeholder="কোর্সের নাম লিখুন">
+      <label class="form-label">বাংলা নাম *</label>
+      <input type="text" class="form-input" id="editInput" placeholder="যেমন: বেসিক ইঞ্জিনিয়ারিং কোর্স">
+    </div>
+    <div class="form-group">
+      <label class="form-label">English Name *</label>
+      <input type="text" class="form-input" id="newCourseNameEn" placeholder="e.g. Basic Engineering Course">
+    </div>
+    <div class="form-group">
+      <label class="form-label">${isBn ? 'ফলাফল' : 'Result'}</label>
+      <select class="form-input" id="newCourseResult" style="background:var(--dark3)">
+        <option value="">— ${isBn ? 'নির্বাচন করুন' : 'Select'} —</option>
+        <option value="pass">${isBn ? 'পাস' : 'Pass'}</option>
+        <option value="alpha">Alpha</option>
+        <option value="bplus">B+</option>
+        <option value="b">B</option>
+        <option value="bminus">B-</option>
+        <option value="fail">${isBn ? 'ফেল' : 'Fail'}</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">${isBn ? 'অর্জিত অবস্থান (কত তম?)' : 'Position Achieved (Rank?)'}</label>
+      <div style="display:flex;align-items:center;gap:10px">
+        <input type="number" class="form-input" id="newCoursePosition" min="1" max="9999"
+          placeholder="${isBn ? 'যেমন: 5' : 'e.g. 5'}" style="flex:1">
+        <span style="color:var(--text2);font-family:'Rajdhani',sans-serif;font-size:0.9rem;white-space:nowrap">
+          ${isBn ? 'তম স্থান' : 'th Place'}
+        </span>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">${isBn ? 'সুপারিশ' : 'Recommendation'}</label>
+      <textarea class="form-input" id="newCourseRec" rows="2"
+        placeholder="${isBn ? 'সুপারিশ লিখুন (ঐচ্ছিক)' : 'Recommendation (optional)'}"
+        style="resize:none"></textarea>
+    </div>
+    <div style="background:rgba(210,153,34,0.1);border:1px solid rgba(210,153,34,0.3);border-radius:8px;padding:9px 12px;margin-top:4px;font-size:0.78rem;color:var(--warn);line-height:1.6">
+      ⏳ ${isBn ? 'যোগ করার পরে <strong>অনুমোদনের জন্য অপেক্ষমাণ</strong> থাকবে। Admin অনুমোদন দিলে ওয়েবসাইটে যুক্ত হবে।' : 'After adding, it will be <strong>pending approval</strong>. Appears on website after Admin approves.'}
     </div>
   `;
   currentEditField = { key: '_addCourse', label: 'নতুন কোর্স' };
   document.getElementById('editModal').classList.add('open');
 }
+/* ══════════════════════════════════════════
+   PENDING COURSES — লোড করে pending badge সহ দেখাও
+══════════════════════════════════════════ */
+async function loadPendingCoursesAndRender() {
+  renderCourses(); // আগে approved দেখাও
+  if (!currentUser || !currentMemberData) return;
+  const docId = currentMemberData.id || String(currentMemberData.no || '').replace(/[^A-Z0-9]/gi, '');
+  if (!docId) return;
+  try {
+    const snap = await db.collection('editRequests')
+      .where('memberId', '==', docId)
+      .where('requestType', '==', 'addCourse')
+      .where('status', '==', 'pending')
+      .get();
+    if (snap.empty) { currentMemberData._pendingCourses = []; return; }
+    const crBnApproved = (currentMemberData.cr_bn || '').split(',').map(s => s.trim().toLowerCase());
+    currentMemberData._pendingCourses = snap.docs.map(d => {
+      const r = d.data();
+      const ex = r.courseExtra || {};
+      const nameBn = ex.nameBn || '';
+      const nameEn = ex.nameEn || '';
+      if (!nameBn && !nameEn) return null;
+      if (crBnApproved.includes(nameBn.toLowerCase())) return null; // ইতিমধ্যে approved
+      return { nameBn, nameEn, result: ex.result || '', position: ex.position || 0, rec: ex.recommendation || '' };
+    }).filter(Boolean);
+    if (currentMemberData._pendingCourses.length > 0) renderCoursesWithPending();
+  } catch(e) { console.warn('Pending courses:', e.message); }
+}
+
+function renderCoursesWithPending() {
+  renderCourses(); // approved কোর্স আগে render
+  const pending = currentMemberData._pendingCourses || [];
+  if (!pending.length) return;
+
+  const isBn = appLang !== 'en';
+  const RLBL = { pass: isBn ? 'পাস' : 'Pass', alpha:'Alpha', bplus:'B+', b:'B', bminus:'B-', fail: isBn ? 'ফেল' : 'Fail' };
+
+  const box = document.getElementById('coursesList');
+  let extraHtml = '';
+  pending.forEach(p => {
+    const displayName = isBn ? (p.nameBn || p.nameEn) : (p.nameEn || p.nameBn);
+    const altName     = isBn ? p.nameEn : p.nameBn;
+    const resLabel    = RLBL[p.result] || '';
+    const pos = p.position || 0;
+    const posLabel = pos > 0 ? (isBn ? pos + 'তম স্থান' : pos + (pos==1?'st':pos==2?'nd':pos==3?'rd':'th') + ' Place') : '';
+    extraHtml += `<div class="course-item" style="border:1px dashed rgba(210,153,34,0.5);opacity:0.88">
+      <div class="course-item-header">
+        <span style="font-size:14px">📋</span>
+        <div style="flex:1;min-width:0">
+          <span class="course-name">${displayName}</span>
+          ${altName ? `<span style="font-size:0.65rem;color:var(--text2);margin-left:6px;font-style:italic">${altName}</span>` : ''}
+        </div>
+        <span style="background:rgba(210,153,34,0.15);border:1px solid rgba(210,153,34,0.4);color:var(--warn);border-radius:20px;padding:2px 10px;font-family:'Rajdhani',sans-serif;font-size:0.65rem;font-weight:700;letter-spacing:1px;white-space:nowrap">⏳ ${isBn ? 'অনুমোদনের অপেক্ষায়' : 'Pending Approval'}</span>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:7px">
+        ${resLabel ? `<span style="font-size:0.7rem;background:rgba(63,185,80,0.1);border:1px solid rgba(63,185,80,0.3);color:var(--success);border-radius:10px;padding:2px 9px;font-family:'Rajdhani',sans-serif">📊 ${resLabel}</span>` : ''}
+        ${posLabel ? `<span style="font-size:0.7rem;background:rgba(200,169,74,0.1);border:1px solid rgba(200,169,74,0.3);color:var(--gold);border-radius:10px;padding:2px 9px;font-family:'Rajdhani',sans-serif;font-weight:700">🏆 ${posLabel}</span>` : ''}
+        ${p.rec ? `<span style="font-size:0.68rem;color:var(--text2);font-style:italic">💬 ${p.rec}</span>` : ''}
+      </div>
+      <div style="font-size:0.72rem;color:var(--warn);margin-top:8px;font-family:'Rajdhani',sans-serif">
+        ${isBn ? 'Admin অনুমোদন দিলে যুক্ত হবে।' : 'Will appear after Admin approval.'}
+      </div>
+    </div>`;
+  });
+  box.innerHTML += extraHtml;
+}
+
+
 
 /* ══════════════════════════════════════════
    LEAVE (ছুটি) PAGE
@@ -4954,14 +5106,24 @@ async function loadAdminData() {
       document.getElementById('pendingList').innerHTML =
         '<div style="color:var(--text2);text-align:center;padding:20px;font-size:0.85rem;">✅ কোনো অপেক্ষমাণ অনুরোধ নেই</div>';
     } else {
+      const PLBL = { pass:'পাস/Pass', alpha:'Alpha', bplus:'B+', b:'B', bminus:'B-', fail:'ফেল/Fail' };
       document.getElementById('pendingList').innerHTML = pending.docs.map(d => {
         const r = d.data();
         const ini = (r.memberName || '?')[0].toUpperCase();
+        const ex  = (r.requestType === 'addCourse' && r.courseExtra) ? r.courseExtra : null;
+        const extraHtmlP = ex ? `
+          <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:4px">
+            ${ex.result ? `<span style="font-size:0.63rem;background:rgba(63,185,80,0.1);border:1px solid rgba(63,185,80,0.3);color:var(--success);border-radius:8px;padding:1px 7px;font-family:'Rajdhani',sans-serif">📊 ${PLBL[ex.result]||ex.result}</span>` : ''}
+            ${ex.position > 0 ? `<span style="font-size:0.63rem;background:rgba(200,169,74,0.1);border:1px solid rgba(200,169,74,0.3);color:var(--gold);border-radius:8px;padding:1px 7px;font-family:'Rajdhani',sans-serif;font-weight:700">🏆 ${ex.position}তম স্থান</span>` : ''}
+            ${ex.recommendation ? `<span style="font-size:0.63rem;color:var(--text2);font-style:italic">💬 ${ex.recommendation}</span>` : ''}
+          </div>` : '';
+        const newValDisplay = (r.requestType === 'addCourse') ? (r.courseExtra?.nameBn || r.newValue.split(',').pop().trim()) : r.newValue;
         return `<div class="pending-item">
           <div class="pending-avatar">${ini}</div>
           <div class="pending-info">
             <div class="pending-name">${r.memberName || '—'} (${r.memberNo || ''})</div>
-            <div class="pending-detail">${r.fieldLabel}: <strong>${r.newValue}</strong></div>
+            <div class="pending-detail">${r.fieldLabel}: <strong>${newValDisplay}</strong></div>
+            ${extraHtmlP}
             <div style="font-size:0.68rem;color:var(--text3);margin-top:2px">${r.memberCompany||'—'}</div>
           </div>
           <div class="pending-actions">
@@ -5016,6 +5178,17 @@ async function approveEdit(docId) {
         Object.entries(r.extraData).forEach(([k, v]) => {
           if (k !== 'promotionSlot' && k !== 'promotionDate' && v) updateData[k] = v;
         });
+      }
+
+      // কোর্স/ক্যাডার যোগ — courseExtra থেকে cr_en, pos_, rec_ সংরক্ষণ
+      if (r.requestType === 'addCourse' && r.courseExtra) {
+        const crOldArr = (r.oldValue || '').split(',').map(s => s.trim()).filter(Boolean);
+        const newIdx   = crOldArr.length;
+        const ex = r.courseExtra;
+        if (r.newValueEn) updateData['cr_en'] = r.newValueEn;
+        if (ex.result)   updateData['courseResults.course_' + newIdx] = ex.result;
+        if (ex.position && ex.position > 0) updateData['courseResults.pos_' + newIdx] = ex.position;
+        if (ex.recommendation) updateData['courseResults.rec_' + newIdx] = ex.recommendation;
       }
 
       batch.update(memberRef, updateData);
