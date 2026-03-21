@@ -1756,7 +1756,7 @@ function renderProfile() {
   const RANKS = ['লেঃ কর্নেল','মেজর','ক্যাপ্টেন','লেফটেন্যান্ট','মাস্টাঃ ওয়াঃ অফিঃ','সিনিঃ ওয়াঃ অফিঃ','ওয়ারেন্ট অফিসার','সার্জেন্ট','কর্পোরাল','ল্যান্স কর্পোরাল','সৈনিক','এনসি (ই)'];
   const TRADES = ['অফিসার','আরএমটি','আরসিটি','ইএন্ডবিআর','ইলেক্টিশিয়ান','এ/ই','এইসি','এনসি (ই)','এমএ','এসএমটি','ওইপি','ওবিএম','ওসিইউ','ওয়েল্ডার','করনিক','কার্পেন্টার','কুক (ইউ)','টিএসএ','টিবিভি','টিসিভি','টেইলার','ডিএমটি','ডিএসভি','ড্রাফটসম্যান','পিডি','পেইন্টার','বিটিএস','মেশন','মেশিনিষ্ট','সার্ভেয়ার'];
 
-  // Personal fields
+  // Personal fields — keys match roster.html Firestore fields
   const personalDef = isAdminUser ? [
     { key: 'bn', label: 'বাংলা নাম', editable: true },
     { key: 'en', label: 'ইংরেজি নাম', editable: true },
@@ -1764,9 +1764,10 @@ function renderProfile() {
     { key: 'bl', label: 'রক্তের গ্রুপ', editable: true, type: 'select', opts: ['A+','A-','B+','B-','AB+','AB-','O+','O-'] },
     { key: 'nid', label: 'NID নম্বর', editable: true },
     { key: 'mb', label: 'মোবাইল', editable: true },
+    { key: 'nm', label: 'NID মোবাইল', editable: true },
     { key: 'wa', label: 'হোয়াটসঅ্যাপ', editable: true },
     { key: 'ad', label: 'স্থায়ী ঠিকানা', editable: true, type: 'textarea' },
-    { key: 'dist', label: 'জেলা', editable: true },
+    { key: 'di_bn', label: 'জেলা', editable: true },
     { key: 'ed_bn', label: 'শিক্ষা', editable: true },
     { key: 'em', label: 'জরুরি যোগাযোগ', editable: true },
   ] : [
@@ -1776,14 +1777,15 @@ function renderProfile() {
     { key: 'bl', label: 'রক্তের গ্রুপ', editable: true, type: 'select', opts: ['A+','A-','B+','B-','AB+','AB-','O+','O-'] },
     { key: 'nid', label: 'NID নম্বর', editable: true },
     { key: 'mb', label: 'মোবাইল', editable: true },
+    { key: 'nm', label: 'NID মোবাইল', editable: true },
     { key: 'wa', label: 'হোয়াটসঅ্যাপ', editable: true },
     { key: 'ad', label: 'স্থায়ী ঠিকানা', editable: true, type: 'textarea' },
-    { key: 'dist', label: 'জেলা', editable: true },
+    { key: 'di_bn', label: 'জেলা', editable: true },
     { key: 'ed_bn', label: 'শিক্ষা', editable: true },
   ];
   renderFields('personalFields', personalDef);
 
-  // Military fields
+  // Military fields — keys match roster.html
   const militaryDef = isAdminUser ? [
     { key: 'no', label: 'সেনা নম্বর', editable: true },
     { key: 'r_bn', label: 'পদবী', editable: true, type: 'select', opts: RANKS },
@@ -1791,10 +1793,10 @@ function renderProfile() {
     { key: 'co_bn', label: 'কোম্পানী', editable: true },
     { key: 'niyog', label: 'নিয়োগ', editable: true },
     { key: 'jd', label: 'ভর্তির তারিখ', editable: true },
-    { key: 'oath_date', label: 'শপথের তারিখ', editable: true },
+    { key: 'od', label: 'শপথের তারিখ', editable: true },
     { key: 'promo_date', label: 'প্রমোশনের তারিখ', editable: true },
-    { key: 'prev_units', label: 'পূর্বের ইউনিট', editable: true, type: 'textarea' },
-    { key: 'license', label: 'লাইসেন্স', editable: true },
+    { key: 'pu', label: 'পূর্বের ইউনিট', editable: true, type: 'textarea' },
+    { key: 'li', label: 'লাইসেন্স', editable: true },
     { key: 'pn', label: 'সাজা', editable: true },
     { key: 'pd', label: 'পেনশন তারিখ', editable: true },
   ] : [
@@ -1804,14 +1806,14 @@ function renderProfile() {
     { key: 'co_bn', label: 'কোম্পানী', editable: false },
     { key: 'niyog', label: 'নিয়োগ', editable: false },
     { key: 'jd', label: 'ভর্তির তারিখ', editable: false },
-    { key: 'oath_date', label: 'শপথের তারিখ', editable: false },
+    { key: 'od', label: 'শপথের তারিখ', editable: false },
     { key: 'promo_date', label: 'প্রমোশনের তারিখ', editable: false },
-    { key: 'prev_units', label: 'পূর্বের ইউনিট', editable: false },
-    { key: 'license', label: 'লাইসেন্স', editable: false },
+    { key: 'pu', label: 'পূর্বের ইউনিট', editable: false },
+    { key: 'li', label: 'লাইসেন্স', editable: false },
   ];
   renderFields('militaryFields', militaryDef);
 
-  // Family fields — dynamic children support
+  // Family fields — dynamic children, keys match roster.html
   const childCount = Math.max(3, Object.keys(m).filter(k => k.match(/^c\dn$/)).length + 1);
   const familyDef = [
     { key: 'ma_bn', label: 'বৈবাহিক অবস্থা', editable: true, type: 'select', opts: ['অবিবাহিত','বিবাহিত','বিধবা/বিপত্নীক','তালাকপ্রাপ্ত'] },
@@ -3124,25 +3126,30 @@ function renderAdminFields() {
     { key: 'nid', label: 'NID নম্বর' },
     { key: 'mb', label: 'মোবাইল' },
     { key: 'nm', label: 'NID মোবাইল' },
+    { key: 'wa', label: 'হোয়াটসঅ্যাপ' },
     { key: 'em', label: 'জরুরি যোগাযোগ' },
     { key: 'ad', label: 'স্থায়ী ঠিকানা', type: 'textarea' },
+    { key: 'di_bn', label: 'জেলা' },
     { key: 'ed_bn', label: 'শিক্ষা' },
   ];
   const militaryFields = [
     { key: 'no', label: 'সেনা নম্বর' },
-    { key: 'r_bn', label: 'পদবী (বাংলা)', type: 'select', opts: ['লেঃ কর্নেল', 'মেজর', 'ক্যাপ্টেন', 'লেফটেন্যান্ট', 'মাস্টার ওয়ারেন্ট অফিসার', 'সিনিয়র ওয়ারেন্ট অফিসার', 'ওয়ারেন্ট অফিসার', 'সার্জেন্ট', 'কর্পোরাল', 'ল্যান্স কর্পোরাল', 'সৈনিক', 'এনসি (ই)'] },
+    { key: 'r_bn', label: 'পদবী', type: 'select', opts: ['লেঃ কর্নেল','মেজর','ক্যাপ্টেন','লেফটেন্যান্ট','মাস্টাঃ ওয়াঃ অফিঃ','সিনিঃ ওয়াঃ অফিঃ','ওয়ারেন্ট অফিসার','সার্জেন্ট','কর্পোরাল','ল্যান্স কর্পোরাল','সৈনিক','এনসি (ই)'] },
     { key: 'r_en', label: 'পদবী (ইংরেজি)' },
-    { key: 'tr_bn', label: 'ট্রেড (বাংলা)', type: 'select', opts: ['অফিসার', 'আরএমটি', 'আরসিটি', 'ইএন্ডবিআর', 'ইলেক্টিশিয়ান', 'এ/ই', 'এইসি', 'এনসি (ই)', 'এমএ', 'এসএমটি', 'ওইপি', 'ওবিএম', 'ওসিইউ', 'ওয়েল্ডার', 'করনিক', 'কার্পেন্টার', 'কুক (ইউ)', 'টিএসএ', 'টিবিভি', 'টিসিভি', 'টেইলার', 'ডিএমটি', 'ডিএসভি', 'ড্রাফটসম্যান', 'পিডি', 'পেইন্টার', 'বিটিএস', 'মেশন', 'মেশিনিষ্ট', 'সার্ভেয়ার'] },
-    { key: 'tr_en', label: 'ট্রেড (ইংরেজি)', type: 'select', opts: ['অফিসার', 'আরএমটি', 'আরসিটি', 'ইএন্ডবিআর', 'ইলেক্টিশিয়ান', 'এ/ই', 'এইসি', 'এনসি (ই)', 'এমএ', 'এসএমটি', 'ওইপি', 'ওবিএম', 'ওসিইউ', 'ওয়েল্ডার', 'করনিক', 'কার্পেন্টার', 'কুক (ইউ)', 'টিএসএ', 'টিবিভি', 'টিসিভি', 'টেইলার', 'ডিএমটি', 'ডিএসভি', 'ড্রাফটসম্যান', 'পিডি', 'পেইন্টার', 'বিটিএস', 'মেশন', 'মেশিনিষ্ট', 'সার্ভেয়ার'] },
-    { key: 'co_bn', label: 'কোম্পানী (বাংলা)' },
-    { key: 'co_en', label: 'কোম্পানী (ইংরেজি)' },
+    { key: 'tr_bn', label: 'ট্রেড', type: 'select', opts: ['অফিসার','আরএমটি','আরসিটি','ইএন্ডবিআর','ইলেক্টিশিয়ান','এ/ই','এইসি','এনসি (ই)','এমএ','এসএমটি','ওইপি','ওবিএম','ওসিইউ','ওয়েল্ডার','করনিক','কার্পেন্টার','কুক (ইউ)','টিএসএ','টিবিভি','টিসিভি','টেইলার','ডিএমটি','ডিএসভি','ড্রাফটসম্যান','পিডি','পেইন্টার','বিটিএস','মেশন','মেশিনিষ্ট','সার্ভেয়ার'] },
+    { key: 'co_bn', label: 'কোম্পানী' },
+    { key: 'niyog', label: 'নিয়োগ' },
     { key: 'jd', label: 'ভর্তির তারিখ' },
-    { key: 'od', label: 'শপথ তারিখ' },
+    { key: 'od', label: 'শপথের তারিখ' },
+    { key: 'promo_date', label: 'প্রমোশনের তারিখ' },
     { key: 'pd', label: 'পেনশন তারিখ' },
+    { key: 'li', label: 'লাইসেন্স' },
+    { key: 'pu', label: 'পূর্বের ইউনিট', type: 'textarea' },
     { key: 'pn', label: 'সাজা' },
+    { key: 'rec', label: 'সুপারিশ' },
   ];
   const familyFields = [
-    { key: 'ma_bn', label: 'বৈবাহিক অবস্থা' },
+    { key: 'ma_bn', label: 'বৈবাহিক অবস্থা', type: 'select', opts: ['অবিবাহিত','বিবাহিত','বিধবা/বিপত্নীক','তালাকপ্রাপ্ত'] },
     { key: 'sp', label: 'স্ত্রীর নাম' },
     { key: 'sd', label: 'স্ত্রীর জন্ম তারিখ' },
     { key: 'wd', label: 'বিবাহের তারিখ' },
@@ -3152,6 +3159,8 @@ function renderAdminFields() {
     { key: 'c2d', label: 'সন্তান ২ জন্ম' },
     { key: 'c3n', label: 'সন্তান ৩ নাম' },
     { key: 'c3d', label: 'সন্তান ৩ জন্ম' },
+    { key: 'c4n', label: 'সন্তান ৪ নাম' },
+    { key: 'c4d', label: 'সন্তান ৪ জন্ম' },
   ];
 
   document.getElementById('adminPersonalFields').innerHTML = buildAdminFieldsHTML(personalFields);

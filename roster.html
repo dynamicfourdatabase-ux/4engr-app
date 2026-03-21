@@ -813,8 +813,8 @@ function applyFilters(){
         m.ma_bn,m.ma_en,
         m.ai_bn,m.ai_en,
         m.res_bn,m.res_en,
-        m.sp,m.nid,m.mb,m.nm,m.em,
-        m.ad,m.rt,m.pu,
+        m.sp,m.nid,m.mb,m.nm,m.em,m.wa,
+        m.ad,m.rt,m.pu,m.niyog,m.promo_date,
         m.c1n,m.c2n,m.c3n,m.c4n,
         m.dob,m.jd,m.od,m.pd,
       ].join(' ').toLowerCase();
@@ -1656,7 +1656,7 @@ function openRosterEditModal(m) {
         <div>${lbl('NID নম্বর')}${inp('nid',m.nid)}</div>
         <div>${lbl('মোবাইল')}${inp('mb',m.mb,'01XXXXXXXXX')}</div>
         <div>${lbl('হোয়াটসঅ্যাপ')}${inp('wa',m.wa,'01XXXXXXXXX')}</div>
-        <div>${lbl('জেলা')}${inp('dist',m.dist||m.di_bn)}</div>
+        <div>${lbl('জেলা')}${inp('di_bn',m.di_bn||m.dist)}</div>
         <div>${lbl('শিক্ষা')}${inp('ed_bn',m.ed_bn)}</div>
         <div>${lbl('জরুরি যোগাযোগ')}${inp('em',m.em)}</div>
       </div>
@@ -1668,12 +1668,13 @@ function openRosterEditModal(m) {
         <div>${lbl('ট্রেড')}${sel('tr_bn',m.tr_bn,TRADES)}</div>
         <div>${lbl('নিয়োগ')}${inp('niyog',m.niyog)}</div>
         <div>${lbl('ভর্তির তারিখ')}${inp('jd',m.jd,'DD/MM/YYYY')}</div>
-        <div>${lbl('শপথের তারিখ')}${inp('oath_date',m.oath_date||m.od,'DD/MM/YYYY')}</div>
+        <div>${lbl('শপথের তারিখ')}${inp('od',m.od||m.oath_date,'DD/MM/YYYY')}</div>
         <div>${lbl('প্রমোশনের তারিখ')}${inp('promo_date',m.promo_date,'DD/MM/YYYY')}</div>
-        <div>${lbl('লাইসেন্স')}${inp('license',m.license||m.li,'যেমন: ড্রাইভিং, ক্রেন')}</div>
+        <div>${lbl('লাইসেন্স')}${inp('li',m.li||m.license,'যেমন: ড্রাইভিং, ক্রেন')}</div>
         <div>${lbl('সাজা')}${inp('pn',m.pn)}</div>
+        <div>${lbl('সুপারিশ')}${inp('rec',m.rec)}</div>
       </div>
-      <div>${lbl('পূর্বের ইউনিট')}${ta('prev_units',m.prev_units||m.pu,'প্রতিটি ইউনিট নতুন লাইনে')}</div>
+      <div>${lbl('পূর্বের ইউনিট')}${ta('pu',m.pu||m.prev_units,'প্রতিটি ইউনিট নতুন লাইনে')}</div>
 
       <div style="font-family:'Rajdhani',sans-serif;font-size:0.7rem;letter-spacing:2px;color:#b8902a;text-transform:uppercase;margin:16px 0 8px">পারিবারিক তথ্য</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
@@ -1711,15 +1712,26 @@ async function saveRosterEdit(docId) {
   if (!docId) { showRes('❌ সদস্য ID পাওয়া যায়নি', false); return; }
 
   const data = {};
-  ['bn','en','dob','bl','nid','mb','wa','dist','ed_bn','em','ad',
-   'r_bn','tr_bn','niyog','jd','oath_date','promo_date','license','pn','prev_units',
-   'ma_bn','sp','sd','wd','c1n','c1d','c2n','c2d','c3n','c3d'
-  ].forEach(k => { const v = g(k); if (v) data[k] = v; });
+  // সব fields — roster.html এর exact same keys ব্যবহার করছি
+  const fieldMap = {
+    'bn':'bn','en':'en','dob':'dob','bl':'bl','nid':'nid',
+    'mb':'mb','wa':'wa','di_bn':'di_bn','ed_bn':'ed_bn','em':'em','ad':'ad',
+    'r_bn':'r_bn','tr_bn':'tr_bn','niyog':'niyog',
+    'jd':'jd','od':'od','promo_date':'promo_date','li':'li','pn':'pn','pu':'pu','rec':'rec',
+    'ma_bn':'ma_bn','sp':'sp','sd':'sd','wd':'wd',
+    'c1n':'c1n','c1d':'c1d','c2n':'c2n','c2d':'c2d','c3n':'c3n','c3d':'c3d'
+  };
 
-  // tr_bn থেকে tr_en এও copy করো
+  Object.entries(fieldMap).forEach(([inputId, dbKey]) => {
+    const v = g(inputId);
+    if (v) data[dbKey] = v;
+  });
+
+  // tr_bn থেকে tr_en, di_bn থেকে di_en, r_bn থেকে r_en sync করো
   if (data.tr_bn) data.tr_en = data.tr_bn;
   if (data.r_bn) data.r_en = data.r_bn;
-  if (data.dist) { data.di_bn = data.dist; data.di_en = data.dist; }
+  if (data.di_bn) data.di_en = data.di_bn;
+
   data.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
   data.updatedBy = webCurrentUser.uid;
 
@@ -1733,8 +1745,7 @@ async function saveRosterEdit(docId) {
       await docRef.set(data, { merge: true });
     }
     showRes('✅ সফলভাবে সংরক্ষণ হয়েছে!', true);
-    // MEMBERS array আপডেট করো
-    const idx = MEMBERS.findIndex(m => m._id === docId || m.no === g('no'));
+    const idx = MEMBERS.findIndex(m => m._id === docId);
     if (idx !== -1) MEMBERS[idx] = { ...MEMBERS[idx], ...data };
     applyFilters();
     setTimeout(() => document.getElementById('rosterEditModal')?.remove(), 1500);
