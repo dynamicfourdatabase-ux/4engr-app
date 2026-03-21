@@ -464,7 +464,7 @@ select:focus { border-color: var(--accent); }
     <div style="margin-top:18px;padding:12px 14px;background:rgba(184,144,42,0.06);border:1px solid rgba(184,144,42,0.15);border-radius:10px">
       <div style="font-family:'Rajdhani',sans-serif;font-size:0.7rem;letter-spacing:1px;color:#b8902a;margin-bottom:4px;text-transform:uppercase">🔒 পাসওয়ার্ড ভুলে গেলে?</div>
       <div style="font-family:'Noto Serif Bengali',serif;font-size:0.78rem;color:rgba(255,255,255,0.45);line-height:1.6">
-        আপনার ইউনিটের <strong style="color:rgba(255,255,255,0.65)">অ্যাডমিন বা সুপার অ্যাডমিন</strong> এর সাথে যোগাযোগ করুন। তিনি আপনার পাসওয়ার্ড রিসেট করে দিতে পারবেন।
+        আপনার ইউনিটের <strong style="color:rgba(255,255,255,0.65)">Admin বা Super Admin</strong> এর সাথে যোগাযোগ করুন। তিনি আপনার পাসওয়ার্ড রিসেট করে দিতে পারবেন।
       </div>
     </div>
     <!-- ফুটার -->
@@ -1085,7 +1085,7 @@ function closeModalBtn(){document.getElementById('overlay').classList.remove('op
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModalBtn();});
 
 /* ══════════════════════════════════════
-   ওয়েবসাইট অ্যাডমিন লগইন সিস্টেম
+   ওয়েবসাইট Admin Login System
 ══════════════════════════════════════ */
 let webCurrentUser = null;
 let webUserRole = null;
@@ -1123,7 +1123,7 @@ async function webLogin() {
 
     if (role !== 'admin' && role !== 'superadmin') {
       await auth.signOut();
-      errEl.textContent = '⛔ এই পোর্টালে শুধুমাত্র অ্যাডমিন ও সুপার অ্যাডমিন প্রবেশ করতে পারবেন।';
+      errEl.textContent = '⛔ এই পোর্টালে শুধুমাত্র Admin ও Super Admin প্রবেশ করতে পারবেন।';
       errEl.style.display = 'block';
       btn.textContent = 'লগইন করুন'; btn.disabled = false; return;
     }
@@ -1136,7 +1136,7 @@ async function webLogin() {
     document.getElementById('webLoginScreen').style.display = 'none';
     document.getElementById('webMainContent').style.display = 'block';
 
-    // হেডারে অ্যাডমিন ইনফো যোগ করো
+    // হেডারে Admin info যোগ করো
     injectAdminBar();
     loadMembersFromFirebase();
 
@@ -1152,7 +1152,7 @@ async function webLogin() {
 
 function injectAdminBar() {
   const name = webAdminData?.name || webAdminData?.armyNo || '—';
-  const roleLabel = webUserRole === 'superadmin' ? 'সুপার অ্যাডমিন' : 'অ্যাডমিন';
+  const roleLabel = webUserRole === 'superadmin' ? 'Super Admin' : 'Admin';
   const bar = document.createElement('div');
   bar.id = 'adminBar';
   bar.style.cssText = 'background:rgba(184,144,42,0.1);border-bottom:1px solid rgba(184,144,42,0.2);padding:8px 20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;position:sticky;top:76px;z-index:89;backdrop-filter:blur(4px)';
@@ -1364,7 +1364,7 @@ async function webSendAnnouncement() {
   try {
     await db.collection('announcements').add({
       title, body, urgent,
-      author: webAdminData?.name || 'অ্যাডমিন',
+      author: webAdminData?.name || 'Admin',
       authorRole: webUserRole,
       active: true,
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
@@ -1539,85 +1539,164 @@ async function doPasswordReset() {
   }
 }
 
-/* ── অ্যাডমিন নিজের প্রোফাইল আপডেট ── */
+/* ── Admin নিজের প্রোফাইল আপডেট ── */
 function openAdminProfile() {
   const modal = document.createElement('div');
   modal.id = 'adminProfileModal';
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9998;display:flex;align-items:center;justify-content:center;padding:20px;overflow-y:auto';
 
-  const fields = [
-    { key: 'name', label: 'নাম', val: webAdminData?.name || '' },
-  ];
+  // Admin এর armyNo থেকে docId বের করো
+  const armyNo = webAdminData?.armyNo || '';
+  const docId  = armyNo.replace(/[^A-Z0-9]/gi, '');
 
-  const fieldsHTML = fields.map(f => `
-    <div style="margin-bottom:12px">
-      <label style="display:block;font-family:'Rajdhani',sans-serif;font-size:0.7rem;letter-spacing:1px;color:#8b949e;margin-bottom:5px;text-transform:uppercase">${f.label}</label>
-      <input type="text" id="apf_${f.key}" value="${f.val}"
-        style="width:100%;background:#1c2333;border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:10px 12px;color:#e6e6e6;font-size:0.9rem;outline:none"
+  const inp = (id, label, val, type='text', ph='') =>
+    `<div style="margin-bottom:10px">
+      <label style="display:block;font-family:'Rajdhani',sans-serif;font-size:0.68rem;letter-spacing:1px;color:#8b949e;margin-bottom:4px;text-transform:uppercase">${label}</label>
+      <input type="${type}" id="apf_${id}" value="${(val||'').replace(/"/g,'&quot;')}" placeholder="${ph}"
+        style="width:100%;background:#1c2333;border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:9px 12px;color:#e6e6e6;font-size:0.88rem;outline:none"
         onfocus="this.style.borderColor='#b8902a'" onblur="this.style.borderColor='rgba(255,255,255,0.08)'">
-    </div>`).join('');
+    </div>`;
+  const sel = (id, label, val, opts) =>
+    `<div style="margin-bottom:10px">
+      <label style="display:block;font-family:'Rajdhani',sans-serif;font-size:0.68rem;letter-spacing:1px;color:#8b949e;margin-bottom:4px;text-transform:uppercase">${label}</label>
+      <select id="apf_${id}" style="width:100%;background:#1c2333;border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:9px 12px;color:#e6e6e6;font-size:0.88rem;outline:none">
+        <option value="">—</option>${opts.map(o=>`<option value="${o}" ${val===o?'selected':''}>${o}</option>`).join('')}
+      </select>
+    </div>`;
+  const ta = (id, label, val, ph='') =>
+    `<div style="margin-bottom:10px">
+      <label style="display:block;font-family:'Rajdhani',sans-serif;font-size:0.68rem;letter-spacing:1px;color:#8b949e;margin-bottom:4px;text-transform:uppercase">${label}</label>
+      <textarea id="apf_${id}" rows="2" placeholder="${ph}"
+        style="width:100%;background:#1c2333;border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:9px 12px;color:#e6e6e6;font-size:0.88rem;outline:none;resize:vertical"
+        onfocus="this.style.borderColor='#b8902a'" onblur="this.style.borderColor='rgba(255,255,255,0.08)'">${val||''}</textarea>
+    </div>`;
+
+  const sec = (title) =>
+    `<div style="font-family:'Rajdhani',sans-serif;font-size:0.7rem;letter-spacing:2px;color:#b8902a;text-transform:uppercase;margin:16px 0 8px;border-bottom:1px solid rgba(184,144,42,0.2);padding-bottom:6px">${title}</div>`;
 
   modal.innerHTML = `
-    <div style="background:#161b22;border:1px solid rgba(184,144,42,0.25);border-radius:16px;padding:28px;width:100%;max-width:420px">
-      <div style="font-family:'Rajdhani',sans-serif;font-size:0.85rem;font-weight:700;letter-spacing:2px;color:#b8902a;margin-bottom:6px;text-transform:uppercase">👤 আমার প্রোফাইল</div>
-      <div style="font-family:'Rajdhani',sans-serif;font-size:0.7rem;color:rgba(255,255,255,0.3);margin-bottom:18px">ভূমিকা: ${webUserRole === 'superadmin' ? 'সুপার অ্যাডমিন' : 'অ্যাডমিন'} | সেনা নম্বর: ${webAdminData?.armyNo || '—'}</div>
-      ${fieldsHTML}
-
-      <div style="margin-bottom:16px">
-        <label style="display:block;font-family:'Rajdhani',sans-serif;font-size:0.7rem;letter-spacing:1px;color:#8b949e;margin-bottom:5px;text-transform:uppercase">নতুন পাসওয়ার্ড (পরিবর্তন না করলে খালি রাখুন)</label>
-        <input type="password" id="apf_newpass" placeholder="নতুন পাসওয়ার্ড"
-          style="width:100%;background:#1c2333;border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:10px 12px;color:#e6e6e6;font-size:0.9rem;outline:none;margin-bottom:8px"
-          onfocus="this.style.borderColor='#b8902a'" onblur="this.style.borderColor='rgba(255,255,255,0.08)'">
-        <input type="password" id="apf_curpass" placeholder="বর্তমান পাসওয়ার্ড (পরিবর্তনের জন্য আবশ্যিক)"
-          style="width:100%;background:#1c2333;border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:10px 12px;color:#e6e6e6;font-size:0.9rem;outline:none"
-          onfocus="this.style.borderColor='#b8902a'" onblur="this.style.borderColor='rgba(255,255,255,0.08)'">
+    <div style="background:#161b22;border:1px solid rgba(184,144,42,0.25);border-radius:16px;padding:28px;width:100%;max-width:560px;max-height:90vh;overflow-y:auto">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <div style="font-family:'Rajdhani',sans-serif;font-size:0.85rem;font-weight:700;letter-spacing:2px;color:#b8902a;text-transform:uppercase">👤 আমার প্রোফাইল</div>
+        <button onclick="document.getElementById('adminProfileModal').remove()" style="background:transparent;border:none;color:rgba(255,255,255,0.4);cursor:pointer;font-size:20px">✕</button>
+      </div>
+      <div style="font-family:'Rajdhani',sans-serif;font-size:0.7rem;color:rgba(255,255,255,0.3);margin-bottom:16px">
+        ভূমিকা: ${webUserRole === 'superadmin' ? 'Super Admin' : 'Admin'} | সেনা নম্বর: ${armyNo || '—'}
       </div>
 
-      <div id="apfResult" style="display:none;border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:0.82rem;font-family:'Noto Serif Bengali',serif"></div>
+      ${sec('ব্যক্তিগত তথ্য')}
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        ${inp('bn',  'বাংলা নাম',    webAdminData?.bn || webAdminData?.name || '')}
+        ${inp('en',  'ইংরেজি নাম',   webAdminData?.en || '')}
+        ${inp('dob', 'জন্ম তারিখ',   webAdminData?.dob || '', 'text', 'DD/MM/YYYY')}
+        ${sel('bl',  'রক্তের গ্রুপ', webAdminData?.bl || '', ['A+','A-','B+','B-','AB+','AB-','O+','O-'])}
+        ${inp('nid', 'NID নম্বর',     webAdminData?.nid || '')}
+        ${inp('mb',  'মোবাইল',        webAdminData?.mb || '', 'text', '01XXXXXXXXX')}
+        ${inp('nm',  'NID মোবাইল',    webAdminData?.nm || '', 'text', '01XXXXXXXXX')}
+        ${inp('wa',  'হোয়াটসঅ্যাপ',  webAdminData?.wa || '', 'text', '01XXXXXXXXX')}
+        ${inp('em',  'জরুরি যোগাযোগ', webAdminData?.em || '')}
+        ${inp('di_bn','জেলা',          webAdminData?.di_bn || '')}
+      </div>
+      ${ta('ad', 'স্থায়ী ঠিকানা', webAdminData?.ad || '', 'গ্রাম, পোস্ট, উপজেলা, জেলা')}
 
-      <div style="display:flex;gap:10px">
-        <button onclick="saveAdminProfile()" style="flex:1;padding:11px;background:linear-gradient(135deg,#b8902a,#8a6010);border:none;border-radius:8px;color:#0a0c10;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:0.85rem;letter-spacing:1px;cursor:pointer">সংরক্ষণ করুন</button>
-        <button onclick="document.getElementById('adminProfileModal').remove()" style="padding:11px 18px;background:transparent;border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:rgba(255,255,255,0.45);cursor:pointer;font-family:'Rajdhani',sans-serif">বাতিল</button>
+      ${sec('সামরিক তথ্য')}
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        ${sel('r_bn', 'পদবী', webAdminData?.r_bn||'', ['লেঃ কর্নেল','মেজর','ক্যাপ্টেন','লেফটেন্যান্ট','মাস্টাঃ ওয়াঃ অফিঃ','সিনিঃ ওয়াঃ অফিঃ','ওয়ারেন্ট অফিসার','সার্জেন্ট','কর্পোরাল','ল্যান্স কর্পোরাল','সৈনিক','এনসি (ই)'])}
+        ${inp('niyog','নিয়োগ',          webAdminData?.niyog || '')}
+        ${inp('jd',  'ভর্তির তারিখ',   webAdminData?.jd || '')}
+        ${inp('od',  'শপথের তারিখ',    webAdminData?.od || '')}
+        ${inp('co_bn','কোম্পানী',       webAdminData?.co_bn || '')}
+        ${inp('promo_date','প্রমোশনের তারিখ', webAdminData?.promo_date || '')}
+      </div>
+
+      ${sec('পাসওয়ার্ড পরিবর্তন')}
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        ${inp('curpass',  'বর্তমান পাসওয়ার্ড', '', 'password', 'আবশ্যিক')}
+        ${inp('newpass',  'নতুন পাসওয়ার্ড',    '', 'password', 'খালি রাখলে পরিবর্তন হবে না')}
+      </div>
+
+      <div id="apfResult" style="display:none;border-radius:8px;padding:10px 12px;margin:12px 0;font-size:0.82rem;font-family:'Noto Serif Bengali',serif"></div>
+
+      <div style="display:flex;gap:10px;margin-top:16px">
+        <button onclick="saveAdminProfile('${docId}')"
+          style="flex:1;padding:12px;background:linear-gradient(135deg,#b8902a,#8a6010);border:none;border-radius:8px;color:#0a0c10;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:0.88rem;letter-spacing:1px;cursor:pointer">
+          ✅ সংরক্ষণ করুন
+        </button>
+        <button onclick="document.getElementById('adminProfileModal').remove()"
+          style="padding:12px 18px;background:transparent;border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:rgba(255,255,255,0.45);cursor:pointer;font-family:'Rajdhani',sans-serif">
+          বাতিল
+        </button>
       </div>
     </div>`;
   document.body.appendChild(modal);
   modal.onclick = e => { if (e.target === modal) modal.remove(); };
 }
 
-async function saveAdminProfile() {
-  const name = document.getElementById('apf_name')?.value.trim();
-  const newPass = document.getElementById('apf_newpass')?.value.trim();
-  const curPass = document.getElementById('apf_curpass')?.value.trim();
+async function saveAdminProfile(docId) {
+  const g   = id => document.getElementById('apf_' + id)?.value.trim() || '';
   const res = document.getElementById('apfResult');
-
   const showRes = (msg, ok) => {
     res.style.cssText = `display:block;background:rgba(${ok?'63,185,80':'192,64,64'},0.1);border:1px solid rgba(${ok?'63,185,80':'192,64,64'},0.3);color:${ok?'#3fb950':'#e05555'};border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:0.82rem`;
     res.textContent = msg;
   };
 
   try {
-    // নাম আপডেট
-    if (name) {
-      await db.collection('users').doc(webCurrentUser.uid).update({ name });
-      webAdminData.name = name;
-      // হেডার বার আপডেট
-      const bar = document.getElementById('adminBar');
-      if (bar) {
-        const roleLabel = webUserRole === 'superadmin' ? 'সুপার অ্যাডমিন' : 'অ্যাডমিন';
-        bar.querySelector('span').innerHTML = `🛡️ ${roleLabel}: <strong>${name}</strong>`;
+    const bn = g('bn'), en = g('en');
+    const displayName = bn || en || g('name') || '';
+
+    // ── ১. members collection এ সব তথ্য save (ওয়েবসাইটের সাথে sync) ──
+    if (docId) {
+      const memberRef  = db.collection('members').doc(docId);
+      const memberSnap = await memberRef.get();
+      const data = {};
+      const fields = ['bn','en','dob','bl','nid','mb','nm','wa','em','di_bn','ad','r_bn','niyog','jd','od','co_bn','promo_date'];
+      fields.forEach(k => { const v = g(k); if (v) data[k] = v; });
+      // English sync
+      if (data.r_bn)  data.r_en  = data.r_bn;
+      if (data.di_bn) data.di_en = data.di_bn;
+      if (data.co_bn) data.co_en = data.co_bn;
+      data.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
+      data.updatedBy = webCurrentUser.uid;
+
+      if (memberSnap.exists) {
+        await memberRef.update(data);
+      } else {
+        await memberRef.set({ ...data, no: webAdminData?.armyNo }, { merge: true });
       }
     }
 
-    // পাসওয়ার্ড পরিবর্তন
+    // ── ২. users collection এ নাম আপডেট ──
+    if (displayName) {
+      await db.collection('users').doc(webCurrentUser.uid).update({ name: displayName });
+      webAdminData.name = displayName;
+      // Admin bar আপডেট
+      const bar = document.getElementById('adminBar');
+      if (bar) {
+        const roleLabel = webUserRole === 'superadmin' ? 'Super Admin' : 'Admin';
+        const span = bar.querySelector('span');
+        if (span) span.innerHTML = `🛡️ ${roleLabel}: <strong>${displayName}</strong>`;
+      }
+    }
+
+    // ── ৩. adminProfiles এ backup ──
+    await db.collection('adminProfiles').doc(webCurrentUser.uid).set({
+      ...Object.fromEntries(['bn','en','dob','bl','nid','mb','nm','wa','em','di_bn','ad','r_bn','niyog','jd','od','co_bn','promo_date']
+        .map(k => [k, g(k)]).filter(([,v]) => v)),
+      armyNo: webAdminData?.armyNo,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    }, { merge: true });
+
+    // ── ৪. পাসওয়ার্ড পরিবর্তন ──
+    const newPass = g('newpass'), curPass = g('curpass');
     if (newPass) {
-      if (!curPass) { showRes('❌ বর্তমান পাসওয়ার্ড দিন।', false); return; }
-      if (newPass.length < 6) { showRes('❌ নতুন পাসওয়ার্ড কমপক্ষে ৬ অক্ষর হতে হবে।', false); return; }
+      if (!curPass)          { showRes('❌ বর্তমান পাসওয়ার্ড দিন।', false); return; }
+      if (newPass.length < 6){ showRes('❌ নতুন পাসওয়ার্ড কমপক্ষে ৬ অক্ষর হতে হবে।', false); return; }
       const cred = firebase.auth.EmailAuthProvider.credential(webCurrentUser.email, curPass);
       await webCurrentUser.reauthenticateWithCredential(cred);
       await webCurrentUser.updatePassword(newPass);
     }
 
-    showRes('✅ প্রোফাইল সংরক্ষণ হয়েছে।', true);
+    showRes('✅ প্রোফাইল স্থায়ীভাবে সংরক্ষণ হয়েছে।', true);
   } catch(e) {
     let msg = '❌ ব্যর্থ: ' + e.message;
     if (e.code === 'auth/wrong-password') msg = '❌ বর্তমান পাসওয়ার্ড ভুল।';
