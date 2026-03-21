@@ -1638,7 +1638,26 @@ function navTo(page) {
 ══════════════════════════════════════════ */
 
 function showRegister() { showScreen('register'); }
-function showLogin() { showScreen('login'); }
+function showLogin() {
+  // Register form reset করো
+  const regArmyNo = document.getElementById('regArmyNo')?.value || '';
+  ['regArmyNo','regDob','regPass','regPass2'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  const regErr = document.getElementById('regError');
+  if (regErr) { regErr.style.display = 'none'; regErr.innerHTML = ''; }
+  const regBtn = document.querySelector('#registerScreen .btn-primary');
+  if (regBtn) regBtn.disabled = false;
+
+  // Login screen এ সেনা নম্বর pre-fill করো
+  if (regArmyNo) {
+    const loginNo = document.getElementById('armyNo');
+    if (loginNo) loginNo.value = regArmyNo;
+    setTimeout(() => document.getElementById('password')?.focus(), 100);
+  }
+  showScreen('login');
+}
 
 async function doRegister() {
   const armyNo = document.getElementById('regArmyNo').value.trim().toUpperCase();
@@ -1726,8 +1745,24 @@ async function doRegister() {
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
     });
 
-    showToast('✅ নিবন্ধন সফল! স্বাগতম!', 'success');
-    // onAuthStateChanged বাকি কাজ করবে
+    // ══ ধাপ ৭: সাথে সাথে sign out করো — user নিজে login করবে ══
+    await auth.signOut();
+
+    // ══ সফল বার্তা দেখাও ══
+    hideLoading();
+    const errEl2 = document.getElementById('regError');
+    errEl2.style.cssText = 'display:block;background:rgba(63,185,80,0.12);border:1px solid rgba(63,185,80,0.3);color:#3fb950;border-radius:8px;padding:14px;margin-top:14px;text-align:center;line-height:1.8';
+    errEl2.innerHTML = `
+      <div style="font-size:1.2rem;margin-bottom:6px">✅</div>
+      <div style="font-weight:700;font-size:0.95rem;margin-bottom:4px">নিবন্ধন সফল হয়েছে!</div>
+      <div style="font-size:0.82rem;opacity:0.85;margin-bottom:12px">দয়া করে লগইন করুন।</div>
+      <button onclick="showLogin()" style="background:linear-gradient(135deg,#3fb950,#2a8a40);border:none;border-radius:8px;padding:10px 28px;color:#fff;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:0.9rem;letter-spacing:1px;cursor:pointer;width:100%">
+        🔐 লগইন করুন
+      </button>`;
+
+    // নিবন্ধন বাটন ও input গুলো disable করো
+    const regBtn = document.querySelector('#registerScreen .btn-primary');
+    if (regBtn) regBtn.disabled = true;
 
   } catch(e) {
     if (anonUser) { try { await auth.signOut(); } catch(_){} }
@@ -2010,6 +2045,7 @@ function renderProfile() {
   const COMPANIES = ['৪৮ ফিল্ড কোম্পানী','৪৯ ফিল্ড কোম্পানী','৫০ ফিল্ড কোম্পানী','প্লান্ট কোম্পানী','ব্রীজ কোম্পানী','সদর কোম্পানী','ইএমই'];
   const DISTRICTS = ['ঢাকা','চট্টগ্রাম','সিলেট','রাজশাহী','খুলনা','বরিশাল','রংপুর','ময়মনসিংহ','কুমিল্লা','নোয়াখালী','ফেনী','লক্ষ্মীপুর','চাঁদপুর','ব্রাহ্মণবাড়িয়া','হবিগঞ্জ','মৌলভীবাজার','সুনামগঞ্জ','কিশোরগঞ্জ','নেত্রকোণা','ময়মনসিংহ','জামালপুর','শেরপুর','টাঙ্গাইল','গাজীপুর','নারায়ণগঞ্জ','মুন্সিগঞ্জ','মানিকগঞ্জ','ফরিদপুর','মাদারীপুর','শরীয়তপুর','রাজবাড়ী','গোপালগঞ্জ','নরসিংদী','বগুড়া','রাজশাহী','চাঁপাইনবাবগঞ্জ','নওগাঁ','নাটোর','সিরাজগঞ্জ','পাবনা','জয়পুরহাট','কুষ্টিয়া','মেহেরপুর','চুয়াডাঙ্গা','ঝিনাইদহ','মাগুরা','নড়াইল','যশোর','সাতক্ষীরা','খুলনা','বাগেরহাট','পিরোজপুর','বরিশাল','ভোলা','পটুয়াখালী','বরগুনা','ঝালকাঠি','দিনাজপুর','ঠাকুরগাঁও','পঞ্চগড়','নীলফামারী','লালমনিরহাট','কুড়িগ্রাম','গাইবান্ধা','রংপুর','কক্সবাজার','বান্দরবান','রাঙ্গামাটি','খাগড়াছড়ি'];
   const EDUCATIONS = ['প্রাথমিক (৫ম শ্রেণি)','জুনিয়র স্কুল সার্টিফিকেট (জেএসসি)','মাধ্যমিক (এসএসসি)','উচ্চ মাধ্যমিক (এইচএসসি)','ডিপ্লোমা','ডিগ্রী/অনার্স','মাস্টার্স','অন্যান্য'];
+  const VEHICLES   = ['মোটর সাইকেল','জীপ','পিকআপ','৩টন লরী','বাস','মাইক্রো','পন্টুন','এ্যাম্বুলেন্স','ফুয়েল ট্যাংকার','ট্রাক ট্রান্সপোর্ট','ডাম্পার','এক্সকাভেটর','রোলার','ট্রাক লোডার','হুইল লোডার','মোটর গ্রেডার','ক্রেন','লাইটিং টাওয়ার','ডোজার','ফ্রক লিফটার','মিক্সার মেশিন','ফুয়েল ব্রাউজার','ওয়াটার ব্রাউজার','এয়ার কম্প্রেশার','হিটার বিটুমিন ডিস্ট্রিবিউটর','অ্যাসফল্ট পেভার মেশিন','কোস্টার','অন্যান্য'];
 
   // Personal fields — keys match roster.html Firestore fields
   const personalDef = isAdminUser ? [
@@ -2040,8 +2076,7 @@ function renderProfile() {
     { key: 'ad',    label: 'স্থায়ী ঠিকানা',    editable: true, type: 'textarea' },
     { key: 'di_bn', label: 'জেলা',              editable: true, type: 'select', opts: DISTRICTS },
     { key: 'ed_bn', label: 'শিক্ষাগত যোগ্যতা',  editable: true, type: 'select', opts: EDUCATIONS },
-  ];
-  renderFields('personalFields', personalDef);
+  ];  renderFields('personalFields', personalDef);
   _lastPersonalDef = personalDef;
 
   // Military fields — keys match roster.html
@@ -2065,7 +2100,7 @@ function renderProfile() {
     { key: 'pd',         label: 'পেনশন তারিখ',           editable: true },
   ] : [
     { key: 'no',         label: 'সেনা নম্বর',            editable: false },
-    { key: 'r_bn',       label: 'পদবী',                   editable: true,  type: 'select', opts: RANKS },
+    { key: 'r_bn',       label: 'পদবী',                   editable: true,  type: 'promotion' },
     { key: 'tr_bn',      label: 'ট্রেড',                  editable: true,  type: 'select', opts: TRADES },
     { key: 'co_bn',      label: 'কোম্পানী',               editable: true,  type: 'select', opts: COMPANIES },
     { key: 'niyog',      label: 'নিয়োগ',                 editable: true },
@@ -2078,26 +2113,43 @@ function renderProfile() {
     { key: 'dc_bn',      label: 'ডিভিশন কোর্স',           editable: false },
     { key: 'rec',        label: 'সুপারিশ',                editable: false },
     { key: 'pu',         label: 'পূর্বের ইউনিট',          editable: false },
-    { key: 'li',         label: 'লাইসেন্স',               editable: false },
+    { key: 'li',         label: 'লাইসেন্স',               editable: true, type: 'select', opts: VEHICLES },
     { key: 'pn',         label: 'সাজা',                   editable: false },
   ];
   renderFields('militaryFields', militaryDef);
   _lastMilitaryDef = militaryDef;
 
-  // Family fields — dynamic children, keys match roster.html
-  const childCount = Math.max(5, Object.keys(m).filter(k => k.match(/^c\dn$/)).length + 1);
+  // Family fields — শুধু data আছে এমন সন্তান দেখাবে + add button
   const familyDef = [
     { key: 'ma_bn', label: 'বৈবাহিক অবস্থা', editable: true, type: 'select', opts: ['অবিবাহিত','বিবাহিত','বিধবা/বিপত্নীক','তালাকপ্রাপ্ত'] },
     { key: 'sp',    label: 'স্ত্রী/স্বামীর নাম', editable: true },
     { key: 'sd',    label: 'স্ত্রী/স্বামীর জন্ম', editable: true },
     { key: 'wd',    label: 'বিবাহের তারিখ',       editable: true },
   ];
-  for (let i = 1; i <= childCount; i++) {
-    familyDef.push({ key: `c${i}n`, label: `সন্তান ${i} নাম`, editable: true });
-    familyDef.push({ key: `c${i}d`, label: `সন্তান ${i} জন্ম`, editable: true });
+  // শুধু data আছে এমন সন্তান যোগ করো
+  for (let i = 1; i <= 9; i++) {
+    if (m[`c${i}n`] || m[`c${i}d`]) {
+      familyDef.push({ key: `c${i}n`, label: `সন্তান ${i} নাম`, editable: true });
+      familyDef.push({ key: `c${i}d`, label: `সন্তান ${i} জন্ম`, editable: true });
+    }
   }
   renderFields('familyFields', familyDef);
   _lastFamilyDef = familyDef;
+
+  // "➕ সন্তান যোগ করুন" বাটন — family card এর উপরে
+  const familyCard = document.getElementById('familyFields')?.closest('.card');
+  if (familyCard && !isAdminUser) {
+    const header = familyCard.querySelector('.card-header');
+    if (header && !header.querySelector('#addChildBtn')) {
+      const addBtn = document.createElement('button');
+      addBtn.id = 'addChildBtn';
+      addBtn.className = 'field-edit-btn';
+      addBtn.style.cssText = 'margin-left:auto;font-size:0.75rem;padding:4px 10px;background:rgba(200,169,74,0.12);border:1px solid rgba(200,169,74,0.3);border-radius:7px;color:var(--gold);font-family:"Rajdhani",sans-serif;font-weight:700;letter-spacing:1px;cursor:pointer';
+      addBtn.textContent = '+ যোগ করুন';
+      addBtn.onclick = openAddChildModal;
+      header.appendChild(addBtn);
+    }
+  }
 
   // Check pending edits
   checkPendingStatus();
@@ -2120,10 +2172,13 @@ function renderFields(containerId, fields) {
     const canEditOnce = isMember && MEMBER_EDITABLE_FIELDS.includes(f.key);
     let editBtn = '';
     if (f.editable) {
-      if (locked) {
+      if (locked && f.type !== 'promotion') {
         editBtn = `<span
           title="এই তথ্য আপনি একবার পরিবর্তন করেছেন। Admin এর সাথে যোগাযোগ করুন।"
           style="font-size:13px;color:var(--text3);cursor:help">🔒</span>`;
+      } else if (f.type === 'promotion') {
+        // পদবী — সবসময় edit করা যাবে (promotion হলে)
+        editBtn = `<button class="field-edit-btn" onclick="openEdit('${f.key}','${f.label}','promotion','')" title="পদোন্নতি আবেদন করুন">⭐</button>`;
       } else {
         const warningIcon = canEditOnce
           ? `<span style="font-size:9px;color:var(--warn);vertical-align:super;margin-left:1px" title="একবারই পরিবর্তন করা যাবে">1×</span>`
@@ -2151,6 +2206,103 @@ async function saveModal() {
   const btn = document.getElementById('modalSaveBtn');
   btn.textContent = 'সংরক্ষণ হচ্ছে...';
   btn.disabled = true;
+
+  // ── পদোন্নতি আবেদন ──
+  if (currentEditField.key === '_promotion') {
+    const newRank   = document.getElementById('editInput')?.value;
+    const promoDate = document.getElementById('promoDate')?.value.trim();
+    if (!newRank) { showToast('নতুন পদবী নির্বাচন করুন', 'error'); btn.textContent='সংরক্ষণ করুন'; btn.disabled=false; return; }
+    if (!promoDate) { showToast('পদোন্নতির তারিখ দিন', 'error'); btn.textContent='সংরক্ষণ করুন'; btn.disabled=false; return; }
+
+    const pSlot = currentEditField.pSlot || 'p1';
+    const docId = currentMemberData.id || String(currentMemberData.no || '').replace(/[^A-Z0-9]/gi, '');
+    const isAdmin = userRole === 'admin' || userRole === 'superadmin';
+
+    if (isAdmin) {
+      try {
+        await db.collection('members').doc(docId).update({
+          r_bn: newRank, r_en: newRank,
+          [pSlot]: promoDate,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+        currentMemberData.r_bn = newRank;
+        currentMemberData[pSlot] = promoDate;
+        closeModal(); renderProfile();
+        showToast('✅ পদোন্নতি আপডেট হয়েছে', 'success');
+      } catch(e) { showToast('ব্যর্থ: ' + e.message, 'error'); }
+    } else {
+      try {
+        await db.collection('editRequests').add({
+          memberId: docId,
+          memberNo: currentMemberData.no || currentMemberData.armyNo,
+          memberName: currentMemberData.bn || currentMemberData.en || '',
+          memberCompany: currentMemberData.co_bn || '',
+          field: 'r_bn',
+          fieldLabel: 'পদোন্নতি: পদবী পরিবর্তন',
+          oldValue: currentMemberData.r_bn || '',
+          newValue: newRank,
+          extraData: { promotionSlot: pSlot, promotionDate: promoDate },
+          requestedBy: currentUser.uid,
+          status: 'pending',
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+        closeModal();
+        showToast('✅ পদোন্নতি আবেদন জমা হয়েছে — Admin অনুমোদনের অপেক্ষায়', 'success');
+        checkPendingStatus();
+      } catch(e) { showToast('ব্যর্থ: ' + e.message, 'error'); }
+    }
+    btn.textContent='সংরক্ষণ করুন'; btn.disabled=false; return;
+  }
+
+  // ── সন্তান যোগ ──
+  if (currentEditField.key === '_addChild') {
+    const idxEl    = document.getElementById('childIdx');
+    const nameEl   = document.getElementById('childName');
+    const dobEl    = document.getElementById('childDob');
+    const idx      = parseInt(idxEl?.value) || currentEditField.childIdx;
+    const cName    = nameEl?.value.trim();
+    const cDob     = dobEl?.value.trim();
+    if (!cName) { showToast('সন্তানের নাম দিন', 'error'); btn.textContent='সংরক্ষণ করুন'; btn.disabled=false; return; }
+    if (idx < 1 || idx > 9) { showToast('ক্রমধারা ১–৯ এর মধ্যে হতে হবে', 'error'); btn.textContent='সংরক্ষণ করুন'; btn.disabled=false; return; }
+
+    const docId  = currentMemberData.id || String(currentMemberData.no || '').replace(/[^A-Z0-9]/gi, '');
+    const isAdmin = userRole === 'admin' || userRole === 'superadmin';
+    const updates = { [`c${idx}n`]: cName };
+    if (cDob) updates[`c${idx}d`] = cDob;
+
+    if (isAdmin) {
+      try {
+        await db.collection('members').doc(docId).update({
+          ...updates,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+        Object.assign(currentMemberData, updates);
+        closeModal(); renderProfile();
+        showToast(`✅ সন্তান ${idx} যোগ হয়েছে`, 'success');
+      } catch(e) { showToast('ব্যর্থ: ' + e.message, 'error'); }
+    } else {
+      try {
+        await db.collection('editRequests').add({
+          memberId: docId,
+          memberNo: currentMemberData.no || currentMemberData.armyNo,
+          memberName: currentMemberData.bn || currentMemberData.en || '',
+          memberCompany: currentMemberData.co_bn || '',
+          field: `c${idx}n`,
+          fieldLabel: `সন্তান ${idx} যোগ: ${cName}`,
+          oldValue: '',
+          newValue: cName,
+          extraData: cDob ? { [`c${idx}d`]: cDob } : {},
+          requestedBy: currentUser.uid,
+          status: 'pending',
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+        closeModal();
+        showToast('✅ সন্তানের তথ্য অনুমোদনের জন্য জমা হয়েছে', 'success');
+        checkPendingStatus();
+      } catch(e) { showToast('ব্যর্থ: ' + e.message, 'error'); }
+    }
+    btn.textContent='সংরক্ষণ করুন'; btn.disabled=false; return;
+  }
 
   // ── ছুটি যোগ ──
   if (currentEditField.key === '_addLeave' || currentEditField.key === '_editLeave') {
@@ -4673,6 +4825,19 @@ async function approveEdit(docId) {
       const syncMap = { r_bn:'r_en', tr_bn:'tr_en', co_bn:'co_en', di_bn:'di_en', ma_bn:'ma_en' };
       if (syncMap[r.field]) updateData[syncMap[r.field]] = r.newValue;
 
+      // পদোন্নতির extraData — promotionSlot ও promotionDate
+      if (r.extraData?.promotionSlot && r.extraData?.promotionDate) {
+        updateData[r.extraData.promotionSlot] = r.extraData.promotionDate;
+        updateData.promo_date = r.extraData.promotionDate;
+      }
+
+      // সন্তানের extraData — c{i}d
+      if (r.extraData && Object.keys(r.extraData).length > 0) {
+        Object.entries(r.extraData).forEach(([k, v]) => {
+          if (k !== 'promotionSlot' && k !== 'promotionDate' && v) updateData[k] = v;
+        });
+      }
+
       batch.update(memberRef, updateData);
     }
 
@@ -4872,6 +5037,75 @@ async function adminResetPassword(uid, armyNo) {
 }
 
 /* ══════════════════════════════════════════
+   পদোন্নতি সম্পাদনা (Member — approval দরকার)
+══════════════════════════════════════════ */
+function openPromotionEdit() {
+  const m = currentMemberData;
+  const currentRank = m.r_bn || '—';
+
+  // পরবর্তী promotion slot বের করো (p1..p5)
+  const pSlot = ['p1','p2','p3','p4','p5'].find(k => !m[k]) || 'p5';
+
+  const RANKS = ['লেঃ কর্নেল','মেজর','ক্যাপ্টেন','লেফটেন্যান্ট','মাস্টাঃ ওয়াঃ অফিঃ','সিনিঃ ওয়াঃ অফিঃ','ওয়ারেন্ট অফিসার','সার্জেন্ট','কর্পোরাল','ল্যান্স কর্পোরাল','সৈনিক','এনসি (ই)'];
+
+  currentEditField = { key: '_promotion', label: 'পদোন্নতি', pSlot };
+
+  document.getElementById('modalTitle').textContent = '⭐ পদোন্নতি আবেদন';
+  document.getElementById('modalBody').innerHTML = `
+    <div style="background:rgba(200,169,74,0.08);border:1px solid rgba(200,169,74,0.2);border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:0.8rem;color:var(--text2)">
+      বর্তমান পদবী: <strong style="color:var(--gold)">${currentRank}</strong>
+    </div>
+    <div class="form-group">
+      <label class="form-label">নতুন পদবী *</label>
+      <select class="form-input" id="editInput" style="background:var(--dark3)">
+        <option value="">নির্বাচন করুন</option>
+        ${RANKS.map(r => `<option value="${r}"${r===currentRank?' selected':''}>${r}</option>`).join('')}
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">পদোন্নতির তারিখ * (DD/MM/YYYY)</label>
+      <input type="text" class="form-input" id="promoDate" placeholder="যেমন: 15/03/2024">
+    </div>
+    <div style="background:rgba(210,153,34,0.1);border:1px solid rgba(210,153,34,0.3);border-radius:8px;padding:8px 12px;margin-top:8px;font-size:0.78rem;color:var(--warn)">
+      ⚠️ পদোন্নতি আবেদন Admin এর অনুমোদনের পরে কার্যকর হবে।
+    </div>`;
+  document.getElementById('editModal').classList.add('open');
+}
+
+/* ══════════════════════════════════════════
+   সন্তান যোগ করুন Modal
+══════════════════════════════════════════ */
+function openAddChildModal() {
+  // পরবর্তী খালি slot বের করো
+  const m = currentMemberData;
+  let nextIdx = 1;
+  for (let i = 1; i <= 9; i++) {
+    if (!m[`c${i}n`] && !m[`c${i}d`]) { nextIdx = i; break; }
+    nextIdx = i + 1;
+  }
+  if (nextIdx > 9) { showToast('সর্বোচ্চ ৯টি সন্তানের তথ্য যোগ করা যাবে', 'error'); return; }
+
+  currentEditField = { key: '_addChild', label: 'সন্তান যোগ', childIdx: nextIdx };
+
+  document.getElementById('modalTitle').textContent = `সন্তান ${nextIdx} তথ্য যোগ করুন`;
+  document.getElementById('modalBody').innerHTML = `
+    <div class="form-group">
+      <label class="form-label">ক্রমধারা</label>
+      <input type="number" class="form-input" id="childIdx" value="${nextIdx}" min="1" max="9" placeholder="${nextIdx}">
+    </div>
+    <div class="form-group">
+      <label class="form-label">সন্তানের নাম *</label>
+      <input type="text" class="form-input" id="childName" placeholder="নাম">
+    </div>
+    <div class="form-group">
+      <label class="form-label">জন্ম তারিখ (DD/MM/YYYY)</label>
+      <input type="text" class="form-input" id="childDob" placeholder="DD/MM/YYYY">
+    </div>
+    <div style="font-size:0.78rem;color:var(--text2);margin-top:8px">ℹ️ এই পরিবর্তন Admin এর অনুমোদনের পরে কার্যকর হবে।</div>`;
+  document.getElementById('editModal').classList.add('open');
+}
+
+/* ══════════════════════════════════════════
    (১) PROMOTION HISTORY — renderPromotionHistory
 ══════════════════════════════════════════ */
 const PROMO_LABELS_BN = [
@@ -4998,6 +5232,13 @@ function openEdit(key, label, type = 'text', optsStr = '') {
     showToast('⛔ এই তথ্য আপনি একবারই পরিবর্তন করতে পেরেছিলেন। Admin এর সাথে যোগাযোগ করুন।', 'error');
     return;
   }
+
+  // পদবী — promotion special flow
+  if (type === 'promotion') {
+    openPromotionEdit();
+    return;
+  }
+
   currentEditField = { key, label, type, opts: optsStr ? optsStr.split(',') : [] };
   document.getElementById('modalTitle').textContent = label + ' সম্পাদনা';
   const val = currentMemberData[key] || '';
