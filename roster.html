@@ -509,7 +509,7 @@ select:focus { border-color: var(--accent); }
 <div class="controls-wrap">
   <div class="controls">
     <div class="search-wrap" style="flex:2;min-width:200px;">
-      <input type="text" id="searchInput" oninput="applyFilters()" placeholder="নাম, সেনা নম্বর, ট্রেড, কোর্স, জেলা, NID...">
+      <input type="text" id="searchInput" oninput="debounceSearch()" placeholder="নাম, সেনা নম্বর, ট্রেড, কোর্স, জেলা, NID...">
     </div>
     <select id="companyFilter"><option value="">সব কোম্পানী</option></select>
     <select id="rankFilter"><option value="">সব পদবী</option></select>
@@ -773,52 +773,73 @@ function setView(v){
 }
 
 /* ─── FILTER & SEARCH ─── */
+let _searchDebounceTimer = null;
+
 function applyFilters(){
   if(!MEMBERS || !MEMBERS.length) return;
-  const q=document.getElementById('searchInput')?.value.trim().toLowerCase()||'';
-  const co=document.getElementById('companyFilter')?.value||'';
-  const rk=document.getElementById('rankFilter')?.value||'';
-  const bl=document.getElementById('bloodFilter')?.value||'';
-  const di=document.getElementById('districtFilter')?.value||'';
-  const tr=document.getElementById('tradeFilter')?.value||'';
-  filtered=MEMBERS.filter(m=>{
-    if(co&&m.co_bn!==co)return false;
-    if(rk&&m.r_bn!==rk)return false;
-    if(bl&&m.bl!==bl)return false;
-    if(di&&m.di_bn!==di)return false;
-    if(tr&&m.tr_bn!==tr)return false;
-    if(q){
-      // Search across ALL fields in both languages — null safe
-      const hay=[
-        m.bn,m.en,String(m.no||''),
-        m.r_bn,m.r_en,
-        m.tr_bn,m.tr_en,
-        m.co_bn,m.co_en,
-        m.di_bn,m.di_en,
-        m.ed_bn,m.ed_en,
-        m.cr_bn,m.cr_en,
-        m.dc_bn,m.dc_en,
-        m.li,m.rec,m.pn,
-        m.gn_bn,m.gn_en,
-        m.ma_bn,m.ma_en,
-        m.ai_bn,m.ai_en,
+
+  const rawQ = document.getElementById('searchInput')?.value || '';
+  const q    = rawQ.trim().toLowerCase();
+  const co   = document.getElementById('companyFilter')?.value  || '';
+  const rk   = document.getElementById('rankFilter')?.value     || '';
+  const bl   = document.getElementById('bloodFilter')?.value    || '';
+  const di   = document.getElementById('districtFilter')?.value || '';
+  const tr   = document.getElementById('tradeFilter')?.value    || '';
+
+  filtered = MEMBERS.filter(m => {
+    // Dropdown filters — exact match
+    if (co && m.co_bn !== co && m.co_en !== co) return false;
+    if (rk && m.r_bn  !== rk && m.r_en  !== rk) return false;
+    if (bl && m.bl    !== bl)                     return false;
+    if (di && m.di_bn !== di && m.di_en !== di)  return false;
+    if (tr && m.tr_bn !== tr && m.tr_en !== tr)  return false;
+
+    // Full-text search — সব field এ বাংলা ও ইংরেজি উভয় ভাষায়
+    if (q) {
+      const parts = [
+        m.bn, m.en,
+        String(m.no || ''),
+        m.r_bn,  m.r_en,
+        m.tr_bn, m.tr_en,
+        m.co_bn, m.co_en,
+        m.di_bn, m.di_en,
+        m.ed_bn, m.ed_en,
+        m.cr_bn, m.cr_en,
+        m.dc_bn, m.dc_en,
+        m.gn_bn, m.gn_en,
+        m.ma_bn, m.ma_en,
+        m.ai_bn, m.ai_en,
         m.res_bn,m.res_en,
-        m.sp,m.nid,m.mb,m.nm,m.em,m.wa,
-        m.ad,m.rt,m.pu,m.niyog,m.promo_date,
-        m.c1n,m.c2n,m.c3n,m.c4n,
-        m.dob,m.jd,m.od,m.pd,
-      ].map(v=>v||'').join(' ').toLowerCase();
-      if(!hay.includes(q))return false;
+        m.li, m.rec, m.pn,
+        m.sp, m.nid, m.mb, m.nm, m.em, m.wa,
+        m.ad, m.rt, m.pu, m.niyog, m.promo_date,
+        m.c1n, m.c2n, m.c3n, m.c4n, m.c5n,
+        m.dob, m.jd,  m.od,  m.pd,
+        m.bl,
+      ].map(v => (v === null || v === undefined) ? '' : String(v)).join(' ').toLowerCase();
+
+      // Space-separated multi-word search — সব শব্দ থাকলেই দেখাবে
+      const words = q.split(/\s+/).filter(Boolean);
+      if (!words.every(w => parts.includes(w))) return false;
     }
+
     return true;
   });
-  page=1; renderCards(); renderPagination();
+
+  page = 1;
+  renderCards();
+  renderPagination();
 }
 
 function resetFilters(){
-  document.getElementById('searchInput').value='';
+  const si = document.getElementById('searchInput');
+  if (si) si.value = '';
+  clearTimeout(_searchDebounceTimer);
   ['companyFilter','rankFilter','bloodFilter','districtFilter','tradeFilter']
-    .forEach(id=>{ document.getElementById(id).value=''; });
+    .forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = '';
+    });
   applyFilters();
 }
 
@@ -1197,7 +1218,6 @@ function injectAdminBar() {
     <span style="font-family:'Rajdhani',sans-serif;font-size:0.72rem;letter-spacing:1px;color:#b8902a">🛡️ ${roleLabel}: <strong>${name}</strong></span>
     <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
       <span id="webPendingBadge" style="display:none;background:rgba(224,85,85,0.15);border:1px solid rgba(224,85,85,0.3);color:#e05555;border-radius:20px;padding:3px 10px;font-family:'Rajdhani',sans-serif;font-size:0.7rem;font-weight:700;cursor:pointer" onclick="openWebPendingModal()">⏳ <span id="webPendingCount">0</span>টি অপেক্ষমাণ</span>
-      <button onclick="openAddMemberModal()" style="background:rgba(63,185,80,0.12);border:1px solid rgba(63,185,80,0.3);color:#3fb950;border-radius:7px;padding:5px 12px;font-family:'Rajdhani',sans-serif;font-size:0.7rem;font-weight:700;letter-spacing:1px;cursor:pointer">➕ নতুন সদস্য</button>
       <button onclick="webSendAnnouncement()" style="background:rgba(200,169,74,0.15);border:1px solid rgba(200,169,74,0.3);color:#c8a94a;border-radius:7px;padding:5px 12px;font-family:'Rajdhani',sans-serif;font-size:0.7rem;font-weight:700;letter-spacing:1px;cursor:pointer">📣 বিজ্ঞপ্তি</button>
       <button onclick="openPasswordReset()" style="background:rgba(56,139,253,0.15);border:1px solid rgba(56,139,253,0.3);color:#79b8ff;border-radius:7px;padding:5px 12px;font-family:'Rajdhani',sans-serif;font-size:0.7rem;font-weight:700;letter-spacing:1px;cursor:pointer">🔑 পাসওয়ার্ড রিসেট</button>
       <button onclick="openAdminProfile()" style="background:rgba(184,144,42,0.15);border:1px solid rgba(184,144,42,0.3);color:#b8902a;border-radius:7px;padding:5px 12px;font-family:'Rajdhani',sans-serif;font-size:0.7rem;font-weight:700;letter-spacing:1px;cursor:pointer">👤 আমার প্রোফাইল</button>
@@ -2055,12 +2075,20 @@ function _injectModalPhotoClick(m) {
 }
 
 
-document.getElementById('searchInput').addEventListener('input', applyFilters);
-document.getElementById('companyFilter').addEventListener('change',applyFilters);
-document.getElementById('rankFilter').addEventListener('change',applyFilters);
-document.getElementById('bloodFilter').addEventListener('change',applyFilters);
-document.getElementById('districtFilter').addEventListener('change',applyFilters);
-document.getElementById('tradeFilter').addEventListener('change',applyFilters);
+function debounceSearch() {
+  clearTimeout(_searchDebounceTimer);
+  _searchDebounceTimer = setTimeout(applyFilters, 200);
+}
+
+document.getElementById('searchInput').addEventListener('input', debounceSearch);
+document.getElementById('searchInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') { clearTimeout(_searchDebounceTimer); applyFilters(); }
+});
+document.getElementById('companyFilter').addEventListener('change', applyFilters);
+document.getElementById('rankFilter').addEventListener('change', applyFilters);
+document.getElementById('bloodFilter').addEventListener('change', applyFilters);
+document.getElementById('districtFilter').addEventListener('change', applyFilters);
+document.getElementById('tradeFilter').addEventListener('change', applyFilters);
 
 // Firebase থেকে ডেটা লোড করো
 loadMembersFromFirebase();
