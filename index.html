@@ -631,7 +631,7 @@ body {
     <div style="margin-top:14px;padding:12px 14px;background:rgba(200,169,74,0.06);border:1px solid rgba(200,169,74,0.15);border-radius:10px">
       <div style="font-family:'Rajdhani',sans-serif;font-size:0.68rem;letter-spacing:1px;color:var(--gold);margin-bottom:4px;text-transform:uppercase">🔒 পাসওয়ার্ড ভুলে গেলে?</div>
       <div style="font-size:0.78rem;color:var(--text2);line-height:1.6">
-        আপনার ইউনিটের <strong style="color:var(--text)">অ্যাডমিন বা সুপার অ্যাডমিন</strong> এর সাথে যোগাযোগ করুন। তিনি আপনার পাসওয়ার্ড রিসেট করে দিতে পারবেন।
+        আপনার ইউনিটের <strong style="color:var(--text)">অ্যাডমিন বা সুপার অ্যাডমিন</strong> এর সাথে যোগাযোগ করুন। তিনি আপনার Password Reset করে দিতে পারবেন।
       </div>
     </div>
     <div style="margin-top:18px;padding-top:14px;border-top:1px solid rgba(255,255,255,0.05);text-align:center">
@@ -825,7 +825,7 @@ body {
       <div class="admin-stat" id="adminStats">
         <div class="stat-card stat-clickable" onclick="showStatDetail('total')">
           <div class="stat-num" id="st-total">—</div>
-          <div class="stat-lbl">মোট সদস্য</div>
+          <div class="stat-lbl">Total Members</div>
           <div class="stat-hint">ক্লিক করুন</div>
         </div>
         <div class="stat-card stat-clickable" onclick="showStatDetail('pending')">
@@ -840,7 +840,7 @@ body {
         </div>
         <div class="stat-card stat-clickable" onclick="showStatDetail('today')">
           <div class="stat-num" id="st-today">—</div>
-          <div class="stat-lbl">আজকের এডিট</div>
+          <div class="stat-lbl">Today's Edits</div>
           <div class="stat-hint">ক্লিক করুন</div>
         </div>
       </div>
@@ -914,7 +914,7 @@ body {
       <div class="card">
         <div class="card-header">
           <span class="card-header-icon">⏳</span>
-          <span class="card-header-title">অনুমোদন অপেক্ষমাণ</span>
+          <span class="card-header-title">Pending Approval</span>
         </div>
         <div class="card-body" id="pendingList">
           <div style="color:var(--text2);text-align:center;padding:20px;font-size:0.85rem;">লোড হচ্ছে...</div>
@@ -924,20 +924,20 @@ body {
       <!-- User Control Panel (Super Admin only) -->
       <div id="superAdminSection" style="display:none">
 
-        <!-- ══ সুপার অ্যাডমিন কন্ট্রোল প্যানেল ══ -->
+        <!-- ══ Super Admin Control Panel ══ -->
         <div class="card">
           <div class="card-header">
             <span class="card-header-icon">👥</span>
-            <span class="card-header-title">ইউজার ম্যানেজমেন্ট</span>
+            <span class="card-header-title">User Management</span>
           </div>
           <div class="card-body">
             <!-- ট্যাব -->
             <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap">
-              <button class="admin-tab-btn active" id="stab-members" onclick="switchSuperTab('members',this)">🪖 সৈনিক এডিট</button>
+              <button class="admin-tab-btn active" id="stab-members" onclick="switchSuperTab('members',this)">🪖 Member Edit</button>
               <button class="admin-tab-btn" id="stab-newmember" onclick="switchSuperTab('newmember',this)">➕ নতুন সদস্য</button>
-              <button class="admin-tab-btn" id="stab-admins" onclick="switchSuperTab('admins',this)">🛡️ অ্যাডমিনগণ</button>
-              <button class="admin-tab-btn" id="stab-reset" onclick="switchSuperTab('reset',this)">🔑 পাসওয়ার্ড রিসেট</button>
-              <button class="admin-tab-btn" id="stab-create" onclick="switchSuperTab('create',this)">🛡️ অ্যাডমিন তৈরি</button>
+              <button class="admin-tab-btn" id="stab-admins" onclick="switchSuperTab('admins',this)">🛡️ Admins</button>
+              <button class="admin-tab-btn" id="stab-reset" onclick="switchSuperTab('reset',this)">🔑 Password Reset</button>
+              <button class="admin-tab-btn" id="stab-create" onclick="switchSuperTab('create',this)">🛡️ Create Admin</button>
             </div>
 
             <!-- সৈনিক ট্যাব -->
@@ -970,7 +970,7 @@ body {
               </div>
             </div>
 
-            <!-- পাসওয়ার্ড রিসেট ট্যাব -->
+            <!-- Password Reset ট্যাব -->
             <div id="superTabReset" style="display:none">
               <div style="background:rgba(200,169,74,0.06);border:1px solid rgba(200,169,74,0.15);border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:0.82rem;color:var(--text2);line-height:1.7">
                 ℹ️ <strong style="color:var(--gold)">ডিফল্ট পাসওয়ার্ড নিয়ম:</strong><br>
@@ -987,7 +987,7 @@ body {
               </div>
               <button class="btn-save" onclick="doMemberPasswordReset()"
                 style="width:100%;padding:12px;border-radius:10px;margin-top:4px">
-                🔑 পাসওয়ার্ড রিসেট করুন
+                🔑 Password Reset করুন
               </button>
               <div id="resetMemberResult" style="display:none;margin-top:12px;border-radius:8px;padding:12px 14px;font-size:0.82rem;line-height:1.6"></div>
             </div>
@@ -1121,7 +1121,7 @@ body {
               <div id="addMemberResult" style="display:none;margin-top:12px;border-radius:8px;padding:12px 14px;font-size:0.82rem;line-height:1.6"></div>
             </div>
 
-            <!-- অ্যাডমিন / ইউজার ম্যানেজমেন্ট ট্যাব -->
+            <!-- অ্যাডমিন / User Management ট্যাব -->
             <div id="superTabAdmins" style="display:none">
               <!-- Search -->
               <div style="display:flex;gap:8px;margin-bottom:12px">
@@ -1141,7 +1141,7 @@ body {
               </div>
             </div>
 
-            <!-- নতুন অ্যাডমিন তৈরি ট্যাব -->
+            <!-- নতুন Create Admin ট্যাব -->
             <div id="superTabCreate" style="display:none">
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
                 <div class="form-group">
@@ -1217,7 +1217,7 @@ body {
               </div>
               <button class="btn-save" id="btnCreateAdmin" onclick="createNewAdmin()"
                 style="width:100%;padding:13px;border-radius:10px;margin-top:4px">
-                ➕ অ্যাডমিন তৈরি করুন
+                ➕ Create Admin
               </button>
               <div id="createAdminResult" style="display:none;margin-top:12px;border-radius:8px;padding:12px 14px;font-size:0.82rem"></div>
             </div>
@@ -1495,7 +1495,7 @@ function setupAuthListener() {
       showLoading('প্রোফাইল লোড হচ্ছে...');
       currentUser = user;
 
-      // পাসওয়ার্ড রিসেট চেক
+      // Password Reset চেক
       await checkPendingPasswordReset(user);
 
       await loadMemberData(user.uid);
@@ -1602,55 +1602,64 @@ function promoteUser(uid, newRole, name, armyNo) {
   const ROLE_LABELS = { admin: 'Admin', superadmin: 'Super Admin', member: 'Member' };
   const roleLabel = ROLE_LABELS[newRole] || newRole;
 
-  // member করলে company লাগবে না — সরাসরি confirm
+  // member করলে সরাসরি confirm
   if (newRole === 'member') {
     if (!confirm(`"${name}" (${armyNo}) কে Member করবেন?`)) return;
     doPromote(uid, newRole, name, armyNo, '');
     return;
   }
 
-  // Admin বা Super Admin করলে — branch/company modal দেখাও
+  // পুরনো modal থাকলে সরাও
+  document.getElementById('promoteModal')?.remove();
+
+  // Admin বা Super Admin করলে branch modal
   const modal = document.createElement('div');
   modal.id = 'promoteModal';
-  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
   modal.innerHTML = `
-    <div style="background:var(--dark2);border:1px solid var(--border);border-radius:16px;padding:24px;width:100%;max-width:400px">
-      <div style="font-family:'Rajdhani',sans-serif;font-size:0.85rem;font-weight:700;letter-spacing:2px;color:var(--gold);margin-bottom:6px;text-transform:uppercase">
-        🛡️ ${roleLabel} হিসেবে নিয়োগ
+    <div style="background:#161b22;border:1px solid rgba(200,169,74,0.4);border-radius:16px;padding:24px;width:100%;max-width:420px;position:relative">
+      <div style="font-family:'Rajdhani',sans-serif;font-size:0.9rem;font-weight:700;letter-spacing:2px;color:#c8a94a;margin-bottom:8px;text-transform:uppercase">
+        🛡️ Assign as ${roleLabel}
       </div>
-      <div style="font-size:0.82rem;color:var(--text2);margin-bottom:16px">
-        <strong style="color:var(--text)">${name}</strong> (${armyNo})
-      </div>
-
-      <div class="form-group">
-        <label class="form-label">দায়িত্বপ্রাপ্ত শাখা / কোম্পানি *</label>
-        <select class="form-input" id="promoteBranch" style="background:var(--dark3)">
-          <option value="">— নির্বাচন করুন —</option>
-          ${ADMIN_BRANCHES.map(b => `<option value="${b}">${b}</option>`).join('')}
-        </select>
+      <div style="font-size:0.85rem;color:rgba(255,255,255,0.6);margin-bottom:18px">
+        <strong style="color:#e6e6e6">${name}</strong> &nbsp;·&nbsp; Army No: ${armyNo}
       </div>
 
-      <div style="font-size:0.75rem;color:var(--text2);background:rgba(200,169,74,0.08);border:1px solid rgba(200,169,74,0.2);border-radius:8px;padding:8px 12px;margin-bottom:16px;line-height:1.6">
-        ℹ️ এই শাখার সদস্যদের তথ্য পরিবর্তনের request এই Admin এর কাছে যাবে।
+      <label style="display:block;font-family:'Rajdhani',sans-serif;font-size:0.7rem;letter-spacing:1px;color:#8b949e;text-transform:uppercase;margin-bottom:5px">
+        দায়িত্বপ্রাপ্ত শাখা / কোম্পানি *
+      </label>
+      <select id="promoteBranchSel" style="width:100%;background:#1c2333;border:1px solid rgba(200,169,74,0.25);border-radius:8px;padding:10px 12px;color:#e6e6e6;font-size:0.88rem;outline:none;margin-bottom:12px">
+        <option value="">— Select Branch —</option>
+        ${ADMIN_BRANCHES.map(b => `<option value="${b}">${b}</option>`).join('')}
+      </select>
+
+      <div style="font-size:0.75rem;color:rgba(255,255,255,0.35);background:rgba(200,169,74,0.06);border:1px solid rgba(200,169,74,0.15);border-radius:8px;padding:8px 12px;margin-bottom:16px;line-height:1.6">
+        ℹ️ এই শাখার সদস্যদের edit request এই ${roleLabel} এর কাছে যাবে।
       </div>
 
       <div style="display:flex;gap:10px">
-        <button onclick="
-          const branch = document.getElementById('promoteBranch').value;
-          if (!branch) { showToast('শাখা নির্বাচন করুন', 'error'); return; }
-          document.getElementById('promoteModal').remove();
-          doPromote('${uid}','${newRole}','${name.replace(/'/g,"\\'")}','${armyNo}', branch);
-        " style="flex:1;padding:12px;background:linear-gradient(135deg,var(--gold),#9a7a20);border:none;border-radius:10px;color:#0a0c10;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:0.85rem;letter-spacing:1px;cursor:pointer">
-          ✅ নিশ্চিত করুন
+        <button id="promoteConfirmBtn"
+          style="flex:1;padding:12px;background:linear-gradient(135deg,#c8a94a,#9a7a20);border:none;border-radius:10px;color:#0a0c10;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:0.85rem;letter-spacing:1px;cursor:pointer">
+          ✅ Confirm
         </button>
         <button onclick="document.getElementById('promoteModal').remove()"
-          style="padding:12px 18px;background:transparent;border:1px solid var(--border2);border-radius:10px;color:var(--text2);cursor:pointer;font-family:'Rajdhani',sans-serif">
-          বাতিল
+          style="padding:12px 18px;background:transparent;border:1px solid rgba(255,255,255,0.1);border-radius:10px;color:rgba(255,255,255,0.4);cursor:pointer;font-family:'Rajdhani',sans-serif;font-size:0.85rem">
+          Cancel
         </button>
       </div>
     </div>`;
+
   document.body.appendChild(modal);
-  modal.onclick = e => { if (e.target === modal) modal.remove(); };
+
+  // Confirm button — inline onclick ব্যবহার না করে event listener ব্যবহার করো
+  document.getElementById('promoteConfirmBtn').addEventListener('click', () => {
+    const branch = document.getElementById('promoteBranchSel').value;
+    if (!branch) { showToast('শাখা নির্বাচন করুন', 'error'); return; }
+    modal.remove();
+    doPromote(uid, newRole, name, armyNo, branch);
+  });
+
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
 }
 
 async function doPromote(uid, newRole, name, armyNo, branch) {
@@ -1689,7 +1698,7 @@ async function adminResetPassword(uid, armyNo) {
     if (newPass !== null) showToast('পাসওয়ার্ড কমপক্ষে ৬ অক্ষর হতে হবে', 'error');
     return;
   }
-  showLoading('পাসওয়ার্ড রিসেট হচ্ছে...');
+  showLoading('Password Reset হচ্ছে...');
   try {
     const docId = armyNo.replace(/[^A-Z0-9]/gi, '');
     await db.collection('passwordResets').doc(docId).set({
@@ -1699,7 +1708,7 @@ async function adminResetPassword(uid, armyNo) {
       resetAt: firebase.firestore.FieldValue.serverTimestamp()
     });
     hideLoading();
-    showToast(`✅ ${armyNo} এর পাসওয়ার্ড রিসেট করা হয়েছে। পরের লগইনে কার্যকর হবে।`, 'success');
+    showToast(`✅ ${armyNo} এর Password Reset করা হয়েছে। পরের লগইনে কার্যকর হবে।`, 'success');
   } catch(e) {
     hideLoading();
     showToast('ব্যর্থ: ' + e.message, 'error');
@@ -1784,6 +1793,9 @@ async function loadMemberData(uid) {
       document.getElementById('nav-admin').style.display = 'flex';
       if (userRole === 'superadmin') {
         document.getElementById('superAdminSection').style.display = 'block';
+        // Super Admin এর জন্য কোর্স ও ছুটি পেজ hide করো
+        document.getElementById('nav-courses').style.display = 'none';
+        document.getElementById('nav-leave').style.display = 'none';
       }
       // অ্যাডমিনের জন্য পারিবারিক তথ্য কার্ড লুকাও
       const familyCard = document.getElementById('familyFields')?.closest('.card');
@@ -1791,6 +1803,9 @@ async function loadMemberData(uid) {
       // শুধু admin ও superadmin এর জন্য ওয়েবসাইট লিংক দেখাও
       const rosterCard = document.getElementById('rosterLinkCard');
       if (rosterCard) rosterCard.style.display = 'flex';
+    } else {
+      // সাধারণ member — one-time edit check
+      checkOneTimeEditAccess();
     }
   } catch(e) {
     console.error('Load error:', e);
@@ -1917,7 +1932,10 @@ function renderProfile() {
   // Check pending edits
   checkPendingStatus();
   renderCourses();
-  // ভাষা প্রয়োগ করো
+  // Member এর জন্য one-time edit access চেক করো
+  if (userRole === 'member') {
+    checkOneTimeEditAccess();
+  }
   setTimeout(() => {
     const btn = document.getElementById('langToggleBtn');
     if (btn) btn.textContent = appLang === 'bn' ? 'EN' : 'বাং';
@@ -1945,6 +1963,11 @@ function renderFields(containerId, fields) {
    EDIT MODAL
 ══════════════════════════════════════════ */
 function openEdit(key, label, type='text', optsStr='') {
+  // Member হলে lock চেক করো
+  if (userRole === 'member' && currentMemberData?.selfEditDone) {
+    showToast('🔒 আপনার তথ্য সম্পাদনা বন্ধ। Admin এর সাথে যোগাযোগ করুন।', 'error');
+    return;
+  }
   currentEditField = { key, label, type, opts: optsStr ? optsStr.split(',') : [] };
   document.getElementById('modalTitle').textContent = label + ' সম্পাদনা';
   const val = currentMemberData[key] || '';
@@ -2160,22 +2183,68 @@ async function saveModal() {
   }
 
   try {
+    // Member এর one-time edit check
+    if (userRole === 'member') {
+      const memberDoc = await db.collection('members').doc(docId).get();
+      if (memberDoc.exists && memberDoc.data()?.selfEditDone === true) {
+        showToast('🔒 আপনি ইতিমধ্যে একবার তথ্য সম্পাদনা করেছেন। পরিবর্তনের জন্য Admin এর সাথে যোগাযোগ করুন।', 'error');
+        closeModal();
+        btn.textContent = 'সংরক্ষণ করুন'; btn.disabled = false;
+        return;
+      }
+    }
+
+    // সংশ্লিষ্ট Admin খুঁজে বের করো (company অনুযায়ী)
+    const memberCompany = currentMemberData.co_bn || currentMemberData.co_en || '';
+    let responsibleAdminId = null;
+    try {
+      const usersSnap = await db.collection('users')
+        .where('role', 'in', ['admin', 'superadmin']).get();
+      // member এর company এর সাথে মিলানো admin খুঁজো
+      for (const uDoc of usersSnap.docs) {
+        const uData = uDoc.data();
+        const adminBranch = uData.branch || '';
+        if (adminBranch && memberCompany &&
+          (adminBranch.includes(memberCompany) || memberCompany.includes(adminBranch))) {
+          responsibleAdminId = uDoc.id;
+          break;
+        }
+      }
+    } catch(e2) { console.log('admin lookup:', e2); }
+
     await db.collection('editRequests').add({
       memberId: docId,
       memberNo: currentMemberData.no || currentMemberData.armyNo,
       memberName: currentMemberData.bn || currentMemberData.en || currentMemberData.armyNo,
-      memberCompany: currentMemberData.co_bn || currentMemberData.co_en || '',
+      memberCompany,
       field: currentEditField.key,
       fieldLabel: currentEditField.label,
       oldValue: currentMemberData[currentEditField.key] || '',
       newValue: newVal,
       requestedBy: currentUser.uid,
+      responsibleAdmin: responsibleAdminId,  // সংশ্লিষ্ট Admin UID
       status: 'pending',
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
     });
+
+    // Member এর selfEditDone = true সেট করো (একবার edit এর পর lock)
+    if (userRole === 'member' && docId) {
+      try {
+        const mRef = db.collection('members').doc(docId);
+        const mSnap = await mRef.get();
+        if (mSnap.exists) {
+          await mRef.update({
+            selfEditDone: true,
+            selfEditAt: firebase.firestore.FieldValue.serverTimestamp(),
+          });
+        }
+      } catch(e2) { console.log('selfEditDone:', e2); }
+    }
+
     closeModal();
     showToast('✅ অনুমোদনের জন্য জমা দেওয়া হয়েছে', 'success');
     checkPendingStatus();
+    if (userRole === 'member') checkOneTimeEditAccess();
   } catch(e) {
     console.error(e);
     showToast('সংরক্ষণ ব্যর্থ: ' + e.message, 'error');
@@ -3041,7 +3110,7 @@ async function changeAdminRole(uid, newRole) {
 }
 
 async function removeAdmin(uid, name) {
-  if (!confirm(`"${name}" কে অ্যাডমিন তালিকা থেকে সরাবেন?
+  if (!confirm(`"${name}" কে Admin List থেকে সরাবেন?
 তার অ্যাকাউন্ট থাকবে কিন্তু অ্যাডমিন ক্ষমতা যাবে।`)) return;
   try {
     await db.collection('users').doc(uid).update({ role: 'member' });
@@ -3240,7 +3309,7 @@ async function createNewAdmin() {
     await db.collection('users').doc(newUid).update({ name: name || armyNo });
 
     showRes(
-      `✅ অ্যাডমিন তৈরি সফল!
+      `✅ Create Admin সফল!
 
 নাম: ${name}
 সেনা নম্বর: ${armyNo}
@@ -3601,7 +3670,7 @@ async function showStatDetail(type) {
       body.innerHTML = html;
 
     } else if (type === 'pending') {
-      icon.textContent = '⏳'; title.textContent = 'অনুমোদন অপেক্ষমাণ';
+      icon.textContent = '⏳'; title.textContent = 'Pending Approval';
       let pQuery;
       if (userRole === 'superadmin') {
         pQuery = db.collection('editRequests').where('status','==','pending').orderBy('createdAt','desc');
@@ -3634,7 +3703,7 @@ async function showStatDetail(type) {
       }).join('');
 
     } else if (type === 'admins') {
-      icon.textContent = '🔑'; title.textContent = 'ইউজার ম্যানেজমেন্ট';
+      icon.textContent = '🔑'; title.textContent = 'User Management';
 
       // সব user লোড করো
       const snapAll = await db.collection('users').get();
@@ -3680,7 +3749,7 @@ async function showStatDetail(type) {
           // admin can reset password of members in their company
           actionBtns += `<button onclick="adminResetPassword('${u.uid}','${u.armyNo||''}')"
             style="padding:4px 8px;font-size:10px;border-radius:6px;border:1px solid rgba(200,169,74,0.4);background:rgba(200,169,74,0.1);color:var(--gold);cursor:pointer;font-family:'Rajdhani',sans-serif;font-weight:700;white-space:nowrap">
-            🔑 পাসওয়ার্ড রিসেট</button>`;
+            🔑 Password Reset</button>`;
         }
 
         return `<div class="stat-list-item" style="flex-wrap:wrap;gap:6px">
@@ -3695,7 +3764,7 @@ async function showStatDetail(type) {
 
       let html = '';
       if (admins.length) {
-        html += `<div style="font-family:'Rajdhani',sans-serif;font-size:0.72rem;letter-spacing:2px;text-transform:uppercase;color:var(--gold);padding:6px 0;border-bottom:1px solid var(--border);margin-bottom:8px">🔑 অ্যাডমিনগণ — ${admins.length} জন</div>`;
+        html += `<div style="font-family:'Rajdhani',sans-serif;font-size:0.72rem;letter-spacing:2px;text-transform:uppercase;color:var(--gold);padding:6px 0;border-bottom:1px solid var(--border);margin-bottom:8px">🔑 Admins — ${admins.length} জন</div>`;
         html += admins.map(u => userCard(u, true)).join('');
       }
       if (members.length) {
@@ -3705,7 +3774,7 @@ async function showStatDetail(type) {
       body.innerHTML = html || noData();
 
     } else if (type === 'today') {
-      icon.textContent = '📝'; title.textContent = 'আজকের এডিট';
+      icon.textContent = '📝'; title.textContent = 'Today's Edits';
       const today = new Date(); today.setHours(0,0,0,0);
       const snap = await db.collection('editRequests')
         .where('createdAt', '>=', today)
@@ -3760,15 +3829,22 @@ async function loadAdminData() {
     if (userRole === 'superadmin') {
       pendingQuery = db.collection('editRequests').where('status', '==', 'pending');
     } else {
-      // অ্যাডমিনের কোম্পানী বের করো
+      // Admin এর ক্ষেত্রে — নিজের UID অনুযায়ী অথবা company অনুযায়ী
       const adminProfile = await db.collection('adminProfiles').doc(currentUser.uid).get();
       const adminCompany = adminProfile.exists ? adminProfile.data().co_bn || '' : '';
+      // responsibleAdmin field এ নিজের UID আছে এমন requests
+      // অথবা memberCompany match করা requests
       if (adminCompany) {
         pendingQuery = db.collection('editRequests')
           .where('status', '==', 'pending')
           .where('memberCompany', '==', adminCompany);
       } else {
-        pendingQuery = db.collection('editRequests').where('status', '==', 'pending');
+        // branch দিয়ে চেক করো
+        const userDoc = await db.collection('users').doc(currentUser.uid).get();
+        const branch = userDoc.exists ? userDoc.data().branch || '' : '';
+        pendingQuery = branch
+          ? db.collection('editRequests').where('status', '==', 'pending').where('responsibleAdmin', '==', currentUser.uid)
+          : db.collection('editRequests').where('status', '==', 'pending');
       }
     }
 
@@ -4039,7 +4115,7 @@ async function adminResetPassword(uid, armyNo) {
       resetAt: firebase.firestore.FieldValue.serverTimestamp(),
       used: false,
     });
-    showToast(`✅ পাসওয়ার্ড রিসেট হয়েছে: ${password}`, 'success');
+    showToast(`✅ Password Reset হয়েছে: ${password}`, 'success');
   } catch(e) {
     showToast('রিসেট ব্যর্থ: ' + (e.code || e.message), 'error');
   }
@@ -4099,7 +4175,45 @@ function getInitials(name) {
 }
 
 function roleLabel(role) {
-  return { member: 'সৈনিক', admin: 'অ্যাডমিন', superadmin: 'সুপার অ্যাডমিন' }[role] || 'সৈনিক';
+  return { member: 'Member', admin: 'Admin', superadmin: 'Super Admin' }[role] || 'Member';
+}
+
+/* ══════════════════════════════════════════
+   ONE-TIME EDIT ACCESS FOR MEMBERS
+══════════════════════════════════════════ */
+async function checkOneTimeEditAccess() {
+  try {
+    const docId = currentMemberData?.id ||
+      String(currentMemberData?.no || '').replace(/[^A-Z0-9]/gi, '');
+    if (!docId) return;
+
+    const doc = await db.collection('members').doc(docId).get();
+    const hasEdited = doc.exists && doc.data()?.selfEditDone === true;
+
+    // সব editable fields lock/unlock করো
+    const editBtns = document.querySelectorAll('.field-edit-btn');
+    if (hasEdited) {
+      // একবার edit করা হয়ে গেছে — lock করো
+      editBtns.forEach(btn => {
+        btn.style.display = 'none';
+      });
+      // status bar দেখাও
+      const bar = document.getElementById('profileStatus');
+      if (bar) {
+        bar.className = 'status-bar info';
+        bar.style.display = 'flex';
+        bar.textContent = '🔒 আপনার তথ্য সম্পাদনা বন্ধ হয়েছে। পরিবর্তনের জন্য Admin এর সাথে যোগাযোগ করুন।';
+      }
+    } else {
+      // এখনো edit করেননি — banner দেখাও
+      const bar = document.getElementById('profileStatus');
+      if (bar) {
+        bar.className = 'status-bar info';
+        bar.style.display = 'flex';
+        bar.innerHTML = '✏️ আপনি একবার নিজের তথ্য সম্পাদনা করতে পারবেন। তথ্য সম্পাদনার পর আর পরিবর্তন করা যাবে না।';
+      }
+    }
+  } catch(e) { console.log('oneTimeEdit check:', e); }
 }
 
 function showLoading(msg = 'লোড হচ্ছে...') {
@@ -4154,11 +4268,11 @@ const TRANSLATIONS = {
   'সুপার অ্যাডমিন': 'Super Admin', 'সৈনিক': 'Sainik',
   'লোড হচ্ছে...': 'Loading...', 'আপডেট হচ্ছে...': 'Updating...',
   // Admin panel
-  'সদস্য তথ্য সংশোধন': 'Member Edit', 'অনুমোদন অপেক্ষমাণ': 'Pending Approval',
-  'মোট সদস্য': 'Total Members', 'আজকের এডিট': "Today's Edits",
-  'ইউজার ম্যানেজমেন্ট': 'User Management',
-  'সৈনিক এডিট': 'Member Edit', 'অ্যাডমিনগণ': 'Admins',
-  'পাসওয়ার্ড রিসেট': 'Password Reset', 'অ্যাডমিন তৈরি': 'Create Admin',
+  'সদস্য তথ্য সংশোধন': 'Member Edit', 'Pending Approval': 'Pending Approval',
+  'Total Members': 'Total Members', 'Today's Edits': "Today's Edits",
+  'User Management': 'User Management',
+  'Member Edit': 'Member Edit', 'Admins': 'Admins',
+  'Password Reset': 'Password Reset', 'Create Admin': 'Create Admin',
   // Settings
   'পাসওয়ার্ড পরিবর্তন': 'Change Password',
   'হোম স্ক্রিনে ইন্সটল করুন': 'Install on Home Screen',
