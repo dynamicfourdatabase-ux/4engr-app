@@ -1574,6 +1574,7 @@ let userRole = 'member'; // 'member' | 'admin' | 'superadmin'
 let _lastPersonalDef = [];
 let _lastMilitaryDef = [];
 let _lastFamilyDef   = [];
+let _isRegistering   = false; // registration এর পরে signOut এ login screen এ না যেতে
 
 function getStoredConfig() {
   try { return JSON.parse(localStorage.getItem('4engr_fb_config') || 'null'); }
@@ -1639,6 +1640,7 @@ function navTo(page) {
 
 function showRegister() { showScreen('register'); }
 function showLogin() {
+  _isRegistering = false; // reset flag
   // Register form reset করো
   const regArmyNo = document.getElementById('regArmyNo')?.value || '';
   ['regArmyNo','regDob','regPass','regPass2'].forEach(id => {
@@ -1733,6 +1735,8 @@ async function doRegister() {
     if (anonUser) { try { await auth.signOut(); anonUser = null; } catch(_){} }
 
     // ══ ধাপ ৫: Email/Password account তৈরি করো ══
+    // account তৈরির আগেই flag set করো — onAuthStateChanged যেন app এ না নিয়ে যায়
+    _isRegistering = true;
     const email = docId.toLowerCase() + '@4engr.bd';
     showLoading('অ্যাকাউন্ট তৈরি হচ্ছে...');
     const cred = await auth.createUserWithEmailAndPassword(email, pass);
@@ -1745,8 +1749,9 @@ async function doRegister() {
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
     });
 
-    // ══ ধাপ ৭: সাথে সাথে sign out করো — user নিজে login করবে ══
+    // ══ ধাপ ৭: sign out করো — user নিজে login করবে ══
     await auth.signOut();
+    _isRegistering = false;
 
     // ══ সফল বার্তা দেখাও ══
     hideLoading();
@@ -1765,6 +1770,7 @@ async function doRegister() {
     if (regBtn) regBtn.disabled = true;
 
   } catch(e) {
+    _isRegistering = false; // error হলে flag reset করো
     if (anonUser) { try { await auth.signOut(); } catch(_){} }
     hideLoading();
     console.error('Register error:', e.code, e.message);
@@ -1788,6 +1794,10 @@ async function doRegister() {
 
 function setupAuthListener() {
   auth.onAuthStateChanged(async user => {
+    // Registration চলাকালীন বা anonymous user — skip
+    if (_isRegistering) return;
+    if (user && user.isAnonymous) return;
+
     if (user) {
       showLoading('প্রোফাইল লোড হচ্ছে...');
       currentUser = user;
