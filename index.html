@@ -999,6 +999,15 @@ body {
         <div class="card-body" id="militaryFields"></div>
       </div>
 
+      <!-- Promotion History — পারিবারিক তথ্যের আগে -->
+      <div class="card" id="promotionHistoryCard" style="display:none">
+        <div class="card-header">
+          <span class="card-header-icon">⭐</span>
+          <span class="card-header-title">পদোন্নতির ইতিহাস</span>
+        </div>
+        <div class="card-body" id="promotionHistoryBody"></div>
+      </div>
+
       <!-- Family Info -->
       <div class="card">
         <div class="card-header">
@@ -1007,19 +1016,21 @@ body {
         </div>
         <div class="card-body" id="familyFields"></div>
       </div>
-
-      <!-- Promotion History -->
-      <div class="card" id="promotionHistoryCard" style="display:none">
-        <div class="card-header">
-          <span class="card-header-icon">⭐</span>
-          <span class="card-header-title">পদোন্নতির ইতিহাস</span>
-        </div>
-        <div class="card-body" id="promotionHistoryBody"></div>
-      </div>
     </div>
 
     <!-- ── PAGE: Courses ── -->
     <div class="page" id="page-courses">
+      <!-- ডিভিশন কোর্স -->
+      <div class="card" id="divisionCourseCard">
+        <div class="card-header">
+          <span class="card-header-icon">🎓</span>
+          <span class="card-header-title">ডিভিশন কোর্স</span>
+        </div>
+        <div class="card-body" id="divisionCourseBody">
+          <div style="color:var(--text2);text-align:center;padding:12px;font-size:0.85rem;">লোড হচ্ছে...</div>
+        </div>
+      </div>
+      <!-- কোর্স ও ক্যাডার -->
       <div class="card">
         <div class="card-header">
           <span class="card-header-icon">📚</span>
@@ -1631,7 +1642,7 @@ function navTo(page) {
   if (nav) nav.classList.add('active');
   if (page === 'admin') loadAdminData();
   if (page === 'notifications') loadNotifications();
-  if (page === 'courses') renderCourses();
+  if (page === 'courses') { renderCourses(); renderDivisionCourse(); }
   if (page === 'leave') loadLeave();
 }
 
@@ -2158,7 +2169,6 @@ function renderProfile() {
     { key: 'ai_bn',      label: 'AI ১/২০১৩ বর্ধিত',      editable: true },
     { key: 'res_bn',     label: 'বাসস্থান অবস্থান',       editable: true },
     { key: 'rt',         label: 'বাসস্থান মেয়াদ',         editable: true },
-    { key: 'dc_bn',      label: 'ডিভিশন কোর্স',          editable: true, type: 'textarea' },
     { key: 'rec',        label: 'সুপারিশ',               editable: true },
     { key: 'pu',         label: 'পূর্বের ইউনিট',         editable: true, type: 'textarea' },
     { key: 'li',         label: 'লাইসেন্স',              editable: true },
@@ -2176,7 +2186,6 @@ function renderProfile() {
     { key: 'ai_bn',      label: 'AI ১/২০১৩ বর্ধিত',       editable: false },
     { key: 'res_bn',     label: 'বাসস্থান অবস্থান',        editable: false },
     { key: 'rt',         label: 'বাসস্থান মেয়াদ',          editable: false },
-    { key: 'dc_bn',      label: 'ডিভিশন কোর্স',           editable: false },
     { key: 'rec',        label: 'সুপারিশ',                editable: false },
     { key: 'pu',         label: 'পূর্বের ইউনিট',          editable: false },
     { key: 'li',         label: 'লাইসেন্স',               editable: true, type: 'select', opts: VEHICLES },
@@ -2220,6 +2229,7 @@ function renderProfile() {
   // Check pending edits
   checkPendingStatus();
   renderCourses();
+  renderDivisionCourse();
   renderPromotionHistory();
   // ভাষা প্রয়োগ করো
   setTimeout(() => {
@@ -2229,11 +2239,16 @@ function renderProfile() {
   }, 100);
 }
 
+// তারিখ field keys — এগুলোর পাশে বছর/মাস/দিন দেখাবে
+const DATE_FIELDS      = new Set(['dob','jd','od','promo_date','sd','wd','c1d','c2d','c3d','c4d','c5d','c6d','c7d','c8d','c9d']);
+const DATE_PAST_FIELDS = new Set(['dob','jd','od','promo_date','sd','wd','c1d','c2d','c3d','c4d','c5d']); // "আগে" suffix
+
 function renderFields(containerId, fields) {
   const m = currentMemberData;
   const isMember = userRole === 'member';
   const html = fields.map(f => {
-    const val = m[f.key] || '—';
+    const raw = m[f.key];
+    const val = raw || '—';
     const locked = isFieldLocked(f.key);
     const canEditOnce = isMember && MEMBER_EDITABLE_FIELDS.includes(f.key);
     let editBtn = '';
@@ -2243,7 +2258,6 @@ function renderFields(containerId, fields) {
           title="এই তথ্য আপনি একবার পরিবর্তন করেছেন। Admin এর সাথে যোগাযোগ করুন।"
           style="font-size:13px;color:var(--text3);cursor:help">🔒</span>`;
       } else if (f.type === 'promotion') {
-        // পদবী — সবসময় edit করা যাবে (promotion হলে)
         editBtn = `<button class="field-edit-btn" onclick="openEdit('${f.key}','${f.label}','promotion','')" title="পদোন্নতি আবেদন করুন">⭐</button>`;
       } else {
         const warningIcon = canEditOnce
@@ -2252,9 +2266,23 @@ function renderFields(containerId, fields) {
         editBtn = `<button class="field-edit-btn" onclick="openEdit('${f.key}','${f.label}','${f.type||'text'}','${(f.opts||[]).join(',')}')" title="${canEditOnce ? 'একবারই পরিবর্তন করা যাবে' : f.label + ' সম্পাদনা'}">✏️${warningIcon}</button>`;
       }
     }
+
+    // তারিখ fields এ বছর/মাস/দিন সাবটেক্সট
+    let sub = '';
+    if (raw && raw !== '—') {
+      if (f.key === 'pd') {
+        // পেনশন — countdown
+        sub = _pensionCountdown(raw);
+      } else if (DATE_FIELDS.has(f.key)) {
+        sub = _dateAgeStr(raw, 'পরে');
+      }
+    }
+
     return `<div class="field-row">
       <span class="field-label">${f.label}</span>
-      <span class="field-value" id="fv-${f.key}">${val}</span>
+      <span class="field-value" id="fv-${f.key}" style="text-align:right">
+        ${val}${sub ? `<br><span style="font-size:0.68rem;color:var(--text2);font-weight:400">${sub}</span>` : ''}
+      </span>
       ${editBtn}
     </div>`;
   }).join('');
@@ -5293,8 +5321,9 @@ function renderPromotionHistory() {
   const isAdmin = userRole === 'admin' || userRole === 'superadmin';
 
   body.innerHTML = entries.map(e => {
-    const d = _parsePromoDate(e.date);
-    const yrsStr = d ? _yearsSince(d) + ' বছর আগে' : '';
+    const d      = _parsePromoDate(e.date);
+    const diff   = d ? _dateDiff(d, new Date()) : null;
+    const ageStr = diff ? _diffStr(diff, 'আগে', '') : '';
     const editBtn = isAdmin
       ? `<button class="field-edit-btn" onclick="openPromoEdit('p${e.idx + 1}','${e.label}')">✏️</button>`
       : '';
@@ -5303,7 +5332,7 @@ function renderPromotionHistory() {
       <span class="field-label" style="min-width:unset;flex:1;color:var(--text)">${e.label}</span>
       <span class="field-value" style="text-align:right">
         <span style="color:var(--gold);font-weight:600">${e.date}</span>
-        ${yrsStr ? `<br><span style="font-size:0.7rem;color:var(--text2)">${yrsStr}</span>` : ''}
+        ${ageStr ? `<br><span style="font-size:0.68rem;color:var(--text2)">${ageStr}</span>` : ''}
       </span>
       ${editBtn}
     </div>`;
@@ -5355,6 +5384,87 @@ function _yearsSince(date) {
   const now = new Date();
   return now.getFullYear() - date.getFullYear() -
     (now < new Date(now.getFullYear(), date.getMonth(), date.getDate()) ? 1 : 0);
+}
+
+/* ── তারিখ থেকে বছর/মাস/দিন পার্থক্য ── */
+function _dateDiff(from, to) {
+  // from → to এর মধ্যে পার্থক্য: { years, months, days, future }
+  if (!from || !to) return null;
+  let f = new Date(from.getFullYear(), from.getMonth(), from.getDate());
+  let t = new Date(to.getFullYear(),   to.getMonth(),   to.getDate());
+  const future = t > f;
+  if (!future) { const tmp = f; f = t; t = tmp; } // সবসময় f ≤ t
+  let years  = t.getFullYear()  - f.getFullYear();
+  let months = t.getMonth()     - f.getMonth();
+  let days   = t.getDate()      - f.getDate();
+  if (days   < 0) { months--; const prev = new Date(t.getFullYear(), t.getMonth(), 0); days += prev.getDate(); }
+  if (months < 0) { years--;  months += 12; }
+  return { years, months, days, future };
+}
+
+/* ── বছর/মাস/দিন বাংলায় ── */
+function _diffStr(diff, pastSuffix = 'আগে', futureSuffix = 'পরে') {
+  if (!diff) return '';
+  const parts = [];
+  if (diff.years  > 0) parts.push(diff.years  + ' বছর');
+  if (diff.months > 0) parts.push(diff.months + ' মাস');
+  if (diff.days   > 0) parts.push(diff.days   + ' দিন');
+  if (!parts.length) return 'আজকের তারিখ';
+  return parts.join(' ') + ' ' + (diff.future ? futureSuffix : pastSuffix);
+}
+
+/* ── তারিখ string থেকে age/duration string বানাও ── */
+function _dateAgeStr(dateStr, futureSuffix = 'পরে') {
+  if (!dateStr || dateStr === '—') return '';
+  const d = _parsePromoDate(dateStr);
+  if (!d) return '';
+  const now  = new Date();
+  const diff = _dateDiff(d, now);
+  return _diffStr(diff, 'আগে', futureSuffix);
+}
+
+/* ── pension countdown (ভবিষ্যৎ হলে "বাকি X বছর…") ── */
+function _pensionCountdown(dateStr) {
+  if (!dateStr || dateStr === '—') return '';
+  const d = _parsePromoDate(dateStr);
+  if (!d) return '';
+  const now  = new Date();
+  const diff = _dateDiff(now, d); // now → pension date
+  if (!diff) return '';
+  if (!diff.future) {
+    // পেনশন হয়ে গেছে
+    const past = _dateDiff(d, now);
+    return '✅ ' + _diffStr(past, 'আগে পেনশন হয়েছে', '');
+  }
+  return '⏳ বাকি ' + _diffStr(diff, '', 'আরও বাকি');
+}
+
+/* ── Division Course render (courses page এ) ── */
+function renderDivisionCourse() {
+  const m    = currentMemberData;
+  const body = document.getElementById('divisionCourseBody');
+  if (!body || !m) return;
+
+  const isAdmin = userRole === 'admin' || userRole === 'superadmin';
+  const val     = m.dc_bn || '';
+
+  if (!val) {
+    body.innerHTML = `
+      <div style="color:var(--text2);text-align:center;padding:12px;font-size:0.85rem;">ডিভিশন কোর্সের তথ্য নেই</div>
+      ${isAdmin ? `<div style="margin-top:8px;text-align:center">
+        <button onclick="openEdit('dc_bn','ডিভিশন কোর্স','textarea','')"
+          style="background:rgba(200,169,74,0.1);border:1px dashed rgba(200,169,74,0.4);
+          border-radius:8px;padding:8px 18px;color:var(--gold);
+          font-family:'Rajdhani',sans-serif;font-size:0.78rem;font-weight:700;
+          letter-spacing:1px;cursor:pointer">✏️ তথ্য যোগ করুন</button></div>` : ''}`;
+    return;
+  }
+
+  body.innerHTML = `
+    <div class="field-row" style="align-items:flex-start">
+      <span class="field-value" style="white-space:pre-line;flex:1;text-align:left;line-height:1.8">${val}</span>
+      ${isAdmin ? `<button class="field-edit-btn" onclick="openEdit('dc_bn','ডিভিশন কোর্স','textarea','')">✏️</button>` : ''}
+    </div>`;
 }
 
 /* ══════════════════════════════════════════
