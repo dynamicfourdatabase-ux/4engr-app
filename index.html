@@ -3532,13 +3532,26 @@ async function loadNotifications() {
     let editDocs = [];
     if (!isAdmin) {
       const docId = currentMemberData.id || String(currentMemberData.no||'').replace(/[^A-Z0-9]/gi,'');
+      const uid   = currentUser?.uid || '';
+      // ১. memberId দিয়ে try
       try {
-        const q = await db.collection('editRequests')
+        const q1 = await db.collection('editRequests')
           .where('memberId', '==', docId).get();
-        editDocs = q.docs.map(d => ({ id: d.id, ...d.data() }));
-        editDocs.sort((a, b) => (b.createdAt?.seconds||0) - (a.createdAt?.seconds||0));
-        editDocs = editDocs.slice(0, 20);
-      } catch(e2) {}
+        editDocs = q1.docs.map(d => ({ id: d.id, ...d.data() }));
+      } catch(e2) { console.warn('editRequests by memberId:', e2.message); }
+
+      // ২. memberId তে না পেলে requestedBy দিয়ে try
+      if (!editDocs.length && uid) {
+        try {
+          const q2 = await db.collection('editRequests')
+            .where('requestedBy', '==', uid).get();
+          editDocs = q2.docs.map(d => ({ id: d.id, ...d.data() }));
+        } catch(e3) { console.warn('editRequests by requestedBy:', e3.message); }
+      }
+
+      // sort ও limit
+      editDocs.sort((a, b) => (b.createdAt?.seconds||0) - (a.createdAt?.seconds||0));
+      editDocs = editDocs.slice(0, 30);
     }
 
     let html = '';
@@ -3596,7 +3609,12 @@ async function loadNotifications() {
     }
 
     if (!html) {
-      html = '<div class="status-bar info" style="margin-bottom:0">📭 কোনো বিজ্ঞপ্তি নেই</div>';
+      const isBn = appLang !== 'en';
+      html = `<div style="text-align:center;padding:30px 20px">
+        <div style="font-size:2rem;margin-bottom:12px">📭</div>
+        <div style="font-size:0.9rem;color:var(--text2)">${isBn ? 'কোনো বিজ্ঞপ্তি নেই' : 'No notifications yet'}</div>
+        <div style="font-size:0.75rem;color:var(--text3);margin-top:6px">${isBn ? 'তথ্য সংশোধন করলে এখানে দেখাবে' : 'Your edit history will appear here'}</div>
+      </div>`;
     }
 
     // Admin এর জন্য বিজ্ঞপ্তি পাঠানোর বাটন দেখাও
@@ -3606,7 +3624,10 @@ async function loadNotifications() {
 
     box.innerHTML = html;
   } catch(e) {
-    box.innerHTML = '<div class="status-bar pending">⚠️ বিজ্ঞপ্তি লোড ব্যর্থ: ' + (e.code === 'failed-precondition' ? 'Firestore index দরকার' : e.message) + '</div>';
+    console.error('loadNotifications error:', e);
+    box.innerHTML = `<div style="background:rgba(224,85,85,0.1);border:1px solid rgba(224,85,85,0.3);border-radius:10px;padding:14px;font-size:0.82rem;color:var(--danger)">
+      ⚠️ লোড ব্যর্থ: ${e.message || e.code || 'অজানা ত্রুটি'}
+    </div>`;
   }
 }
 
