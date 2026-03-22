@@ -1383,18 +1383,19 @@ async function webLogin() {
 }
 
 /* Sticky layers এর top offset dynamically ঠিক করো */
+/* DOM order: header → controls-wrap → adminBar → main content */
 function _fixStickyOffsets() {
   const header = document.querySelector('.header');
   const controls = document.querySelector('.controls-wrap');
   const adminBar = document.getElementById('adminBar');
 
   const headerH = header ? header.getBoundingClientRect().height : 76;
-  const controlsH = controls ? controls.getBoundingClientRect().height : 52;
 
   // controls-wrap এর top = header height
   if (controls) controls.style.top = headerH + 'px';
 
-  // admin-bar এর top = header + controls
+  // adminBar এর top = header + controls
+  const controlsH = controls ? controls.getBoundingClientRect().height : 52;
   if (adminBar) adminBar.style.top = (headerH + controlsH) + 'px';
 }
 
@@ -1431,15 +1432,16 @@ function injectAdminBar() {
         <button class="ab-btn ab-btn-red"  onclick="webLogout()">🚪 লগআউট</button>
       </div>
     </div>`;
-  const header = document.querySelector('.header');
-  if (header) header.after(bar);
-  // adjust controls sticky offset after admin bar is added
-  requestAnimationFrame(() => {
-    const hh = document.querySelector('.header')?.offsetHeight || 76;
-    const abh = bar.offsetHeight || 44;
-    const cw = document.querySelector('.controls-wrap');
-    if (cw) cw.style.top = (hh + abh) + 'px';
-  });
+  // controls-wrap এর পরে insert করো — sticky order: header → controls → adminBar
+  const controlsWrap = document.querySelector('.controls-wrap');
+  if (controlsWrap) {
+    controlsWrap.after(bar);
+  } else {
+    const header = document.querySelector('.header');
+    if (header) header.after(bar);
+  }
+  // sticky offset ঠিক করো
+  requestAnimationFrame(_fixStickyOffsets);
 }
 
 function openAddMemberModal() {
