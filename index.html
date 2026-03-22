@@ -409,7 +409,14 @@ button:active:not(:disabled),
 }
 
 .page { display: none; }
-.page.active { display: block; }
+.page.active {
+  display: block;
+  animation: _pageIn 0.15s ease;
+}
+@keyframes _pageIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
 
 /* ══ CARDS ══ */
 .card {
@@ -1226,6 +1233,17 @@ button:active:not(:disabled),
   </div>
 </div>
 <div id="appScreen" class="screen">
+
+  <!-- Offline Banner — নেটওয়ার্ক নেই হলে দেখাবে -->
+  <div id="offlineBanner" style="display:none;background:linear-gradient(90deg,rgba(210,153,34,0.18),rgba(210,153,34,0.10));
+    border-bottom:1px solid rgba(210,153,34,0.35);padding:7px 16px;
+    display:none;align-items:center;gap:8px;justify-content:center;
+    font-family:'Rajdhani',sans-serif;font-size:0.78rem;letter-spacing:0.5px;color:#d29922;
+    position:sticky;top:0;z-index:200">
+    <span style="font-size:14px">📵</span>
+    <span>অফলাইন মোড — পরিবর্তন সংরক্ষিত থাকবে, অনলাইন হলে sync হবে</span>
+    <span id="offlineQueueCount" style="background:rgba(210,153,34,0.25);border-radius:20px;padding:1px 8px;font-weight:700;display:none">0</span>
+  </div>
 
   <!-- Top Bar -->
   <div class="topbar">
@@ -2065,6 +2083,18 @@ async function _auditLog(action, details = {}) {
   } catch(e) { /* silent */ }
 }
 
+/* ── Network Error Helper ── */
+function _netErrMsg(e) {
+  if (!e) return 'অজানা সমস্যা';
+  if (e.code === 'unavailable') return '📶 ইন্টারনেট সংযোগ নেই। পরে চেষ্টা করুন।';
+  if (e.code === 'permission-denied') return '⛔ অনুমতি নেই।';
+  if (e.code === 'not-found') return '❌ তথ্য পাওয়া যায়নি।';
+  if (e.code === 'auth/network-request-failed') return '📶 নেটওয়ার্ক সমস্যা।';
+  if ((e.message||'').toLowerCase().includes('network') ||
+      (e.message||'').toLowerCase().includes('offline')) return '📶 ইন্টারনেট সংযোগ সমস্যা।';
+  return e.code || e.message || 'অজানা সমস্যা';
+}
+
 /* ── 5. Content Security Policy meta tag ── */
 (function() {
   const existing = document.querySelector('meta[http-equiv="Content-Security-Policy"]');
@@ -2122,11 +2152,22 @@ function initFirebase(config) {
     auth = firebase.auth();
     db = firebase.firestore();
 
-    // ── Firestore offline cache — পরের বার আরো দ্রুত load হবে ──
-    db.settings({ merge: true });
-    db.enablePersistence({ synchronizeTabs: false }).catch(() => {});
-    // নেটওয়ার্ক সবসময় চালু রাখো
-    db.enableNetwork().catch(() => {});
+    // ── Firestore offline cache ──
+    // enablePersistence সফল হলে তারপর network চালু করো
+    // failed-precondition (multi-tab) বা unimplemented (browser support নেই) — silent ignore
+    db.enablePersistence({ synchronizeTabs: false })
+      .then(() => {
+        // persistence সফল — network explicitly চালু করো
+        db.enableNetwork().catch(() => {});
+      })
+      .catch(err => {
+        // failed-precondition: অন্য tab এ already open
+        // unimplemented: browser support নেই
+        // উভয় ক্ষেত্রেই normal online mode এ কাজ করবে
+        if (err.code !== 'failed-precondition' && err.code !== 'unimplemented') {
+          console.warn('Firestore persistence:', err.code);
+        }
+      });
 
     storage = firebase.storage();
     // App Check
@@ -3051,20 +3092,23 @@ async function doRegister() {
       }
     } catch(readErr) {
       // Read fail → temp account delete করো
-      try { await tempCred.user.delete(); } catch(_) {}
-      await auth.signOut();
       _isRegistering = false;
+      try { await tempCred.user.delete(); } catch(_) {}
+      try { await auth.signOut(); } catch(_) {}
       hideLoading();
       if (btn) { btn.disabled = false; btn.textContent = 'নিবন্ধন করুন'; }
-      showErr('❌ সদস্য তথ্য পড়তে ব্যর্থ। পুনরায় চেষ্টা করুন।');
+      let errMsg = '❌ সদস্য তথ্য পড়তে ব্যর্থ।';
+      if (readErr.code === 'unavailable') errMsg = '❌ ইন্টারনেট সংযোগ সমস্যা। কিছুক্ষণ পরে চেষ্টা করুন।';
+      else if (readErr.code === 'permission-denied') errMsg = '❌ অনুমতি নেই। Admin এর সাথে যোগাযোগ করুন।';
+      showErr(errMsg);
       return;
     }
 
     // ── ধাপ ৩: সদস্য না পেলে temp account delete করো ──
     if (!member) {
-      try { await tempCred.user.delete(); } catch(_) {}
-      await auth.signOut();
       _isRegistering = false;
+      try { await tempCred.user.delete(); } catch(_) {}
+      try { await auth.signOut(); } catch(_) {}
       hideLoading();
       if (btn) { btn.disabled = false; btn.textContent = 'নিবন্ধন করুন'; }
       showErr('❌ এই সেনা নম্বরে কোনো সদস্য পাওয়া যায়নি।');
@@ -3076,11 +3120,11 @@ async function doRegister() {
       const storedDob = normalizeDob(member.dob.trim());
       if (storedDob !== normalizedInputDob) {
         // DOB মিলছে না → temp account delete করো, rate limit বাড়াও
+        _isRegistering = false;
         try { await tempCred.user.delete(); } catch(_) {}
-        await auth.signOut();
+        try { await auth.signOut(); } catch(_) {}
         _RATE.fail(regRLKey);
         const rl2 = _RATE.check(regRLKey);
-        _isRegistering = false;
         hideLoading();
         if (btn) { btn.disabled = false; btn.textContent = 'নিবন্ধন করুন'; }
         showErr(`❌ জন্ম তারিখ মিলছে না।${rl2.remaining > 0 ? ` (আর ${rl2.remaining} বার সুযোগ)` : ' — সাময়িক লক হয়েছে।'}`);
@@ -3098,8 +3142,8 @@ async function doRegister() {
     });
 
     // ── ধাপ ৬: sign out ──
-    await auth.signOut();
     _isRegistering = false;
+    try { await auth.signOut(); } catch(_) {}
     _RATE.reset(regRLKey);
     hideLoading();
 
@@ -3122,7 +3166,7 @@ async function doRegister() {
 
   } catch(e) {
     _isRegistering = false;
-    try { if (auth.currentUser?.isAnonymous) await auth.signOut(); } catch(_) {}
+    try { await auth.signOut(); } catch(_) {} // cleanup — login state reset
     hideLoading();
     if (btn) { btn.disabled = false; btn.textContent = 'নিবন্ধন করুন'; }
 
@@ -3739,8 +3783,16 @@ async function loadMemberData(uid) {
     showToast('প্রোফাইল লোড করা যায়নি। Admin এর সাথে যোগাযোগ করুন।', 'error');
 
   } catch(e) {
-    console.error('loadMemberData error:', e);
-    showToast('ডেটা লোড ব্যর্থ: ' + (e.code || e.message), 'error');
+    // Network error — user কে জানাও কিন্তু logout করো না
+    let errMsg = 'ডেটা লোড ব্যর্থ।';
+    if (e.code === 'unavailable' || e.code === 'auth/network-request-failed' ||
+        (e.message || '').includes('network') || (e.message || '').includes('offline')) {
+      errMsg = '📶 ইন্টারনেট সংযোগ দুর্বল। পুনরায় লগইন করুন।';
+    } else if (e.code === 'permission-denied') {
+      errMsg = '⛔ অনুমতি নেই। Admin এর সাথে যোগাযোগ করুন।';
+    }
+    showToast(errMsg, 'error');
+    showScreen('login');
   }
 }
 
@@ -4032,7 +4084,7 @@ async function saveModal() {
   const newVal = _SEC.sanitizeInput(rawVal);
 
   const btn = document.getElementById('modalSaveBtn');
-  btn.textContent = 'সংরক্ষণ হচ্ছে...';
+  btn.textContent = '⏳';
   btn.disabled = true;
 
   // ── বাসস্থান মেয়াদ save ──
@@ -4061,10 +4113,10 @@ async function saveModal() {
         closeModal();
         renderProfile();
         showToast('✅ বাসস্থান মেয়াদ সংরক্ষণ হয়েছে', 'success');
-      } catch(e) { showToast('সংরক্ষণ ব্যর্থ: ' + (e.code || e.message), 'error'); }
+      } catch(e) { showToast('❌ সংরক্ষণ ব্যর্থ: ' + _netErrMsg(e), 'error'); }
     } else {
       try {
-        await db.collection('editRequests').add({
+        await _OFFLINE.submitEditRequest({
           memberId: docId, memberNo: currentMemberData.no || currentMemberData.armyNo,
           memberName: currentMemberData.bn || currentMemberData.en || '',
           memberCompany: currentMemberData.co_bn || '',
@@ -4075,9 +4127,9 @@ async function saveModal() {
         });
         _pendingFieldMap['rt'] = rtStr;
         closeModal();
-        showToast('⏳ আবেদন জমা হয়েছে — Admin অনুমোদনের অপেক্ষায়', 'success');
+        if (!_OFFLINE.isOffline) showToast('⏳ আবেদন জমা হয়েছে — Admin অনুমোদনের অপেক্ষায়', 'success');
         checkPendingStatus();
-      } catch(e) { showToast('আবেদন ব্যর্থ: ' + (e.code || e.message), 'error'); }
+      } catch(e) { showToast('❌ আবেদন ব্যর্থ: ' + _netErrMsg(e), 'error'); }
     }
     btn.textContent = 'সংরক্ষণ করুন'; btn.disabled = false; return;
   }
@@ -4124,11 +4176,11 @@ async function saveModal() {
         closeModal();
         renderProfile();
         showToast('✅ ঠিকানা সংরক্ষণ হয়েছে', 'success');
-      } catch(e) { showToast('সংরক্ষণ ব্যর্থ: ' + (e.code || e.message), 'error'); }
+      } catch(e) { showToast('❌ সংরক্ষণ ব্যর্থ: ' + _netErrMsg(e), 'error'); }
     } else {
       // Admin অনুমোদন লাগবে
       try {
-        await db.collection('editRequests').add({
+        await _OFFLINE.submitEditRequest({
           memberId: docId,
           memberNo: currentMemberData.no || currentMemberData.armyNo,
           memberName: currentMemberData.bn || currentMemberData.en || '',
@@ -4147,7 +4199,7 @@ async function saveModal() {
         closeModal();
         showToast('⏳ ঠিকানা পরিবর্তনের আবেদন জমা হয়েছে — Admin অনুমোদনের অপেক্ষায়', 'success');
         checkPendingStatus();
-      } catch(e) { showToast('আবেদন ব্যর্থ: ' + (e.code || e.message), 'error'); }
+      } catch(e) { showToast('❌ আবেদন ব্যর্থ: ' + _netErrMsg(e), 'error'); }
     }
     btn.textContent = 'সংরক্ষণ করুন'; btn.disabled = false; return;
   }
@@ -4177,7 +4229,7 @@ async function saveModal() {
       } catch(e) { showToast('ব্যর্থ: ' + e.message, 'error'); }
     } else {
       try {
-        await db.collection('editRequests').add({
+        await _OFFLINE.submitEditRequest({
           memberId: docId,
           memberNo: currentMemberData.no || currentMemberData.armyNo,
           memberName: currentMemberData.bn || currentMemberData.en || '',
@@ -4227,7 +4279,7 @@ async function saveModal() {
       } catch(e) { showToast('ব্যর্থ: ' + e.message, 'error'); }
     } else {
       try {
-        await db.collection('editRequests').add({
+        await _OFFLINE.submitEditRequest({
           memberId: docId,
           memberNo: currentMemberData.no || currentMemberData.armyNo,
           memberName: currentMemberData.bn || currentMemberData.en || '',
@@ -4344,7 +4396,7 @@ async function saveModal() {
     } else {
       try {
         const oldCourseName = (currentMemberData.cr_bn || '').split(',').map(s=>s.trim()).filter(Boolean)[idx] || '';
-        await db.collection('editRequests').add({
+        await _OFFLINE.submitEditRequest({
           memberId: docId,
           memberNo: currentMemberData.no,
           memberName: currentMemberData.bn || currentMemberData.en,
@@ -4416,7 +4468,7 @@ async function saveModal() {
     } else {
       // সদস্য — pending request
       try {
-        await db.collection('editRequests').add({
+        await _OFFLINE.submitEditRequest({
           memberId: docId,
           memberNo: currentMemberData.no,
           memberName: currentMemberData.bn || currentMemberData.en,
@@ -4546,14 +4598,14 @@ async function saveModal() {
       showToast('✅ তথ্য সংরক্ষণ হয়েছে', 'success');
     } catch(e) {
       console.error('First save error:', e);
-      showToast('সংরক্ষণ ব্যর্থ: ' + (e.code || e.message), 'error');
+      showToast('❌ সংরক্ষণ ব্যর্থ: ' + _netErrMsg(e), 'error');
     }
     btn.textContent = 'সংরক্ষণ করুন'; btn.disabled = false; return;
   }
 
   // ══ দ্বিতীয়বার বা পরবর্তীতে → Admin অনুমোদন লাগবে ══
   try {
-    await db.collection('editRequests').add({
+    await _OFFLINE.submitEditRequest({
       memberId: docId,
       memberNo: currentMemberData.no || currentMemberData.armyNo,
       memberName: currentMemberData.bn || currentMemberData.en || currentMemberData.armyNo,
@@ -4575,7 +4627,7 @@ async function saveModal() {
     renderFields('familyFields',   _lastFamilyDef   || []);
   } catch(e) {
     console.error(e);
-    showToast('আবেদন ব্যর্থ: ' + e.message, 'error');
+    showToast('❌ আবেদন ব্যর্থ: ' + _netErrMsg(e), 'error');
   }
   btn.textContent = 'সংরক্ষণ করুন';
   btn.disabled = false;
@@ -4910,7 +4962,7 @@ async function setCourseResult(idx, grade, btn) {
 
     // Member — editRequest হিসেবে পাঠাও
     const courseName = (currentMemberData.cr_bn||'').split(',').map(s=>s.trim()).filter(Boolean)[idx] || ('কোর্স '+(idx+1));
-    await db.collection('editRequests').add({
+    await _OFFLINE.submitEditRequest({
       memberId: docId,
       memberNo: currentMemberData.no || currentMemberData.armyNo,
       memberName: currentMemberData.bn || currentMemberData.en,
@@ -4933,11 +4985,11 @@ async function setCourseResult(idx, grade, btn) {
     });
     btn.style.opacity = '0.7';
     btn.style.border = '2px dashed rgba(210,153,34,0.6)';
-    showToast('⏳ ফলাফল জমা হয়েছে — Admin অনুমোদনের অপেক্ষায়', 'success');
+    if (!_OFFLINE.isOffline) showToast('⏳ ফলাফল জমা হয়েছে — Admin অনুমোদনের অপেক্ষায়', 'success');
     checkPendingStatus();
     return;
   } catch(e) {
-    showToast('সংরক্ষণ ব্যর্থ: ' + e.message, 'error');
+    showToast('❌ সংরক্ষণ ব্যর্থ: ' + _netErrMsg(e), 'error');
     return;
   }
 }
@@ -5058,7 +5110,7 @@ async function savePosition(idx) {
 
     // Member — editRequest হিসেবে পাঠাও
     const courseName = (currentMemberData.cr_bn||'').split(',').map(s=>s.trim()).filter(Boolean)[idx] || ('কোর্স '+(idx+1));
-    await db.collection('editRequests').add({
+    await _OFFLINE.submitEditRequest({
       memberId: docId,
       memberNo: currentMemberData.no || currentMemberData.armyNo,
       memberName: currentMemberData.bn || currentMemberData.en,
@@ -5083,7 +5135,7 @@ async function savePosition(idx) {
     checkPendingStatus();
   } catch(e) {
     console.error(e);
-    showToast('সংরক্ষণ ব্যর্থ: ' + e.message, 'error');
+    showToast('❌ সংরক্ষণ ব্যর্থ: ' + _netErrMsg(e), 'error');
   }
 }
 
@@ -5968,7 +6020,7 @@ async function addNewMember() {
   if (!docId) { showRes('সেনা নম্বর সঠিক নয়।', false); return; }
 
   const btn = document.getElementById('btnAddMember');
-  btn.disabled = true; btn.textContent = '⏳ যোগ হচ্ছে...';
+  btn.disabled = true; btn.textContent = '⏳';
   res.style.display = 'none';
 
   try {
@@ -6170,7 +6222,7 @@ async function saveSetupData() {
   const err = document.getElementById('setupError');
   const btn = document.getElementById('setupNextBtn');
 
-  btn.textContent = '⏳ সংরক্ষণ হচ্ছে...';
+  btn.textContent = '⏳';
   btn.disabled = true;
 
   try {
@@ -6662,9 +6714,7 @@ async function selectPromoteUser(uid) {
 
     document.getElementById('promoteSelectedSection').style.display = 'block';
     document.getElementById('promoteSearchInput').value = u.name || u.armyNo || '';
-    hideLoading();
   } catch(e) {
-    hideLoading();
     showToast('লোড ব্যর্থ: ' + e.message, 'error');
   }
 }
@@ -7489,7 +7539,7 @@ async function loadAdminData() {
 
     // Admin list (super admin only)
     if (userRole === 'superadmin') {
-      loadAdminList();
+      loadSuperAdminList();
     }
   } catch(e) {
     console.error('Admin load error:', e);
@@ -7718,7 +7768,6 @@ async function rejectGroup(ids) {
       done++;
     } catch(e) {}
   }
-  hideLoading();
   showToast(`${done}টি বাতিল করা হয়েছে`, 'error');
   loadAdminData();
 }
@@ -7743,7 +7792,7 @@ async function approveAllPending() {
         : db.collection('editRequests').where('status', '==', 'pending');
     }
     const snap = await pendingQuery.get();
-    if (snap.empty) { hideLoading(); showToast('কোনো pending নেই', 'success'); return; }
+    if (snap.empty) { showToast('কোনো pending নেই', 'success'); return; }
 
     // সদস্য অনুযায়ী group করো
     const byMember = {};
@@ -7763,11 +7812,9 @@ async function approveAllPending() {
         console.error('Bulk approve failed for member', memberId, e);
       }
     }
-    hideLoading();
     showToast(`✅ ${totalDone}টি অনুমোদন সম্পন্ন${totalFailed ? ' · ' + totalFailed + 'টি ব্যর্থ' : ''}`, 'success');
     loadAdminData();
   } catch(e) {
-    hideLoading();
     showToast('ব্যর্থ: ' + e.message, 'error');
   }
 }
@@ -7775,7 +7822,6 @@ async function approveAllPending() {
 /* সব pending একসাথে reject */
 async function rejectAllPending() {
   if (!await confirmAsync('সব অপেক্ষমাণ অনুরোধ বাতিল করবেন?', {danger:true,icon:'❌',title:'সব বাতিল'})) return;
-  showLoading('সব বাতিল হচ্ছে...');
   try {
     let pendingQuery;
     if (userRole === 'superadmin') {
@@ -7797,11 +7843,9 @@ async function rejectAllPending() {
       });
     });
     await batch.commit();
-    hideLoading();
     showToast(`${snap.size}টি অনুরোধ বাতিল করা হয়েছে`, 'error');
     loadAdminData();
   } catch(e) {
-    hideLoading();
     showToast('ব্যর্থ: ' + e.message, 'error');
   }
 }
@@ -7902,7 +7946,6 @@ async function approveGroup(ids) {
 }
 
 async function approveGroupBulk(ids) {
-  showLoading('অনুমোদন হচ্ছে...');
   try {
     // সব doc load করো
     const docs = await Promise.all(ids.map(id => db.collection('editRequests').doc(id).get()));
@@ -7926,11 +7969,9 @@ async function approveGroupBulk(ids) {
       await approveEdit(req.docId, true);
     }
 
-    hideLoading();
     showToast(`✅ ${requests.length}টি অনুমোদন সম্পন্ন`, 'success');
     loadAdminData();
   } catch(e) {
-    hideLoading();
     console.error('Bulk approve error:', e);
     showToast('ব্যর্থ: ' + e.message, 'error');
   }
@@ -8131,7 +8172,6 @@ async function uploadPhoto(input) {
 
   if (file.size > 3 * 1024 * 1024) { showToast('ছবি ৩ MB এর বেশি নয়', 'error'); input.value = ''; return; }
 
-  showLoading('ছবি প্রক্রিয়া হচ্ছে...');
   try {
     // ছবি compress করে base64 এ রূপান্তর করো
     const base64 = await compressImage(file, 400, 0.7);
@@ -8142,7 +8182,6 @@ async function uploadPhoto(input) {
     const MAX_PHOTO_BYTES = 200 * 1024; // 200KB limit
     if (approxBytes > MAX_PHOTO_BYTES) {
       showToast('ছবিটি এখনো বড়। আরো ছোট ছবি ব্যবহার করুন।', 'error');
-      hideLoading();
       input.value = '';
       return;
     }
@@ -8150,7 +8189,6 @@ async function uploadPhoto(input) {
     // ── Validate base64 format — data URI prefix check ──
     if (!base64.startsWith('data:image/')) {
       showToast('❌ ছবি প্রক্রিয়া ব্যর্থ।', 'error');
-      hideLoading();
       input.value = '';
       return;
     }
@@ -8166,7 +8204,7 @@ async function uploadPhoto(input) {
     } else {
       const docId = currentMemberData.id ||
         String(currentMemberData.no || currentMemberData.armyNo || '').replace(/[^A-Z0-9]/gi, '');
-      if (!docId) { showToast('সদস্য ID পাওয়া যায়নি', 'error'); hideLoading(); return; }
+      if (!docId) { showToast('সদস্য ID পাওয়া যায়নি', 'error'); return; }
       const docRef = db.collection('members').doc(docId);
       const snap = await docRef.get();
       if (snap.exists) {
@@ -8192,7 +8230,6 @@ async function uploadPhoto(input) {
     console.error('Photo upload error:', e);
     showToast('আপলোড ব্যর্থ: ' + (e.code || e.message), 'error');
   }
-  hideLoading();
 }
 
 // ছবি compress করার helper function
@@ -8227,7 +8264,6 @@ async function promoteUser(uid, newRole, name, armyNo) {
   const roleLabel = newRole === 'superadmin' ? 'Super Admin' : newRole === 'subadmin' ? 'Sub Admin' : newRole === 'admin' ? 'Admin' : 'সাধারণ সদস্য';
   if (!await confirmAsync(`"${name}" কে "${roleLabel}" হিসেবে নিয়োগ করবেন?`, {icon:'🔑',title:'ভূমিকা পরিবর্তন',okLabel:'নিয়োগ করুন'})) return;
 
-  showLoading('আপডেট হচ্ছে...');
   try {
     await db.collection('users').doc(uid).update({
       role: newRole,
@@ -8254,7 +8290,6 @@ async function promoteUser(uid, newRole, name, armyNo) {
   } catch(e) {
     showToast('ব্যর্থ: ' + (e.code || e.message), 'error');
   }
-  hideLoading();
 }
 
 async function deleteUser(uid, name) {
@@ -8262,7 +8297,6 @@ async function deleteUser(uid, name) {
   if (!await confirmAsync(`"${name}" এর প্রোফাইল সম্পূর্ণ মুছে দেবেন?\n\n⚠️ এই কাজ পূর্বাবস্থায় ফেরানো যাবে না!`, {danger:true,icon:'🗑️',title:'ইউজার ডিলিট',okLabel:'স্থায়ীভাবে মুছুন'})) return;
   // double confirm removed - single is enough
 
-  showLoading('ডিলিট হচ্ছে...');
   try {
     const batch = db.batch();
     batch.delete(db.collection('users').doc(uid));
@@ -8276,7 +8310,6 @@ async function deleteUser(uid, name) {
   } catch(e) {
     showToast('ডিলিট ব্যর্থ: ' + (e.code || e.message), 'error');
   }
-  hideLoading();
 }
 
 async function adminResetPassword(uid, armyNo) {
@@ -8286,7 +8319,6 @@ async function adminResetPassword(uid, armyNo) {
   const password = newPass.trim() || makeDefaultPassword(armyNo);
   if (password.length < 6) { showToast('পাসওয়ার্ড কমপক্ষে ৬ অক্ষর', 'error'); return; }
 
-  showLoading('রিসেট হচ্ছে...');
   try {
     const docId = String(armyNo).replace(/[^A-Z0-9]/gi, '');
     await db.collection('passwordResets').doc(docId).set({
@@ -8299,7 +8331,6 @@ async function adminResetPassword(uid, armyNo) {
   } catch(e) {
     showToast('রিসেট ব্যর্থ: ' + (e.code || e.message), 'error');
   }
-  hideLoading();
 }
 
 /* ══════════════════════════════════════════
@@ -9041,7 +9072,6 @@ function showAdminMemberPhoto(memberData) {
 ══════════════════════════════════════════ */
 async function saveAdminSelfField(key, value) {
   if (!value || !value.trim()) { showToast('মান খালি রাখা যাবে না', 'error'); return; }
-  showLoading('আপডেট হচ্ছে...');
   try {
     await db.collection('adminProfiles').doc(currentUser.uid).set({
       [key]: value.trim(),
@@ -9053,7 +9083,6 @@ async function saveAdminSelfField(key, value) {
   } catch(e) {
     showToast('ব্যর্থ: ' + (e.code || e.message), 'error');
   }
-  hideLoading();
 }
 
 /* ══════════════════════════════════════════
@@ -9301,6 +9330,139 @@ function applyLangToUI() {
 }
 
 /* ══════════════════════════════════════════
+   OFFLINE MODULE
+   - নেটওয়ার্ক detect করো
+   - Offline queue — edit করলে localStorage এ রাখো
+   - Online হলে queue submit করো
+   - UI indicator দেখাও/লুকাও
+══════════════════════════════════════════ */
+const _OFFLINE = {
+  _isOnline: navigator.onLine,
+  _queue: [],   // pending offline edits
+  _QUEUE_KEY: '4engr_offline_queue',
+
+  /* অফলাইন কিনা */
+  get isOffline() { return !this._isOnline; },
+
+  /* localStorage থেকে queue লোড */
+  loadQueue() {
+    try {
+      const raw = localStorage.getItem(this._QUEUE_KEY);
+      this._queue = raw ? JSON.parse(raw) : [];
+    } catch(e) { this._queue = []; }
+  },
+
+  /* queue localStorage এ save */
+  saveQueue() {
+    try { localStorage.setItem(this._QUEUE_KEY, JSON.stringify(this._queue)); }
+    catch(e) {}
+  },
+
+  /* queue তে item যোগ করো */
+  enqueue(item) {
+    this._queue.push({ ...item, _offlineAt: Date.now(), _id: Date.now() + '_' + Math.random().toString(36).slice(2) });
+    this.saveQueue();
+    this._updateBadge();
+  },
+
+  /* queue থেকে item সরাও */
+  dequeue(id) {
+    this._queue = this._queue.filter(i => i._id !== id);
+    this.saveQueue();
+    this._updateBadge();
+  },
+
+  /* offline badge আপডেট */
+  _updateBadge() {
+    const badge = document.getElementById('offlineQueueCount');
+    if (!badge) return;
+    const n = this._queue.length;
+    badge.textContent = n;
+    badge.style.display = n > 0 ? 'inline-block' : 'none';
+  },
+
+  /* offline banner দেখাও/লুকাও */
+  _showBanner(show) {
+    const b = document.getElementById('offlineBanner');
+    if (!b) return;
+    b.style.display = show ? 'flex' : 'none';
+  },
+
+  /* online হলে queue submit করো */
+  async _syncQueue() {
+    if (this._queue.length === 0) return;
+    if (!currentUser || !db) return;
+
+    const toSync = [...this._queue];
+    let synced = 0;
+    for (const item of toSync) {
+      try {
+        if (item.type === 'editRequest') {
+          await db.collection('editRequests').add(item.data);
+          this.dequeue(item._id);
+          synced++;
+        } else if (item.type === 'directSave') {
+          const ref = db.collection('members').doc(item.docId);
+          await ref.update(item.data);
+          this.dequeue(item._id);
+          synced++;
+        } else if (item.type === 'leave') {
+          await db.collection('members').doc(item.docId).collection('leaves').add(item.data);
+          this.dequeue(item._id);
+          synced++;
+        }
+      } catch(e) {
+        // permission denied বা invalid data → queue থেকে সরাও
+        if (e.code === 'permission-denied' || e.code === 'invalid-argument') {
+          this.dequeue(item._id);
+        }
+        // network error → পরে try করো
+      }
+    }
+    if (synced > 0) {
+      showToast(`✅ ${synced}টি পরিবর্তন sync হয়েছে`, 'success');
+      if (typeof renderProfile === 'function') renderProfile();
+      if (typeof checkPendingStatus === 'function') checkPendingStatus();
+    }
+  },
+
+  /* editRequest — offline হলে queue এ, online হলে Firestore এ */
+  async submitEditRequest(data) {
+    if (this.isOffline) {
+      this.enqueue({ type: 'editRequest', data });
+      showToast('📵 অফলাইন — আবেদন সংরক্ষিত হয়েছে। অনলাইন হলে পাঠানো হবে।', 'success');
+      return { offline: true };
+    }
+    return await db.collection('editRequests').add(data);
+  },
+
+  /* শুরু করো */
+  init() {
+    this.loadQueue();
+    this._showBanner(!this._isOnline);
+    this._updateBadge();
+
+    window.addEventListener('online', () => {
+      this._isOnline = true;
+      this._showBanner(false);
+      showToast('📶 ইন্টারনেট সংযোগ ফিরে এসেছে', 'success');
+      // online হলে Firestore network চালু করো
+      if (db) db.enableNetwork().catch(() => {});
+      // queue sync করো
+      setTimeout(() => this._syncQueue(), 1500);
+    });
+
+    window.addEventListener('offline', () => {
+      this._isOnline = false;
+      this._showBanner(true);
+      showToast('📵 ইন্টারনেট সংযোগ নেই — অফলাইন মোডে কাজ চলবে', 'error');
+      // Firestore network disable — cache থেকে read করবে
+      if (db) db.disableNetwork().catch(() => {});
+    });
+  },
+};
+
+/* ══════════════════════════════════════════
    FIREBASE HARDCODED CONFIG
 ══════════════════════════════════════════ */
 const FIREBASE_CONFIG = {
@@ -9320,6 +9482,8 @@ const FIREBASE_CONFIG = {
   if (initFirebase(FIREBASE_CONFIG)) {
     showScreen('login');
     setupAuthListener();
+    // Offline module শুরু করো
+    _OFFLINE.init();
   } else {
     showToast('Firebase শুরু করা যায়নি', 'error');
   }
