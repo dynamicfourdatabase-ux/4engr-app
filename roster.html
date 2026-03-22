@@ -412,7 +412,7 @@ select:focus { border-color: var(--accent); }
   background: linear-gradient(90deg, rgba(200,169,74,0.08), rgba(200,169,74,0.04));
   border-bottom: 1px solid rgba(200,169,74,0.18);
   padding: 8px 20px;
-  position: sticky; top: 76px; z-index: 89;
+  position: sticky; top: 128px; z-index: 89;
   backdrop-filter: blur(8px);
 }
 .admin-bar-inner {
@@ -492,7 +492,7 @@ select:focus { border-color: var(--accent); }
   #themeToggle { padding: 5px 7px !important; font-size: 13px !important; flex-shrink: 0; }
 
   /* Controls — collapsible filter grid */
-  .controls-wrap { position: sticky; top: 62px; }
+  .controls-wrap { position: sticky; /* top set by JS */ }
   .controls { padding: 10px 12px; gap: 7px; }
   .search-wrap { flex: 1 1 100%; }
   .search-wrap input { font-size: 0.9rem; padding: 10px 14px 10px 36px; }
@@ -1365,6 +1365,8 @@ async function webLogin() {
 
     // হেডারে Admin info যোগ করো
     injectAdminBar();
+    // Sticky offset dynamically ঠিক করো
+    requestAnimationFrame(_fixStickyOffsets);
     loadMembersFromFirebase();
     // subadmin এর জন্য pending listener দরকার নেই (শুধু view)
     if (role !== 'subadmin') startPendingListener();
@@ -1379,6 +1381,25 @@ async function webLogin() {
     btn.textContent = 'লগইন করুন'; btn.disabled = false;
   }
 }
+
+/* Sticky layers এর top offset dynamically ঠিক করো */
+function _fixStickyOffsets() {
+  const header = document.querySelector('.header');
+  const controls = document.querySelector('.controls-wrap');
+  const adminBar = document.getElementById('adminBar');
+
+  const headerH = header ? header.getBoundingClientRect().height : 76;
+  const controlsH = controls ? controls.getBoundingClientRect().height : 52;
+
+  // controls-wrap এর top = header height
+  if (controls) controls.style.top = headerH + 'px';
+
+  // admin-bar এর top = header + controls
+  if (adminBar) adminBar.style.top = (headerH + controlsH) + 'px';
+}
+
+// window resize এ recalculate করো
+window.addEventListener('resize', _fixStickyOffsets);
 
 function injectAdminBar() {
   const name = webAdminData?.name || webAdminData?.armyNo || '—';
