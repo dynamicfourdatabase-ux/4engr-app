@@ -3006,62 +3006,65 @@ function renderCourses() {
 
 async function setCourseResult(idx, grade, btn) {
   const resultKey = 'course_' + idx;
+  const RLBL = { pass:'পাস', alpha:'Alpha', bplus:'B+', b:'B', bminus:'B-', fail:'ফেল' };
 
-  // ── একবার সেট হলে আর পরিবর্তন করা যাবে না ──
   const existing = currentMemberData.courseResults?.[resultKey];
   if (existing) {
-    const label = { alpha:'Alpha', bplus:'B+', b:'B', bminus:'B-' }[existing] || existing;
-    showToast('⛔ ফলাফল ইতিমধ্যে সেট আছে: ' + label + ' — পরিবর্তন করা যাবে না', 'error');
+    showToast('⛔ ফলাফল ইতিমধ্যে সেট: ' + (RLBL[existing]||existing), 'error');
     return;
   }
 
-  // সঠিক docId বের করো
   const docId = currentMemberData.id ||
     String(currentMemberData.no || currentMemberData.armyNo || '').replace(/[^A-Z0-9]/gi, '');
   if (!docId) { showToast('সদস্য ID পাওয়া যায়নি', 'error'); return; }
 
+  const isAdmin = userRole === 'admin' || userRole === 'superadmin';
+
   try {
-    await db.collection('members').doc(docId).update({
-      [`courseResults.${resultKey}`]: grade,
-      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    if (isAdmin) {
+      // Admin সরাসরি save করে
+      await db.collection('members').doc(docId).update({
+        [`courseResults.${resultKey}`]: grade,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      });
+      if (!currentMemberData.courseResults) currentMemberData.courseResults = {};
+      currentMemberData.courseResults[resultKey] = grade;
+      showToast('✅ ফলাফল সংরক্ষিত হয়েছে', 'success');
+      renderCourses();
+      return;
+    }
+
+    // Member — editRequest হিসেবে পাঠাও
+    const courseName = (currentMemberData.cr_bn||'').split(',').map(s=>s.trim()).filter(Boolean)[idx] || ('কোর্স '+(idx+1));
+    await db.collection('editRequests').add({
+      memberId: docId,
+      memberNo: currentMemberData.no || currentMemberData.armyNo,
+      memberName: currentMemberData.bn || currentMemberData.en,
+      memberCompany: currentMemberData.co_bn || '',
+      field: 'courseResults.' + resultKey,
+      fieldLabel: 'কোর্স ফলাফল: ' + courseName,
+      oldValue: '',
+      newValue: grade,
+      courseResultExtra: { idx, resultKey, grade, courseName },
+      requestType: 'courseResult',
+      requestedBy: currentUser.uid,
+      status: 'pending',
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
     });
 
-    if (!currentMemberData.courseResults) currentMemberData.courseResults = {};
-    currentMemberData.courseResults[resultKey] = grade;
-
-    // সব pill disable করো — আর ক্লিক করা যাবে না
+    // UI তে pending দেখাও
     const container = btn.closest('.result-pills');
     container.querySelectorAll('.result-pill').forEach(p => {
-      p.classList.remove('active');
-      p.disabled = true;
-      p.style.opacity = '0.4';
-      p.style.cursor = 'not-allowed';
+      p.disabled = true; p.style.opacity = '0.35'; p.style.cursor = 'not-allowed';
     });
-    btn.classList.add('active');
-    btn.style.opacity = '1';
-
-    // Badge আপডেট
-    const badge = btn.closest('.course-item').querySelector('.badge-green');
-    if (badge) {
-      badge.textContent = { alpha:'Alpha', bplus:'B+', b:'B', bminus:'B-' }[grade] || '';
-      badge.style.display = '';
-    }
-
-    // লক আইকন দেখাও
-    const header = btn.closest('.course-item').querySelector('.course-item-header');
-    if (header && !header.querySelector('.lock-icon')) {
-      const lock = document.createElement('span');
-      lock.className = 'lock-icon';
-      lock.textContent = '🔒';
-      lock.style.fontSize = '12px';
-      lock.title = 'ফলাফল চূড়ান্ত — পরিবর্তনযোগ্য নয়';
-      header.appendChild(lock);
-    }
-
-    showToast('✅ ফলাফল চূড়ান্তভাবে সংরক্ষিত হয়েছে', 'success');
+    btn.style.opacity = '0.7';
+    btn.style.border = '2px dashed rgba(210,153,34,0.6)';
+    showToast('⏳ ফলাফল জমা হয়েছে — Admin অনুমোদনের অপেক্ষায়', 'success');
+    checkPendingStatus();
+    return;
   } catch(e) {
-    console.error('Course result error:', e);
     showToast('সংরক্ষণ ব্যর্থ: ' + e.message, 'error');
+    return;
   }
 }
 
@@ -3138,26 +3141,55 @@ async function savePosition(idx) {
     showToast('সঠিক অবস্থান নম্বর দিন', 'error'); return;
   }
 
-  // একবার সেট হলে আর পরিবর্তন করা যাবে না
   const existing = currentMemberData.courseResults?.['pos_' + idx];
   if (existing) {
-    showToast('⛔ অবস্থান ইতিমধ্যে সেট আছে: ' + existing + 'তম — পরিবর্তন করা যাবে না', 'error');
-    return;
+    showToast('⛔ অবস্থান ইতিমধ্যে সেট: ' + existing + 'তম', 'error'); return;
   }
 
   const docId = currentMemberData.id ||
     String(currentMemberData.no || currentMemberData.armyNo || '').replace(/[^A-Z0-9]/gi, '');
   if (!docId) { showToast('সদস্য ID পাওয়া যায়নি', 'error'); return; }
 
+  const isAdmin = userRole === 'admin' || userRole === 'superadmin';
+
   try {
-    await db.collection('members').doc(docId).update({
-      [`courseResults.pos_${idx}`]: parseInt(pos),
-      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    if (isAdmin) {
+      await db.collection('members').doc(docId).update({
+        [`courseResults.pos_${idx}`]: parseInt(pos),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      });
+      if (!currentMemberData.courseResults) currentMemberData.courseResults = {};
+      currentMemberData.courseResults['pos_' + idx] = parseInt(pos);
+      showToast('✅ অবস্থান সংরক্ষিত হয়েছে', 'success');
+      renderCourses();
+      return;
+    }
+
+    // Member — editRequest হিসেবে পাঠাও
+    const courseName = (currentMemberData.cr_bn||'').split(',').map(s=>s.trim()).filter(Boolean)[idx] || ('কোর্স '+(idx+1));
+    await db.collection('editRequests').add({
+      memberId: docId,
+      memberNo: currentMemberData.no || currentMemberData.armyNo,
+      memberName: currentMemberData.bn || currentMemberData.en,
+      memberCompany: currentMemberData.co_bn || '',
+      field: 'courseResults.pos_' + idx,
+      fieldLabel: 'কোর্স অবস্থান: ' + courseName,
+      oldValue: '',
+      newValue: String(parseInt(pos)),
+      courseResultExtra: { idx, posKey: 'pos_' + idx, position: parseInt(pos), courseName },
+      requestType: 'coursePosition',
+      requestedBy: currentUser.uid,
+      status: 'pending',
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
     });
-    if (!currentMemberData.courseResults) currentMemberData.courseResults = {};
-    currentMemberData.courseResults['pos_' + idx] = parseInt(pos);
-    showToast('✅ অবস্থান সংরক্ষিত হয়েছে — 🔒 পরিবর্তন করা যাবে না', 'success');
-    renderCourses(); // re-render to show locked state
+
+    // input disable করো
+    input.disabled = true;
+    input.style.opacity = '0.6';
+    const saveBtn = input.nextElementSibling;
+    if (saveBtn) { saveBtn.disabled = true; saveBtn.style.opacity = '0.5'; }
+    showToast('⏳ অবস্থান জমা হয়েছে — Admin অনুমোদনের অপেক্ষায়', 'success');
+    checkPendingStatus();
   } catch(e) {
     console.error(e);
     showToast('সংরক্ষণ ব্যর্থ: ' + e.message, 'error');
@@ -5808,6 +5840,20 @@ async function approveEdit(docId, silent = false) {
         Object.entries(r.extraData).forEach(([k, v]) => {
           if (k !== 'promotionSlot' && k !== 'promotionDate' && v) updateData[k] = v;
         });
+      }
+
+      // কোর্স ফলাফল approve
+      if (r.requestType === 'courseResult' && r.courseResultExtra) {
+        const ex = r.courseResultExtra;
+        updateData['courseResults.' + ex.resultKey] = ex.grade;
+        delete updateData[r.field]; // field overwrite এড়াতে
+      }
+
+      // কোর্স অবস্থান approve
+      if (r.requestType === 'coursePosition' && r.courseResultExtra) {
+        const ex = r.courseResultExtra;
+        updateData['courseResults.' + ex.posKey] = ex.position;
+        delete updateData[r.field];
       }
 
       // কোর্স/ক্যাডার যোগ — courseExtra থেকে cr_en, pos_, rec_ সংরক্ষণ
