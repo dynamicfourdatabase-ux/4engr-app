@@ -62,22 +62,111 @@
 
 /* Light Mode */
 body.light {
-  --bg:      #f4f6fb;
+  --bg:      #eef3fb;
   --bg2:     #ffffff;
-  --bg3:     #eef0f5;
-  --bg4:     #e4e7ee;
+  --bg3:     #e3ecf7;
+  --bg4:     #d6e4f0;
   --border:  rgba(200,169,74,0.3);
-  --border2: rgba(0,0,0,0.08);
+  --border2: rgba(100,160,220,0.18);
   --text:    #1a1d2e;
   --text2:   #6b7280;
   --text3:   #adb5bd;
-  --shadow:  0 4px 24px rgba(0,0,0,0.09);
-  --shadow2: 0 2px 8px rgba(0,0,0,0.06);
+  --shadow:  0 4px 24px rgba(80,140,220,0.13);
+  --shadow2: 0 2px 12px rgba(80,140,220,0.10);
   --danger:  #dc3545;
   --success: #198754;
   --warn:    #b8860b;
   --info:    #0d6efd;
+  --card-blue-shadow: 0 2px 16px rgba(70,130,210,0.13), 0 1px 4px rgba(70,130,210,0.08);
+  --card-blue-border: rgba(100,160,230,0.28);
+  --card-blue-bg:     rgba(235,244,255,0.85);
 }
+
+/* ══ Light Mode — সব section এ হালকা নীল plate ══ */
+body.light .card,
+body.light .settings-item,
+body.light .course-item,
+body.light .pending-item,
+body.light .login-box,
+body.light .stat-card,
+body.light .field-row,
+body.light .admin-field-row,
+body.light .stat-list-item,
+body.light .status-bar {
+  background: var(--card-blue-bg) !important;
+  border-color: var(--card-blue-border) !important;
+  box-shadow: var(--card-blue-shadow) !important;
+}
+
+body.light .card-header {
+  background: rgba(220,235,255,0.7) !important;
+  border-bottom-color: rgba(100,160,230,0.2) !important;
+}
+
+body.light .topbar {
+  background: rgba(255,255,255,0.95) !important;
+  border-bottom-color: rgba(100,160,230,0.2) !important;
+  box-shadow: 0 2px 12px rgba(70,130,210,0.12) !important;
+}
+
+body.light .bottom-nav {
+  background: rgba(255,255,255,0.97) !important;
+  border-top-color: rgba(100,160,230,0.2) !important;
+  box-shadow: 0 -2px 12px rgba(70,130,210,0.10) !important;
+}
+
+body.light .form-input,
+body.light select,
+body.light textarea.form-input {
+  background: rgba(240,247,255,0.9) !important;
+  border-color: rgba(100,160,230,0.25) !important;
+}
+
+body.light .form-input:focus {
+  border-color: var(--gold) !important;
+  box-shadow: 0 0 0 3px rgba(100,160,230,0.15) !important;
+  background: #fff !important;
+}
+
+body.light #appScreen,
+body.light #loginScreen,
+body.light #registerScreen,
+body.light #setupScreen,
+body.light .content,
+body.light .page {
+  background: var(--bg) !important;
+}
+
+body.light .controls-wrap,
+body.light .controls {
+  background: rgba(235,245,255,0.95) !important;
+}
+
+body.light .nav-item.active {
+  color: var(--gold) !important;
+}
+
+body.light .modal-overlay > div,
+body.light .overlay > .modal {
+  background: rgba(240,247,255,0.98) !important;
+  border-color: rgba(100,160,230,0.25) !important;
+  box-shadow: 0 8px 40px rgba(70,130,210,0.18) !important;
+}
+
+body.light .admin-field-input {
+  background: rgba(235,245,255,0.9) !important;
+  border-color: rgba(100,160,230,0.22) !important;
+}
+
+body.light .search-result-item {
+  background: rgba(235,245,255,0.85) !important;
+  border-color: rgba(100,160,230,0.18) !important;
+}
+
+body.light .search-result-item:hover {
+  background: rgba(210,230,255,0.9) !important;
+}
+
 
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
@@ -757,7 +846,7 @@ select.form-input { cursor: pointer; }
     <div class="login-sub">প্রথমবার পাসওয়ার্ড সেট করুন</div>
     <div class="form-group">
       <label class="form-label">সেনা নম্বর</label>
-      <input type="text" class="form-input" id="regArmyNo" placeholder="যেমন: 32273">
+      <input type="text" class="form-input" id="regArmyNo" placeholder="যেমন: 1452511">
     </div>
     <div class="form-group">
       <label class="form-label">জন্ম তারিখ (যাচাই)</label>
@@ -1057,7 +1146,7 @@ select.form-input { cursor: pointer; }
           <div style="text-align:center;padding:10px 0 16px">
             <div style="font-size:40px;margin-bottom:10px">✅</div>
             <div style="font-size:1rem;font-weight:700;color:var(--success);margin-bottom:6px">সব তথ্য প্রস্তুত!</div>
-            <div style="font-size:0.82rem;color:var(--text2);line-height:1.7">নিচের তথ্য সঠিক থাকলে সংরক্ষণ করুন।<br>পরে যেকোনো তথ্য Admin অনুমোদন সাপেক্ষে সংশোধন করা যাবে।</div>
+            <div style="font-size:0.82rem;color:var(--text2);line-height:1.7">নিচের তথ্য সঠিক থাকলে সংরক্ষণ করুন।<br>পরে যেকোনো তথ্য সংশোধন করতে চাইলে Admin অনুমোদন লাগবে।</div>
           </div>
           <div id="setupSummary" style="background:var(--dark3);border-radius:10px;padding:14px;font-size:0.82rem;line-height:2"></div>
         </div>
@@ -1382,11 +1471,11 @@ select.form-input { cursor: pointer; }
               <div style="background:rgba(200,169,74,0.06);border:1px solid rgba(200,169,74,0.15);border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:0.82rem;color:var(--text2);line-height:1.7">
                 ℹ️ <strong style="color:var(--gold)">ডিফল্ট পাসওয়ার্ড নিয়ম:</strong><br>
                 সেনা নম্বর ৬ সংখ্যার হলে সেটাই পাসওয়ার্ড।<br>
-                ৫ সংখ্যার হলে শুরুতে <strong style="color:var(--text)">0</strong> যোগ হবে। যেমন: <code style="background:var(--dark3);padding:1px 6px;border-radius:4px">32273</code> → <code style="background:var(--dark3);padding:1px 6px;border-radius:4px">032273</code>
+                ৫ সংখ্যার হলে শুরুতে <strong style="color:var(--text)">0</strong> যোগ হবে। যেমন: <code style="background:var(--dark3);padding:1px 6px;border-radius:4px">12345</code> → <code style="background:var(--dark3);padding:1px 6px;border-radius:4px">012345</code>
               </div>
               <div class="form-group">
                 <label class="form-label">সেনা নম্বর</label>
-                <input type="text" class="form-input" id="resetMemberNo" placeholder="যেমন: 32273 বা 1458634">
+                <input type="text" class="form-input" id="resetMemberNo" placeholder="যেমন: 1452511 বা 1458634">
               </div>
               <div class="form-group">
                 <label class="form-label">নতুন পাসওয়ার্ড (খালি রাখলে ডিফল্ট)</label>
@@ -1412,7 +1501,7 @@ select.form-input { cursor: pointer; }
                 <div class="form-group">
                   <label class="form-label">সেনা নম্বর *</label>
                   <input type="text" class="form-input" id="nm_no"
-                    placeholder="যেমন: 32273"
+                    placeholder="যেমন: 1452511"
                     oninput="this.value=this.value.toUpperCase()"
                     autocomplete="off">
                 </div>
@@ -1531,7 +1620,7 @@ select.form-input { cursor: pointer; }
                       <span id="adminAutoFillSpinner" style="display:none;margin-left:6px;font-size:10px;color:var(--gold)">⏳</span>
                     </label>
                     <input type="text" class="form-input" id="newAdminArmyNo"
-                      placeholder="যেমন: 32273"
+                      placeholder="যেমন: 1452511"
                       oninput="scheduleAdminAutoFill(this.value)"
                       autocomplete="off">
                   </div>
@@ -2860,7 +2949,7 @@ async function loadMemberData(uid) {
       }
     }
 
-    // ৩c: no field এ padded version (032273) দিয়ে খোঁজো
+    // ৩c: no field এ padded version (01452511) দিয়ে খোঁজো
     if (!memberData && armyNoClean && armyNoClean.length <= 6) {
       const padded = armyNoClean.padStart(6, '0');
       if (padded !== armyNoClean) {
@@ -2985,22 +3074,22 @@ function renderProfile() {
     { key: 'nm',    label: t('NID মোবাইল'),       editable: true },
     { key: 'wa',    label: t('হোয়াটসঅ্যাপ'),     editable: true },
     { key: 'em',    label: t('জরুরি যোগাযোগ'),   editable: true },
-    { key: 'ad',    label: t('স্থায়ী ঠিকানা'),   editable: true, type: 'textarea' },
-    { key: 'di_bn', label: t('জেলা'),             editable: true },
+    { key: 'ad',    label: t('স্থায়ী ঠিকানা'),   editable: true, type: 'address' },
+    { key: 'di_bn', label: t('জেলা'),             editable: false },
     { key: 'ed_bn', label: t('শিক্ষাগত যোগ্যতা'), editable: true },
   ] : [
-    { key: 'bn',    label: t('বাংলা নাম'),        editable: false },
-    { key: 'en',    label: t('ইংরেজি নাম'),       editable: false },
-    { key: 'dob',   label: t('জন্ম তারিখ'),       editable: true },
-    { key: 'bl',    label: 'রক্তের গ্রুপ',     editable: true, type: 'select', opts: ['A+','A-','B+','B-','AB+','AB-','O+','O-'] },
-    { key: 'gn_bn', label: t('লিঙ্গ'),            editable: false },
+    { key: 'bn',    label: t('বাংলা নাম'),        editable: true },
+    { key: 'en',    label: t('ইংরেজি নাম'),       editable: true },
+    { key: 'dob',   label: t('জন্ম তারিখ'),       editable: false },
+    { key: 'bl',    label: 'রক্তের গ্রুপ',        editable: true, type: 'select', opts: ['A+','A-','B+','B-','AB+','AB-','O+','O-'] },
+    { key: 'gn_bn', label: t('লিঙ্গ'),            editable: true, type: 'select', opts: ['পুরুষ','মহিলা'] },
     { key: 'nid',   label: t('NID নম্বর'),         editable: true },
     { key: 'mb',    label: t('মোবাইল'),            editable: true },
     { key: 'nm',    label: t('NID মোবাইল'),        editable: true },
     { key: 'wa',    label: t('হোয়াটসঅ্যাপ'),      editable: true },
     { key: 'em',    label: t('জরুরি যোগাযোগ'),    editable: true },
-    { key: 'ad',    label: t('স্থায়ী ঠিকানা'),    editable: true, type: 'textarea' },
-    { key: 'di_bn', label: t('জেলা'),              editable: true, type: 'select', opts: DISTRICTS },
+    { key: 'ad',    label: t('স্থায়ী ঠিকানা'),    editable: true, type: 'address' },
+    { key: 'di_bn', label: t('জেলা'),              editable: false },
     { key: 'ed_bn', label: t('শিক্ষাগত যোগ্যতা'),  editable: true, type: 'select', opts: EDUCATIONS },
   ];  renderFields('personalFields', personalDef);
   _lastPersonalDef = personalDef;
@@ -3031,15 +3120,15 @@ function renderProfile() {
     { key: 'niyog',      label: t('নিয়োগ'),                 editable: true },
     { key: 'jd',         label: t('ভর্তির তারিখ'),           editable: true },
     { key: 'od',         label: t('শপথের তারিখ'),            editable: true },
-    { key: 'promo_date', label: t('প্রমোশনের তারিখ'),        editable: false },
-    { key: 'ai_bn',      label: t('AI ১/২০১৩ বর্ধিত'),       editable: false },
+    { key: 'promo_date', label: t('প্রমোশনের তারিখ'),        editable: true },
+    { key: 'ai_bn',      label: t('AI ১/২০১৩ বর্ধিত'),       editable: true },
     { key: 'res_bn',     label: t('বাসস্থান অবস্থান'),        editable: true },
     { key: 'rt',         label: t('বাসস্থান মেয়াদ'),          editable: true },
-    { key: 'rec',        label: t('সুপারিশ'),                editable: false },
+    { key: 'rec',        label: t('সুপারিশ'),                editable: true },
     { key: 'pu',         label: t('পূর্বের ইউনিট'),          editable: true,  type: 'textarea' },
-    { key: 'li',         label: t('লাইসেন্স'),               editable: true, type: 'select', opts: VEHICLES },
+    { key: 'li',         label: t('লাইসেন্স'),               editable: true,  type: 'select', opts: VEHICLES },
     { key: 'pn',         label: t('সাজা'),                   editable: true },
-    { key: 'pd',         label: t('পেনশন তারিখ'),            editable: false },
+    { key: 'pd',         label: t('পেনশন তারিখ'),            editable: true },
   ];
   renderFields('militaryFields', militaryDef);
   _lastMilitaryDef = militaryDef;
@@ -3120,6 +3209,17 @@ function renderFields(containerId, fields) {
     let raw;
     if (f.key === 'rec') {
       raw = computedRec;
+    } else if (f.key === 'ad') {
+      // ঠিকানা — cascade fields থেকে সুন্দর করে দেখাও
+      const parts = [
+        m.house    ? `🏠 ${m.house}` : '',
+        m.village  ? `🏘️ ${m.village}` : '',
+        m.union    ? m.union : '',
+        m.upazila  ? m.upazila : '',
+        m.di_bn    ? m.di_bn : (m.di_en || ''),
+        m.division ? m.division : '',
+      ].filter(Boolean);
+      raw = parts.length ? parts.join(', ') : (m.ad || '');
     } else if (appLang === 'en' && _EN_MAP[f.key]) {
       raw = m[_EN_MAP[f.key]] || m[f.key] || '';
     } else {
@@ -3129,11 +3229,15 @@ function renderFields(containerId, fields) {
     const val = rawDisplay || '—';
     let editBtn = '';
     if (f.editable) {
+    if (f.editable) {
       if (f.type === 'promotion') {
         editBtn = `<button class="field-edit-btn" onclick="openEdit('${f.key}','${f.label}','promotion','')" title="পদোন্নতি আবেদন করুন">⭐</button>`;
+      } else if (f.type === 'address') {
+        editBtn = `<button class="field-edit-btn" onclick="openAddressEdit()" title="ঠিকানা সম্পাদনা">✏️</button>`;
       } else {
         editBtn = `<button class="field-edit-btn" onclick="openEdit('${f.key}','${f.label}','${f.type||'text'}','${(f.opts||[]).join(',')}')" title="${f.label} সম্পাদনা">✏️</button>`;
       }
+    }
     }
 
     // তারিখ fields এ বছর/মাস/দিন সাবটেক্সট
@@ -3183,6 +3287,76 @@ async function saveModal() {
   const btn = document.getElementById('modalSaveBtn');
   btn.textContent = 'সংরক্ষণ হচ্ছে...';
   btn.disabled = true;
+
+  // ── স্থায়ী ঠিকানা cascade save ──
+  if (currentEditField.key === '_address') {
+    const g = id => document.getElementById(id)?.value?.trim() || '';
+    const division = g('ea_division');
+    const di       = g('ea_di');
+    const upz      = g('ea_upz');
+    const upu      = g('ea_upu');
+    const village  = g('ea_village');
+    const house    = g('ea_house');
+
+    if (!di) {
+      showToast('অন্তত জেলা নির্বাচন করুন', 'error');
+      btn.textContent = 'সংরক্ষণ করুন'; btn.disabled = false; return;
+    }
+
+    const adParts = [house, village, upu, upz, di, division].filter(Boolean);
+    const adStr   = adParts.join(', ');
+
+    const docId = currentMemberData.id || String(currentMemberData.no || currentMemberData.armyNo || '').replace(/[^A-Z0-9]/gi, '');
+    const oldAd = currentMemberData.ad || '';
+    const isFirstTime = !oldAd || oldAd.trim() === '';
+    const isAdmin = userRole === 'admin' || userRole === 'superadmin';
+
+    const updateData = {
+      ad: adStr, di_bn: di, di_en: di,
+      division, upazila: upz, union: upu, village, house,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      updatedBy: currentUser.uid,
+    };
+    Object.keys(updateData).forEach(k => { if (!updateData[k]) delete updateData[k]; });
+
+    if (isAdmin || isFirstTime) {
+      // সরাসরি save
+      try {
+        const ref  = db.collection('members').doc(docId);
+        const snap = await ref.get();
+        if (snap.exists) { await ref.update(updateData); }
+        else { await ref.set({ ...updateData, no: currentMemberData.no || currentMemberData.armyNo }, { merge: true }); }
+        Object.assign(currentMemberData, updateData);
+        closeModal();
+        renderProfile();
+        showToast('✅ ঠিকানা সংরক্ষণ হয়েছে', 'success');
+      } catch(e) { showToast('সংরক্ষণ ব্যর্থ: ' + (e.code || e.message), 'error'); }
+    } else {
+      // Admin অনুমোদন লাগবে
+      try {
+        await db.collection('editRequests').add({
+          memberId: docId,
+          memberNo: currentMemberData.no || currentMemberData.armyNo,
+          memberName: currentMemberData.bn || currentMemberData.en || '',
+          memberCompany: currentMemberData.co_bn || '',
+          field: 'ad',
+          fieldLabel: 'স্থায়ী ঠিকানা',
+          oldValue: oldAd,
+          newValue: adStr,
+          extraData: { division, di_bn: di, upazila: upz, union: upu, village, house },
+          requestedBy: currentUser.uid,
+          status: 'pending',
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+        _pendingFieldMap['ad']   = adStr;
+        _pendingFieldMap['di_bn'] = di;
+        closeModal();
+        showToast('⏳ ঠিকানা পরিবর্তনের আবেদন জমা হয়েছে — Admin অনুমোদনের অপেক্ষায়', 'success');
+        checkPendingStatus();
+      } catch(e) { showToast('আবেদন ব্যর্থ: ' + (e.code || e.message), 'error'); }
+    }
+    btn.textContent = 'সংরক্ষণ করুন'; btn.disabled = false; return;
+  }
 
   // ── পদোন্নতি আবেদন ──
   if (currentEditField.key === '_promotion') {
@@ -3479,25 +3653,21 @@ async function saveModal() {
 
   const docId = currentMemberData.id || String(currentMemberData.no || currentMemberData.armyNo || '').replace(/[^A-Z0-9]/gi,'');
 
-  // ══ Admin/Super Admin → members collection এ সরাসরি save (কোনো অনুমোদন লাগবে না) ══
+  // ══ Admin/Super Admin → সরাসরি save, কোনো অনুমোদন লাগবে না ══
   if (userRole === 'admin' || userRole === 'superadmin') {
     try {
-      const adminDocId = currentMemberData.id ||
-        String(currentMemberData.no || currentMemberData.armyNo || '').replace(/[^A-Z0-9]/gi, '');
-
+      const adminDocId = docId;
       const updateData = {
         [currentEditField.key]: newVal,
         updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
         updatedBy: currentUser.uid,
       };
-      // সংশ্লিষ্ট English field স্বয়ংক্রিয়ভাবে sync করো
       if (currentEditField.key === 'r_bn')  updateData.r_en  = newVal;
       if (currentEditField.key === 'tr_bn') updateData.tr_en = newVal;
       if (currentEditField.key === 'di_bn') updateData.di_en = newVal;
       if (currentEditField.key === 'co_bn') updateData.co_en = newVal;
       if (currentEditField.key === 'ma_bn') updateData.ma_en = newVal;
 
-      // ১. members collection এ save (ওয়েবসাইটের সাথে sync)
       if (adminDocId) {
         const memberRef = db.collection('members').doc(adminDocId);
         const memberSnap = await memberRef.get();
@@ -3507,15 +3677,65 @@ async function saveModal() {
           await memberRef.set({ ...updateData, no: currentMemberData.no || currentMemberData.armyNo }, { merge: true });
         }
       }
-
-      // ২. adminProfiles এ backup রাখো
       await db.collection('adminProfiles').doc(currentUser.uid).set({
         [currentEditField.key]: newVal,
-        armyNo:    currentMemberData.armyNo || currentMemberData.no,
+        armyNo: currentMemberData.armyNo || currentMemberData.no,
         updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
       }, { merge: true });
 
-      // ৩. নাম হলে users collection ও UI আপডেট করো
+      if (['bn', 'en'].includes(currentEditField.key)) {
+        await db.collection('users').doc(currentUser.uid).update({ name: newVal });
+        document.getElementById('topbarName').textContent  = newVal;
+        document.getElementById('profileName').textContent = newVal;
+      }
+      if (currentEditField.key === 'r_bn') {
+        document.getElementById('profileRank').textContent = newVal;
+      }
+      currentMemberData[currentEditField.key] = newVal;
+      const el = document.getElementById('fv-' + currentEditField.key);
+      if (el) el.textContent = newVal;
+      closeModal();
+      showToast('✅ তথ্য স্থায়ীভাবে সংরক্ষণ হয়েছে', 'success');
+    } catch(e) {
+      console.error('Admin save error:', e);
+      showToast('আপডেট ব্যর্থ: ' + (e.code || e.message), 'error');
+    }
+    btn.textContent = 'সংরক্ষণ করুন'; btn.disabled = false; return;
+  }
+
+  // ══ সাধারণ Member ══
+  // সেনা নম্বর ও জন্ম তারিখ — শুধু Admin পরিবর্তন করতে পারবে
+  const LOCKED_FIELDS = ['no', 'dob'];
+  if (LOCKED_FIELDS.includes(currentEditField.key)) {
+    showToast('⛔ সেনা নম্বর ও জন্ম তারিখ শুধুমাত্র Admin পরিবর্তন করতে পারবেন।', 'error');
+    btn.textContent = 'সংরক্ষণ করুন'; btn.disabled = false; return;
+  }
+
+  const oldVal = currentMemberData[currentEditField.key] || '';
+  const isFirstTime = !oldVal || oldVal.trim() === '' || oldVal === '—';
+
+  // ══ প্রথমবার (ফিল্ড খালি) → সরাসরি save ══
+  if (isFirstTime) {
+    try {
+      const updateData = {
+        [currentEditField.key]: newVal,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        updatedBy: currentUser.uid,
+      };
+      if (currentEditField.key === 'r_bn')  updateData.r_en  = newVal;
+      if (currentEditField.key === 'tr_bn') updateData.tr_en = newVal;
+      if (currentEditField.key === 'di_bn') updateData.di_en = newVal;
+      if (currentEditField.key === 'co_bn') updateData.co_en = newVal;
+      if (currentEditField.key === 'ma_bn') updateData.ma_en = newVal;
+
+      const memberRef = db.collection('members').doc(docId);
+      const memberSnap = await memberRef.get();
+      if (memberSnap.exists) {
+        await memberRef.update(updateData);
+      } else {
+        await memberRef.set({ ...updateData, no: currentMemberData.no || currentMemberData.armyNo }, { merge: true });
+      }
+
       if (['bn', 'en'].includes(currentEditField.key)) {
         await db.collection('users').doc(currentUser.uid).update({ name: newVal });
         document.getElementById('topbarName').textContent  = newVal;
@@ -3525,20 +3745,19 @@ async function saveModal() {
         document.getElementById('profileRank').textContent = newVal;
       }
 
-      // ৪. Local data ও UI তাৎক্ষণিক আপডেট
       currentMemberData[currentEditField.key] = newVal;
       const el = document.getElementById('fv-' + currentEditField.key);
       if (el) el.textContent = newVal;
       closeModal();
-      showToast('✅ তথ্য স্থায়ীভাবে সংরক্ষণ হয়েছে', 'success');
-
+      showToast('✅ তথ্য সংরক্ষণ হয়েছে', 'success');
     } catch(e) {
-      console.error('Admin save error:', e);
-      showToast('আপডেট ব্যর্থ: ' + (e.code || e.message), 'error');
+      console.error('First save error:', e);
+      showToast('সংরক্ষণ ব্যর্থ: ' + (e.code || e.message), 'error');
     }
     btn.textContent = 'সংরক্ষণ করুন'; btn.disabled = false; return;
   }
 
+  // ══ দ্বিতীয়বার বা পরবর্তীতে → Admin অনুমোদন লাগবে ══
   try {
     await db.collection('editRequests').add({
       memberId: docId,
@@ -3547,24 +3766,22 @@ async function saveModal() {
       memberCompany: currentMemberData.co_bn || currentMemberData.co_en || '',
       field: currentEditField.key,
       fieldLabel: currentEditField.label,
-      oldValue: currentMemberData[currentEditField.key] || '',
+      oldValue: oldVal,
       newValue: newVal,
       requestedBy: currentUser.uid,
       status: 'pending',
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
     });
-    // pending map এ যোগ করো — UI তে সাথে সাথে দেখাবে
     _pendingFieldMap[currentEditField.key] = newVal;
     closeModal();
-    showToast('⏳ জমা হয়েছে — Admin অনুমোদনের অপেক্ষায়', 'success');
+    showToast('⏳ সংশোধন আবেদন জমা হয়েছে — Admin অনুমোদনের অপেক্ষায়', 'success');
     checkPendingStatus();
-    // সব section re-render করো — pending badge দেখাবে
-    renderFields('personalFields',  _lastPersonalDef   || []);
-    renderFields('militaryFields',  _lastMilitaryDef   || []);
-    renderFields('familyFields',    _lastFamilyDef     || []);
+    renderFields('personalFields', _lastPersonalDef || []);
+    renderFields('militaryFields', _lastMilitaryDef || []);
+    renderFields('familyFields',   _lastFamilyDef   || []);
   } catch(e) {
     console.error(e);
-    showToast('সংরক্ষণ ব্যর্থ: ' + e.message, 'error');
+    showToast('আবেদন ব্যর্থ: ' + e.message, 'error');
   }
   btn.textContent = 'সংরক্ষণ করুন';
   btn.disabled = false;
@@ -3572,6 +3789,10 @@ async function saveModal() {
 
 function closeModal() {
   document.getElementById('editModal').classList.remove('open');
+  // Admin address edit হলে restore করো
+  if (typeof window._adminAddrClose === 'function') {
+    window._adminAddrClose();
+  }
   currentEditField = null;
 }
 
@@ -5847,7 +6068,7 @@ function renderAdminFields() {
     { key: 'nm',    label: 'NID মোবাইল' },
     { key: 'wa',    label: 'হোয়াটসঅ্যাপ' },
     { key: 'em',    label: 'জরুরি যোগাযোগ' },
-    { key: 'ad',    label: 'স্থায়ী ঠিকানা',   type: 'textarea' },
+    { key: 'ad',    label: 'স্থায়ী ঠিকানা',   type: 'address' },
     { key: 'di_bn', label: 'জেলা' },
     { key: 'ed_bn', label: 'শিক্ষাগত যোগ্যতা' },
   ];
@@ -5899,7 +6120,19 @@ function buildAdminFieldsHTML(fields) {
   return fields.map(f => {
     const val = m[f.key] || '';
     let input;
-    if (f.type === 'select') {
+    if (f.type === 'address') {
+      // cascade address — বর্তমান ঠিকানা দেখাও + বাটন দিয়ে modal খোলো
+      const parts = [m.house, m.village, m.union, m.upazila, m.di_bn||m.di_en, m.division].filter(Boolean);
+      const displayAddr = parts.length ? parts.join(', ') : (val || '—');
+      input = `<div style="flex:1;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <span style="font-size:0.82rem;color:var(--text);flex:1">${displayAddr}</span>
+        <button class="btn-admin-save" onclick="openAdminAddressEdit()" style="white-space:nowrap">✏️ সম্পাদনা</button>
+      </div>`;
+      return `<div class="admin-field-row">
+        <span style="font-family:'Rajdhani',sans-serif;font-size:0.7rem;letter-spacing:1px;color:var(--text2);min-width:120px;flex-shrink:0">${f.label}</span>
+        ${input}
+      </div>`;
+    } else if (f.type === 'select') {
       input = `<select class="admin-field-input" id="afield_${f.key}" style="background:var(--dark3)">
         ${f.opts.map(o => `<option value="${o}" ${val===o?'selected':''}>${o}</option>`).join('')}
       </select>`;
@@ -5915,6 +6148,23 @@ function buildAdminFieldsHTML(fields) {
     </div>`;
   }).join('');
 }
+
+// Admin panel এ address edit — adminSelectedMember কে currentMemberData হিসেবে ব্যবহার করে
+function openAdminAddressEdit() {
+  // adminSelectedMember কে temporarily currentMemberData তে রেখে modal খোলো
+  const _backup = currentMemberData;
+  currentMemberData = adminSelectedMember;
+  openAddressEdit();
+  // modal close হলে restore করো
+  const origClose = window._adminAddrClose;
+  window._adminAddrClose = () => {
+    adminSelectedMember = currentMemberData;
+    currentMemberData = _backup;
+    renderAdminFields();
+    window._adminAddrClose = origClose;
+  };
+}
+
 
 function renderAdminCourseFields() {
   const m = adminSelectedMember;
@@ -7262,11 +7512,10 @@ function isFieldLocked(key) {
 }
 
 function openEdit(key, label, type = 'text', optsStr = '') {
-  // পদবী — promotion special flow
-  if (type === 'promotion') {
-    openPromotionEdit();
-    return;
-  }
+  if (type === 'promotion') { openPromotionEdit(); return; }
+
+  // স্থায়ী ঠিকানা — cascade address modal
+  if (key === 'ad' || key === 'di_bn') { openAddressEdit(); return; }
 
   currentEditField = { key, label, type, opts: optsStr ? optsStr.split(',') : [] };
   document.getElementById('modalTitle').textContent = label + ' সম্পাদনা';
@@ -7283,7 +7532,12 @@ function openEdit(key, label, type = 'text', optsStr = '') {
     input = `<input type="text" class="form-input" id="editInput" value="${val}" placeholder="${label} লিখুন">`;
   }
 
-  const lockNote = `<div style="font-size:0.78rem;color:var(--text2);margin-top:8px">ℹ️ এই পরিবর্তন Admin এর অনুমোদনের পরে কার্যকর হবে।</div>`;
+  const oldVal = currentMemberData[key] || '';
+  const isFirstTime = !oldVal || oldVal.trim() === '';
+  const isAdmin = userRole === 'admin' || userRole === 'superadmin';
+  const lockNote = isAdmin ? '' : isFirstTime
+    ? `<div style="font-size:0.78rem;color:rgba(63,185,80,0.9);margin-top:8px;background:rgba(63,185,80,0.08);border:1px solid rgba(63,185,80,0.25);border-radius:7px;padding:7px 10px">✅ প্রথমবার এন্ট্রি — সরাসরি সংরক্ষণ হবে।</div>`
+    : `<div style="font-size:0.78rem;color:var(--warn);margin-top:8px;background:rgba(210,153,34,0.08);border:1px solid rgba(210,153,34,0.25);border-radius:7px;padding:7px 10px">⏳ পরিবর্তন Admin অনুমোদনের পরে কার্যকর হবে।</div>`;
 
   document.getElementById('modalBody').innerHTML = `
     <div class="form-group">
@@ -7293,6 +7547,149 @@ function openEdit(key, label, type = 'text', optsStr = '') {
     ${lockNote}
   `;
   document.getElementById('editModal').classList.add('open');
+}
+
+/* ══════════════════════════════════════════
+   CASCADE ADDRESS EDIT MODAL
+══════════════════════════════════════════ */
+function openAddressEdit() {
+  const m      = currentMemberData;
+  const oldDiv = m.division || '';
+  const oldDi  = m.di_bn || m.di_en || '';
+  const oldUpz = m.upazila || '';
+  const oldUpu = m.union   || '';
+  const oldVil = m.village || '';
+  const oldHs  = m.house   || '';
+  const oldAd  = m.ad || '';
+  const isFirstTime = !oldAd && !oldDi;
+  const isAdmin = userRole === 'admin' || userRole === 'superadmin';
+
+  currentEditField = { key: '_address', label: 'স্থায়ী ঠিকানা' };
+  document.getElementById('modalTitle').textContent = '📍 স্থায়ী ঠিকানা সম্পাদনা';
+
+  const divOpts = '<option value="">— বিভাগ নির্বাচন করুন —</option>' +
+    Object.keys(BD_ADDRESS).map(d =>
+      `<option value="${d}" ${d === oldDiv ? 'selected' : ''}>${d}</option>`
+    ).join('');
+
+  let distOpts = '<option value="">— জেলা নির্বাচন করুন —</option>';
+  if (oldDiv && BD_ADDRESS[oldDiv]) {
+    distOpts += Object.keys(BD_ADDRESS[oldDiv]).map(d =>
+      `<option value="${d}" ${d === oldDi ? 'selected' : ''}>${d}</option>`
+    ).join('');
+  }
+
+  let upzOpts = '<option value="">— থানা নির্বাচন করুন —</option>';
+  if (oldDiv && oldDi && BD_ADDRESS[oldDiv]?.[oldDi]) {
+    upzOpts += Object.keys(BD_ADDRESS[oldDiv][oldDi]).map(u =>
+      `<option value="${u}" ${u === oldUpz ? 'selected' : ''}>${u}</option>`
+    ).join('');
+  }
+
+  let upuOpts = '<option value="">— ইউনিয়ন নির্বাচন করুন —</option>';
+  if (oldDiv && oldDi && oldUpz && BD_ADDRESS[oldDiv]?.[oldDi]?.[oldUpz]) {
+    upuOpts += BD_ADDRESS[oldDiv][oldDi][oldUpz].map(u =>
+      `<option value="${u}" ${u === oldUpu ? 'selected' : ''}>${u}</option>`
+    ).join('');
+  }
+
+  const lockNote = isAdmin ? '' : isFirstTime
+    ? `<div style="font-size:0.78rem;color:rgba(63,185,80,0.9);margin-top:10px;background:rgba(63,185,80,0.08);border:1px solid rgba(63,185,80,0.25);border-radius:7px;padding:7px 10px">✅ প্রথমবার এন্ট্রি — সরাসরি সংরক্ষণ হবে।</div>`
+    : `<div style="font-size:0.78rem;color:var(--warn);margin-top:10px;background:rgba(210,153,34,0.08);border:1px solid rgba(210,153,34,0.25);border-radius:7px;padding:7px 10px">⏳ পরিবর্তন Admin অনুমোদনের পরে কার্যকর হবে।</div>`;
+
+  document.getElementById('modalBody').innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div class="form-group">
+        <label class="form-label">বিভাগ</label>
+        <select class="form-input" id="ea_division" style="background:var(--dark3)" onchange="editAddrUpdateDistrict()">${divOpts}</select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">জেলা</label>
+        <select class="form-input" id="ea_di" style="background:var(--dark3)" onchange="editAddrUpdateUpazila()" ${!oldDiv ? 'disabled' : ''}>${distOpts}</select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">থানা / উপজেলা</label>
+        <select class="form-input" id="ea_upz" style="background:var(--dark3)" onchange="editAddrUpdateUnion()" ${!oldDi ? 'disabled' : ''}>${upzOpts}</select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">ইউনিয়ন / পৌরসভা</label>
+        <select class="form-input" id="ea_upu" style="background:var(--dark3)" ${!oldUpz ? 'disabled' : ''}>${upuOpts}</select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">গ্রাম / ওয়ার্ড / মহল্লা</label>
+        <input type="text" class="form-input" id="ea_village" value="${oldVil}" placeholder="গ্রাম বা ওয়ার্ড এর নাম">
+      </div>
+      <div class="form-group">
+        <label class="form-label">বাড়ি / হোল্ডিং নম্বর (ঐচ্ছিক)</label>
+        <input type="text" class="form-input" id="ea_house" value="${oldHs}" placeholder="বাড়ি নম্বর">
+      </div>
+      <div id="ea_preview" style="font-size:0.78rem;color:var(--text2);background:var(--bg3);border-radius:8px;padding:8px 12px;line-height:1.8;${oldAd ? '' : 'display:none'}">
+        📍 ${oldAd}
+      </div>
+    </div>
+    ${lockNote}
+  `;
+
+  setTimeout(() => {
+    ['ea_division','ea_di','ea_upz','ea_upu','ea_village','ea_house'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) { el.addEventListener('change', editAddrPreview); el.addEventListener('input', editAddrPreview); }
+    });
+  }, 80);
+
+  document.getElementById('editModal').classList.add('open');
+}
+
+function editAddrUpdateDistrict() {
+  const div = document.getElementById('ea_division')?.value || '';
+  const diSel  = document.getElementById('ea_di');
+  const upzSel = document.getElementById('ea_upz');
+  const upuSel = document.getElementById('ea_upu');
+  diSel.innerHTML  = '<option value="">— জেলা নির্বাচন করুন —</option>';
+  upzSel.innerHTML = '<option value="">— থানা নির্বাচন করুন —</option>';
+  upuSel.innerHTML = '<option value="">— ইউনিয়ন নির্বাচন করুন —</option>';
+  diSel.disabled = !div; upzSel.disabled = true; upuSel.disabled = true;
+  if (div && BD_ADDRESS[div]) {
+    Object.keys(BD_ADDRESS[div]).forEach(d => { diSel.innerHTML += `<option value="${d}">${d}</option>`; });
+    diSel.disabled = false;
+  }
+  editAddrPreview();
+}
+
+function editAddrUpdateUpazila() {
+  const div = document.getElementById('ea_division')?.value || '';
+  const di  = document.getElementById('ea_di')?.value || '';
+  const upzSel = document.getElementById('ea_upz');
+  const upuSel = document.getElementById('ea_upu');
+  upzSel.innerHTML = '<option value="">— থানা নির্বাচন করুন —</option>';
+  upuSel.innerHTML = '<option value="">— ইউনিয়ন নির্বাচন করুন —</option>';
+  upzSel.disabled = !di; upuSel.disabled = true;
+  if (div && di && BD_ADDRESS[div]?.[di]) {
+    Object.keys(BD_ADDRESS[div][di]).forEach(u => { upzSel.innerHTML += `<option value="${u}">${u}</option>`; });
+    upzSel.disabled = false;
+  }
+  editAddrPreview();
+}
+
+function editAddrUpdateUnion() {
+  const div = document.getElementById('ea_division')?.value || '';
+  const di  = document.getElementById('ea_di')?.value || '';
+  const upz = document.getElementById('ea_upz')?.value || '';
+  const upuSel = document.getElementById('ea_upu');
+  upuSel.innerHTML = '<option value="">— ইউনিয়ন নির্বাচন করুন —</option>';
+  upuSel.disabled = !upz;
+  if (div && di && upz && BD_ADDRESS[div]?.[di]?.[upz]) {
+    BD_ADDRESS[div][di][upz].forEach(u => { upuSel.innerHTML += `<option value="${u}">${u}</option>`; });
+    upuSel.disabled = false;
+  }
+  editAddrPreview();
+}
+
+function editAddrPreview() {
+  const g = id => document.getElementById(id)?.value?.trim() || '';
+  const parts = [g('ea_house'), g('ea_village'), g('ea_upu'), g('ea_upz'), g('ea_di'), g('ea_division')].filter(Boolean);
+  const prev = document.getElementById('ea_preview');
+  if (prev) { prev.style.display = parts.length ? 'block' : 'none'; if (parts.length) prev.innerHTML = '📍 ' + parts.join(', '); }
 }
 
 function _markFieldSelfEdited(key) {
