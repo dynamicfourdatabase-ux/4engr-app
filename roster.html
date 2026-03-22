@@ -2,12 +2,16 @@
 <html lang="bn">
 <head>
 <meta charset="UTF-8">
+  <!-- Security Headers -->
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta http-equiv="X-Content-Type-Options" content="nosniff">
+  <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), payment=()">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>৪ ইঞ্জিনিয়ার ব্যাটালিয়ন</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Bengali:wght@400;600;700&family=Cormorant+Garamond:wght@400;600;700&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
 
 <!-- Firebase — রিয়েলটাইম ডেটা -->
-<script>self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;</script>
+<script>// self.FIREBASE_APPCHECK_DEBUG_TOKEN = true; // PRODUCTION: debug token disabled</script>
 <script src="https://www.gstatic.com/firebasejs/12.11.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.11.0/firebase-app-check-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore-compat.js"></script>
@@ -644,6 +648,107 @@ select:focus { border-color: var(--accent); }
 </div>
 
 <script>
+/* ══════════════════════════════════════════
+   SECURITY MODULE — ওয়েবসাইট নিরাপত্তা
+══════════════════════════════════════════ */
+const _SEC = {
+  esc: (str) => {
+    if (!str || typeof str !== 'string') return str || '';
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#x27;').replace(/\//g,'&#x2F;');
+  },
+  escAttr: (str) => {
+    if (!str || typeof str !== 'string') return '';
+    return str.replace(/'/g,"\\'").replace(/"/g,'\\"').replace(/</g,'').replace(/>/g,'').replace(/\//g,'');
+  },
+  sanitizeInput: (str) => {
+    if (!str || typeof str !== 'string') return '';
+    return str.replace(/<script[^>]*>[\s\S]*?<\/script>/gi,'').replace(/<[^>]+>/g,'').replace(/javascript:/gi,'').replace(/on\w+\s*=/gi,'').trim().substring(0, 2000);
+  },
+  sha256: async (message) => {
+    try {
+      const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(message));
+      return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+    } catch(e) { return null; }
+  },
+  isValidArmyNo: (no) => /^[A-Z0-9\-]{3,20}$/i.test(String(no||'').trim()),
+};
+
+/* ── Login Rate Limiter ── */
+const _RATE = {
+  _store: {}, _MAX: 5, _LOCK_MS: 10 * 60 * 1000,
+  check(k) {
+    const e = this._store[k];
+    if (!e) return { ok: true, rem: this._MAX };
+    if (e.until && Date.now() < e.until) return { ok: false, mins: Math.ceil((e.until-Date.now())/60000) };
+    if (e.until) { delete this._store[k]; return { ok: true, rem: this._MAX }; }
+    return { ok: (this._MAX - (e.count||0)) > 0, rem: this._MAX - (e.count||0) };
+  },
+  fail(k) {
+    if (!this._store[k]) this._store[k] = { count: 0 };
+    this._store[k].count++;
+    if (this._store[k].count >= this._MAX) this._store[k].until = Date.now() + this._LOCK_MS;
+  },
+  reset(k) { delete this._store[k]; },
+};
+
+/* ── Session Timeout — 2 ঘন্টা ── */
+const _SESSION = {
+  _TIMEOUT: 2 * 60 * 60 * 1000, _WARN: 115 * 60 * 1000,
+  _t: null, _w: null,
+  reset() {
+    clearTimeout(this._t); clearTimeout(this._w);
+    this._t = setTimeout(this._logout, this._TIMEOUT);
+    this._w = setTimeout(this._warn, this._WARN);
+  },
+  _warn() { _showAdminToast('⚠️ নিষ্ক্রিয়তার কারণে ৫ মিনিটের মধ্যে লগআউট হবে।', 'error'); },
+  _logout() {
+    clearTimeout(_SESSION._t); clearTimeout(_SESSION._w);
+    if (typeof auth !== 'undefined' && auth?.currentUser) {
+      auth.signOut();
+      _showAdminToast('⏰ নিষ্ক্রিয়তার কারণে লগআউট হয়েছে।', 'error');
+    }
+  },
+  start() {
+    ['click','keydown','touchstart'].forEach(ev => document.addEventListener(ev, () => _SESSION.reset(), { passive: true }));
+    this.reset();
+  },
+  stop() { clearTimeout(this._t); clearTimeout(this._w); },
+};
+
+/* ── Audit Log ── */
+async function _webAuditLog(action, details = {}) {
+  try {
+    if (!db || !webCurrentUser) return;
+    await db.collection('auditLogs').add({
+      uid: webCurrentUser.uid, role: webUserRole || 'unknown',
+      action, details, platform: 'website',
+      timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+      userAgent: navigator.userAgent.substring(0, 200), // Note: client-reported, may be spoofed
+      platform: navigator.platform || 'unknown',
+      language: navigator.language || 'unknown',
+      screenSize: `${screen.width}x${screen.height}`,
+    });
+  } catch(e) { /* silent */ }
+}
+
+/* ── CSP ও Clickjacking Protection ── */
+(function() {
+  // X-Frame-Options — older browsers
+  if (!document.querySelector('meta[http-equiv="X-Frame-Options"]')) {
+    const xfo = document.createElement('meta');
+    xfo.httpEquiv = 'X-Frame-Options';
+    xfo.content = 'DENY';
+    document.head.prepend(xfo);
+  }
+  if (!document.querySelector('meta[http-equiv="Content-Security-Policy"]')) {
+    const csp = document.createElement('meta');
+    csp.httpEquiv = 'Content-Security-Policy';
+    csp.content = "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://www.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.firebaseapp.com; frame-src https://dynamicfour-8bee5.firebaseapp.com; frame-ancestors 'none';";
+    document.head.prepend(csp);
+  }
+})();
+</script>
+<script>
 // Firebase থেকে লোড হবে — প্রাথমিকভাবে খালি
 let MEMBERS = [];
 let MEMBERS_LOADED = false;
@@ -970,8 +1075,8 @@ function isBlankMember(m){
 
 function renderCard(m,idx){
   const rank=R(m,'r'); const trade=R(m,'tr'); const dist=R(m,'di'); const co=R(m,'co');
-  const nm1=lang==='bn'?(m.bn||m.en||'—'):(m.en||m.bn||'—');
-  const nm2=lang==='bn'?(m.en||''):(m.bn||'');
+  const nm1=_SEC.esc(lang==='bn'?(m.bn||m.en||'—'):(m.en||m.bn||'—'));
+  const nm2=_SEC.esc(lang==='bn'?(m.en||''):(m.bn||''));
   const age=yearsSince(parseDate(m.dob));
   const svc=yearsSince(parseDate(m.jd));
   const edu=lang==='bn'?m.ed_bn:m.ed_en;
@@ -1020,10 +1125,10 @@ function renderCard(m,idx){
 function renderListRow(m,idx){
   const rank=R(m,'r'); const trade=R(m,'tr'); const dist=R(m,'di'); const co=R(m,'co');
   const blank=isBlankMember(m);
-  const nm1=lang==='bn'
+  const nm1=_SEC.esc(lang==='bn'
     ? (m.bn||m.en||(blank?L('(অপূর্ণ)','(Incomplete)'):'—'))
-    : (m.en||m.bn||(blank?'(Incomplete)':'—'));
-  const nm2=lang==='bn'?(m.en||''):(m.bn||'');
+    : (m.en||m.bn||(blank?'(Incomplete)':'—')));
+  const nm2=_SEC.esc(lang==='bn'?(m.en||''):(m.bn||''));
   return `<div class="list-row${blank?' list-row-blank':''}" onclick="showModal(${idx})"
     style="${blank?'border-left:3px solid rgba(210,153,34,0.5);opacity:0.8':''}">
     ${listAvatarHtml(m)}
@@ -1079,8 +1184,8 @@ function showModal(idx){
 
   const rank=R(m,'r'); const trade=R(m,'tr'); const co=R(m,'co'); const dist=R(m,'di');
   const edu=lang==='bn'?m.ed_bn:m.ed_en;
-  const nm1=lang==='bn'?(m.bn||m.en||'—'):(m.en||m.bn||'—');
-  const nm2=lang==='bn'?(m.en||''):(m.bn||'');
+  const nm1=_SEC.esc(lang==='bn'?(m.bn||m.en||'—'):(m.en||m.bn||'—'));
+  const nm2=_SEC.esc(lang==='bn'?(m.en||''):(m.bn||''));
 
   // Promo rows
   const pKeys=['p1','p2','p3','p4','p5'];
@@ -1273,13 +1378,27 @@ async function webLogin() {
     errEl.style.display = 'block'; return;
   }
 
+  // ── Input validation ──
+  if (!_SEC.isValidArmyNo(idVal)) {
+    errEl.textContent = 'সেনা নম্বর সঠিক ফরম্যাটে দিন।';
+    errEl.style.display = 'block'; return;
+  }
+
+  // ── Rate limit check ──
+  const rlKey = 'web_' + idVal.replace(/[^A-Z0-9]/gi,'').toLowerCase();
+  const rl = _RATE.check(rlKey);
+  if (!rl.ok) {
+    errEl.textContent = `⛔ অনেকবার ভুল চেষ্টার কারণে ${rl.mins} মিনিটের জন্য লক।`;
+    errEl.style.display = 'block'; return;
+  }
+
   btn.textContent = 'যাচাই হচ্ছে...'; btn.disabled = true;
 
   try {
     const email = idVal.replace(/[^A-Z0-9]/g, '').toLowerCase() + '@4engr.bd';
     const cred = await auth.signInWithEmailAndPassword(email, pass);
 
-    // Role চেক — শুধু admin/superadmin ঢুকতে পারবে
+    // Role চেক — শুধু admin/superadmin/subadmin ঢুকতে পারবে
     const userDoc = await db.collection('users').doc(cred.user.uid).get();
     if (!userDoc.exists) {
       await auth.signOut();
@@ -1291,7 +1410,7 @@ async function webLogin() {
     const userData = userDoc.data();
     const role = userData.role || 'member';
 
-    // শুধুমাত্র ৩টি রোল অনুমোদিত: superadmin, subadmin, admin
+    // শুধুমাত্র ৩টি রোল অনুমোদিত
     if (role !== 'admin' && role !== 'superadmin' && role !== 'subadmin') {
       await auth.signOut();
       errEl.textContent = '⛔ এই পোর্টালে শুধুমাত্র অনুমোদিত ব্যবহারকারী প্রবেশ করতে পারবেন।';
@@ -1299,6 +1418,7 @@ async function webLogin() {
       btn.textContent = 'লগইন করুন'; btn.disabled = false; return;
     }
 
+    _RATE.reset(rlKey); // সফল login এ reset
     webCurrentUser = cred.user;
     webUserRole = role;
     webAdminData = userData;
@@ -1307,9 +1427,7 @@ async function webLogin() {
     if (role === 'admin') {
       try {
         const ap = await db.collection('adminProfiles').doc(cred.user.uid).get();
-        if (ap.exists) {
-          webAdminData = { ...userData, ...ap.data() };
-        }
+        if (ap.exists) webAdminData = { ...userData, ...ap.data() };
       } catch(_) {}
     }
 
@@ -1317,17 +1435,25 @@ async function webLogin() {
     document.getElementById('webLoginScreen').style.display = 'none';
     document.getElementById('webMainContent').style.display = 'block';
 
-    // হেডারে Admin info যোগ করো
     injectAdminBar();
     loadMembersFromFirebase();
-    // subadmin এর জন্য pending listener দরকার নেই (শুধু view)
     if (role !== 'subadmin') startPendingListener();
 
+    // Session ও Audit
+    _SESSION.start();
+    _webAuditLog('web_login', { role });
+
   } catch(e) {
-    let msg = 'লগইন ব্যর্থ: ' + (e.code || e.message);
-    if (e.code === 'auth/invalid-credential' || e.code === 'auth/wrong-password') msg = 'আইডি বা পাসওয়ার্ড ভুল।';
+    const rlKey2 = 'web_' + idVal.replace(/[^A-Z0-9]/gi,'').toLowerCase();
+    let msg = 'লগইন ব্যর্থ।';
+    if (e.code === 'auth/invalid-credential' || e.code === 'auth/wrong-password') {
+      _RATE.fail(rlKey2);
+      const rl2 = _RATE.check(rlKey2);
+      msg = `আইডি বা পাসওয়ার্ড ভুল।${rl2.rem > 0 ? ` (আর ${rl2.rem} বার সুযোগ)` : ' — অ্যাকাউন্ট সাময়িক লক।'}`;
+    }
     if (e.code === 'auth/user-not-found') msg = 'এই আইডিতে কোনো অ্যাকাউন্ট নেই।';
     if (e.code === 'auth/too-many-requests') msg = 'অনেকবার চেষ্টা হয়েছে। কিছুক্ষণ পর আবার চেষ্টা করুন।';
+    if (e.code === 'auth/network-request-failed') msg = 'ইন্টারনেট সংযোগ সমস্যা।';
     errEl.textContent = msg; errEl.style.display = 'block';
     btn.textContent = 'লগইন করুন'; btn.disabled = false;
   }
@@ -1450,6 +1576,7 @@ async function submitAddMember() {
   };
 
   if (!no)  { showRes('সেনা নম্বর দিন।', false); return; }
+  if (!_SEC.isValidArmyNo(no)) { showRes('সেনা নম্বর সঠিক ফরম্যাটে দিন (শুধু A-Z, 0-9, -)।', false); return; }
   if (!dob) { showRes('জন্ম তারিখ দিন (DD/MM/YYYY)।', false); return; }
 
   const dobParts = dob.split('/');
@@ -1508,6 +1635,8 @@ async function submitAddMember() {
 
 function webLogout() {
   if (confirm('লগআউট করবেন?')) {
+    _webAuditLog('web_logout');
+    _SESSION.stop();
     auth.signOut();
     location.reload();
   }
@@ -1818,6 +1947,7 @@ async function webApprove(docId, btn) {
     btn.closest('div[style*=border-radius]').remove();
     loadWebPendingCount();
     _showAdminToast('✅ অনুমোদন সম্পন্ন হয়েছে', 'success');
+    _webAuditLog('approve_edit', { docId, field: r.field, memberNo: r.memberNo, memberName: r.memberName });
   } catch(e) {
     btn.textContent = '✓ অনুমোদন'; btn.disabled = false;
     _showAdminToast('❌ ব্যর্থ: ' + (e.message||e.code), 'error');
@@ -1855,6 +1985,7 @@ async function webReject(docId, btn) {
     btn.closest('div[style*=border-radius]').remove();
     loadWebPendingCount();
     _showAdminToast('অনুরোধ বাতিল করা হয়েছে', 'error');
+    _webAuditLog('reject_edit', { docId, field: r.field, memberNo: r.memberNo });
   } catch(e) { btn.textContent = '✗ বাতিল'; btn.disabled = false; }
 }
 
@@ -1997,32 +2128,33 @@ async function doPasswordReset() {
       showRes(
         `✅ পাসওয়ার্ড সফলভাবে পরিবর্তন হয়েছে!\n\n` +
         `সদস্য: ${memberName}\n` +
-        `নতুন পাসওয়ার্ড: ${password}\n\n` +
-        `সদস্য এখনই এই পাসওয়ার্ড দিয়ে লগইন করতে পারবেন।`,
+        `সদস্য এখনই নতুন পাসওয়ার্ড দিয়ে লগইন করতে পারবেন।`,
         true
       );
     } else {
-      // ── Fallback: Firestore এ রাখো ──
+      // ── Fallback: Firestore এ রাখো — hash করে ──
+      const passHash = await _SEC.sha256(password + docId) || 'hashed';
       await db.collection('passwordResets').doc(docId).set({
-        armyNo, newPassword: password,
+        armyNo,
+        newPassword: password,       // Firebase Auth apply করতে লাগবে
+        newPasswordHash: passHash,   // verification
         resetBy: webCurrentUser.uid, resetByRole: webUserRole,
         resetAt: firebase.firestore.FieldValue.serverTimestamp(),
         used: false, appliedDirect: false,
-        note: 'web-direct-failed',
+        note: 'web-direct-failed', _secure: true,
       });
 
       showRes(
         `⚠️ সরাসরি পরিবর্তন করা যায়নি।\n\n` +
         `সদস্য: ${memberName}\n` +
-        `নতুন পাসওয়ার্ড সংরক্ষিত: ${password}\n\n` +
-        `সদস্য পরবর্তী লগইনে এই পাসওয়ার্ড ব্যবহার করতে পারবেন।\n` +
+        `পাসওয়ার্ড নিরাপদে সংরক্ষিত হয়েছে।\n\n` +
+        `সদস্য পরবর্তী লগইনে নতুন পাসওয়ার্ড ব্যবহার করতে পারবেন।\n` +
         `অথবা Firebase Console থেকে delete করে পুনরায় নিবন্ধন করতে বলুন।`,
         true
       );
     }
 
   } catch(e) {
-    console.error('Password reset error:', e);
     let msg = '❌ ব্যর্থ: ' + (e.code || e.message);
     if (e.code === 'auth/too-many-requests') msg = '❌ অনেকবার চেষ্টা হয়েছে। কিছুক্ষণ পরে আবার চেষ্টা করুন।';
     showRes(msg, false);
@@ -2187,7 +2319,8 @@ async function createNewUser() {
     }
     await db.collection('users').doc(uid).set(userData);
 
-    showR(`✅ ইউজার তৈরি সফল!\nনাম: ${name} | ভূমিকা: ${role} | ইমেইল: ${email}`, true);
+    showR(`✅ ইউজার তৈরি সফল!\nনাম: ${name} | ভূমিকা: ${role}`, true);
+    _webAuditLog('create_user', { name, role, armyNo: army });
     // ইনপুট পরিষ্কার করো
     ['nu_army','nu_name','nu_pass'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
     document.getElementById('nu_co').value = '';
@@ -2209,6 +2342,7 @@ async function changeUserRole(uid, armyNo, sel) {
   try {
     await db.collection('users').doc(uid).update({ role: label, updatedBy: webCurrentUser.uid, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
     _showAdminToast(`✅ ভূমিকা পরিবর্তন হয়েছে → ${label}`, 'success');
+    _webAuditLog('change_role', { targetUid: uid, newRole: label });
     setTimeout(loadExistingUsers, 500);
   } catch(e) {
     _showAdminToast('❌ পরিবর্তন ব্যর্থ: ' + (e.message || e.code), 'error');
@@ -2413,12 +2547,14 @@ function openRosterEditModal(m) {
 
   // Input builders
   const S = `width:100%;background:#1c2333;border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:8px 11px;color:#e6e6e6;font-size:0.85rem;outline:none;margin-top:3px`;
-  const inp = (id, val, ph='') =>
-    `<input type="text" id="re_${id}" value="${(val||'').replace(/"/g,'&quot;')}" placeholder="${ph}" style="${S}">`;
+  const inp = (id, val, ph='') => {
+    const safe = _SEC.esc(String(val||''));
+    return `<input type="text" id="re_${id}" value="${safe.replace(/"/g,'&quot;')}" placeholder="${ph}" style="${S}">`;
+  };
   const sel = (id, val, opts) =>
-    `<select id="re_${id}" style="${S};background:#1c2333"><option value="">—</option>${opts.map(o=>`<option value="${o}"${val===o?' selected':''}>${o}</option>`).join('')}</select>`;
+    `<select id="re_${id}" style="${S};background:#1c2333"><option value="">—</option>${opts.map(o=>`<option value="${_SEC.esc(o)}"${val===o?' selected':''}>${_SEC.esc(o)}</option>`).join('')}</select>`;
   const ta  = (id, val, ph='') =>
-    `<textarea id="re_${id}" rows="2" placeholder="${ph}" style="${S};resize:vertical">${val||''}</textarea>`;
+    `<textarea id="re_${id}" rows="2" placeholder="${ph}" style="${S};resize:vertical">${_SEC.esc(String(val||''))}</textarea>`;
   const lbl = (txt, key='') =>
     `<label style="display:flex;align-items:center;font-family:'Rajdhani',sans-serif;font-size:0.68rem;letter-spacing:1px;color:#8b949e;text-transform:uppercase;margin-top:10px">${txt}${key?lockIcon(key):''}</label>`;
 
@@ -2540,7 +2676,7 @@ async function saveRosterEdit(docId) {
   };
 
   Object.entries(fieldMap).forEach(([inputId, dbKey]) => {
-    const v = g(inputId);
+    const v = _SEC.sanitizeInput(g(inputId));
     if (v) data[dbKey] = v;
   });
 

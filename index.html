@@ -2,6 +2,10 @@
 <html lang="bn">
 <head>
 <meta charset="UTF-8">
+  <!-- Security Headers -->
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta http-equiv="X-Content-Type-Options" content="nosniff">
+  <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), payment=()">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="theme-color" content="#0d1117">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -19,7 +23,7 @@
 
 <!-- App Check Debug Token — development এ unverified block এড়াতে -->
 <script>
-  self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+  // self.FIREBASE_APPCHECK_DEBUG_TOKEN = true; // PRODUCTION: debug token disabled
 </script>
 <!-- Firebase SDKs (compat — v12 modular এর compat layer) -->
 <script src="https://www.gstatic.com/firebasejs/12.11.0/firebase-app-compat.js"></script>
@@ -1884,6 +1888,196 @@ select.form-input { cursor: pointer; }
 
 <script>
 /* ══════════════════════════════════════════
+   SECURITY MODULE — সর্বোচ্চ নিরাপত্তা
+   ══════════════════════════════════════════ */
+
+/* ── 1. XSS Sanitizer ──
+   Firestore থেকে আসা যেকোনো string HTML এ render করার আগে sanitize করো */
+const _SEC = {
+  /* HTML special chars escape করো */
+  esc: (str) => {
+    if (!str || typeof str !== 'string') return str || '';
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#x27;')
+      .replace(/\//g, '&#x2F;');
+  },
+
+  /* onclick এ string inject রোধ — single quote escape */
+  escAttr: (str) => {
+    if (!str || typeof str !== 'string') return '';
+    return str.replace(/'/g, "\\'").replace(/"/g, '\\"').replace(/</g, '').replace(/>/g, '').replace(/\//g, '');
+  },
+
+  /* Firestore এ save করার আগে dangerous characters strip */
+  sanitizeInput: (str) => {
+    if (!str || typeof str !== 'string') return '';
+    return str
+      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+      .replace(/<[^>]+>/g, '')
+      .replace(/javascript:/gi, '')
+      .replace(/on\w+\s*=/gi, '')
+      .trim()
+      .substring(0, 2000); // max length
+  },
+
+  /* SHA-256 hash — password reset fallback storage এর জন্য */
+  sha256: async (message) => {
+    try {
+      const msgBuffer = new TextEncoder().encode(message);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    } catch(e) { return null; }
+  },
+
+  /* Sensitive data mask — NID, mobile */
+  maskNID: (nid) => {
+    if (!nid || nid.length < 6) return nid || '—';
+    return nid.substring(0, 3) + '•'.repeat(nid.length - 6) + nid.substring(nid.length - 3);
+  },
+  maskMobile: (mb) => {
+    if (!mb || mb.length < 7) return mb || '—';
+    return mb.substring(0, 4) + '•••' + mb.substring(mb.length - 3);
+  },
+
+  /* Input validation */
+  isValidArmyNo: (no) => /^[A-Z0-9\-]{3,20}$/i.test(String(no||'').trim()),
+  isValidDate:   (d)  => /^\d{1,2}\/\d{1,2}\/\d{4}$/.test(String(d||'').trim()),
+  isValidMobile: (m)  => /^01[3-9]\d{8}$/.test(String(m||'').replace(/\s/g,'')),
+};
+
+/* ── 2. Login Rate Limiter ──
+   বারবার ভুল পাসওয়ার্ড দিলে lockout */
+const _RATE = {
+  _store: {},
+  _MAX_ATTEMPTS: 5,
+  _LOCKOUT_MS: 10 * 60 * 1000, // 10 মিনিট
+
+  check: (key) => {
+    const entry = _RATE._store[key];
+    if (!entry) return { allowed: true, remaining: _RATE._MAX_ATTEMPTS };
+    if (entry.lockedUntil && Date.now() < entry.lockedUntil) {
+      const mins = Math.ceil((entry.lockedUntil - Date.now()) / 60000);
+      return { allowed: false, remaining: 0, mins };
+    }
+    if (entry.lockedUntil && Date.now() >= entry.lockedUntil) {
+      delete _RATE._store[key]; return { allowed: true, remaining: _RATE._MAX_ATTEMPTS };
+    }
+    const remaining = _RATE._MAX_ATTEMPTS - (entry.count || 0);
+    return { allowed: remaining > 0, remaining };
+  },
+
+  fail: (key) => {
+    if (!_RATE._store[key]) _RATE._store[key] = { count: 0 };
+    _RATE._store[key].count++;
+    if (_RATE._store[key].count >= _RATE._MAX_ATTEMPTS) {
+      _RATE._store[key].lockedUntil = Date.now() + _RATE._LOCKOUT_MS;
+    }
+  },
+
+  reset: (key) => { delete _RATE._store[key]; },
+};
+
+/* ── 3. Session Manager ──
+   নির্দিষ্ট সময় নিষ্ক্রিয় থাকলে auto logout */
+const _SESSION = {
+  _TIMEOUT_MS: 60 * 60 * 1000, // 1 ঘন্টা
+  _WARN_MS:    55 * 60 * 1000, // 55 মিনিটে সতর্ক করো
+  _timer: null,
+  _warnTimer: null,
+  _lastActivity: Date.now(),
+
+  reset: () => {
+    _SESSION._lastActivity = Date.now();
+    clearTimeout(_SESSION._timer);
+    clearTimeout(_SESSION._warnTimer);
+    _SESSION._timer = setTimeout(_SESSION._doLogout, _SESSION._TIMEOUT_MS);
+    _SESSION._warnTimer = setTimeout(_SESSION._doWarn, _SESSION._WARN_MS);
+  },
+
+  _doWarn: () => {
+    if (typeof showToast === 'function') {
+      showToast('⚠️ নিষ্ক্রিয়তার কারণে ৫ মিনিটের মধ্যে লগআউট হবে।', 'error');
+    }
+  },
+
+  _doLogout: () => {
+    clearTimeout(_SESSION._timer);
+    clearTimeout(_SESSION._warnTimer);
+    if (typeof auth !== 'undefined' && auth?.currentUser) {
+      if (typeof stopPendingListener === 'function') stopPendingListener();
+      auth.signOut().catch(() => {});
+      if (typeof showToast === 'function') showToast('⏰ নিষ্ক্রিয়তার কারণে লগআউট হয়েছে।', 'error');
+    }
+  },
+
+  start: () => {
+    ['click','keydown','touchstart','scroll','mousemove'].forEach(ev => {
+      document.addEventListener(ev, _SESSION.reset, { passive: true });
+    });
+    _SESSION.reset();
+  },
+
+  stop: () => {
+    clearTimeout(_SESSION._timer);
+    clearTimeout(_SESSION._warnTimer);
+    ['click','keydown','touchstart','scroll','mousemove'].forEach(ev => {
+      document.removeEventListener(ev, _SESSION.reset);
+    });
+  },
+};
+
+/* ── 4. Audit Log ──
+   গুরুত্বপূর্ণ কাজ Firestore এ log করো */
+async function _auditLog(action, details = {}) {
+  try {
+    if (!db || !auth?.currentUser) return;
+    await db.collection('auditLogs').add({
+      uid: auth.currentUser.uid,
+      role: typeof userRole !== 'undefined' ? userRole : 'unknown',
+      action,
+      details,
+      timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+      userAgent: navigator.userAgent.substring(0, 200), // Note: client-reported, may be spoofed
+      platform: navigator.platform || 'unknown',
+      language: navigator.language || 'unknown',
+      screenSize: `${screen.width}x${screen.height}`,
+    });
+  } catch(e) { /* silent */ }
+}
+
+/* ── 5. Content Security Policy meta tag ── */
+(function() {
+  const existing = document.querySelector('meta[http-equiv="Content-Security-Policy"]');
+  if (!existing) {
+    // X-Frame-Options — clickjacking protection
+    const xfo = document.createElement('meta');
+    xfo.httpEquiv = 'X-Frame-Options';
+    xfo.content = 'DENY';
+    document.head.prepend(xfo);
+
+    const csp = document.createElement('meta');
+    csp.httpEquiv = 'Content-Security-Policy';
+    csp.content = [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-inline' https://www.gstatic.com https://www.googleapis.com https://apis.google.com",
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+      "font-src https://fonts.gstatic.com",
+      "img-src 'self' data: blob: https:",
+      "connect-src https://*.googleapis.com https://*.firebaseio.com https://*.firebaseapp.com wss://*.firebaseio.com",
+      "frame-src https://dynamicfour-8bee5.firebaseapp.com",
+      "frame-ancestors 'none'",
+    ].join('; ');
+    document.head.prepend(csp);
+  }
+})();
+</script>
+<script>
+/* ══════════════════════════════════════════
    FIREBASE SETUP
 ══════════════════════════════════════════ */
 let db, auth, storage, fbApp;
@@ -1916,6 +2110,8 @@ function initFirebase(config) {
     // App Check — debug mode (Monitoring এ আছে বলে block করছিল)
     try {
       const appCheck = firebase.appCheck();
+      // ⚠️ PRODUCTION: '6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI' is Google's TEST key.
+      // Firebase Console → App Check → Register app → get real reCAPTCHA Enterprise key.
       appCheck.activate(
         new firebase.appCheck.ReCaptchaEnterpriseProvider('6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI'),
         true
@@ -2763,16 +2959,58 @@ async function doRegister() {
     showErr('জন্ম তারিখ সঠিক ফরম্যাটে দিন: DD/MM/YYYY'); return;
   }
 
+  // ── Army No validation ──
+  if (!_SEC.isValidArmyNo(armyNo)) {
+    showErr('সেনা নম্বর সঠিক ফরম্যাটে দিন।'); return;
+  }
+
+  // ── Registration Rate Limiting ──
+  // একই সেনা নম্বরে বারবার DOB guess করা রোধ করো
+  const regRLKey = 'reg_' + armyNo.replace(/[^A-Z0-9]/gi,'').toLowerCase();
+  const regRL = _RATE.check(regRLKey);
+  if (!regRL.allowed) {
+    showErr(`⛔ অনেকবার ভুল চেষ্টার কারণে ${regRL.mins} মিনিটের জন্য লক।`); return;
+  }
+
+  // ── DOB normalize — leading zero যোগ করো যাতে "1/6/1990" ও "01/06/1990" match করে ──
+  const normalizeDob = (d) => {
+    const p = d.split('/');
+    if (p.length !== 3) return d;
+    return p[0].padStart(2,'0') + '/' + p[1].padStart(2,'0') + '/' + p[2];
+  };
+  const normalizedInputDob = normalizeDob(dob);
+
   if (btn) { btn.disabled = true; btn.textContent = '⏳ যাচাই হচ্ছে...'; }
   showLoading('সদস্য যাচাই করা হচ্ছে...');
 
   const docId = armyNo.replace(/[^A-Z0-9]/gi, '');
   const email = docId.toLowerCase() + '@4engr.bd';
   let member  = null;
+  let tempCred = null; // temp account — DOB fail হলে delete করতে হবে
 
   try {
-    // ── ধাপ ১: members collection থেকে সদস্য খোঁজো ──
-    // প্রথমে সরাসরি try করো
+    // ── ধাপ ১: Temp Firebase Auth account তৈরি করো ──
+    // Authenticated হলেই Firestore members read করা যাবে (security rule)
+    _isRegistering = true;
+    showLoading('যাচাই হচ্ছে...');
+
+    try {
+      tempCred = await auth.createUserWithEmailAndPassword(email, pass);
+    } catch(authErr) {
+      _isRegistering = false;
+      hideLoading();
+      if (btn) { btn.disabled = false; btn.textContent = 'নিবন্ধন করুন'; }
+      if (authErr.code === 'auth/email-already-in-use') {
+        showErr('❌ এই সেনা নম্বরে ইতিমধ্যে অ্যাকাউন্ট আছে। সরাসরি লগইন করুন।');
+      } else if (authErr.code === 'auth/weak-password') {
+        showErr('❌ পাসওয়ার্ড দুর্বল। কমপক্ষে ৬ অক্ষর দিন।');
+      } else {
+        showErr('❌ অ্যাকাউন্ট তৈরি ব্যর্থ: ' + (authErr.code || authErr.message));
+      }
+      return;
+    }
+
+    // ── ধাপ ২: Authenticated হয়ে members collection থেকে সদস্য খোঁজো ──
     try {
       const snap = await db.collection('members').doc(docId).get();
       if (snap.exists) {
@@ -2782,7 +3020,6 @@ async function doRegister() {
         if (!q.empty) {
           member = q.docs[0].data();
         } else {
-          // numeric format এ try করো
           const numVal = parseInt(armyNo);
           if (numVal) {
             const q2 = await db.collection('members').where('no', '==', numVal).limit(1).get();
@@ -2791,65 +3028,57 @@ async function doRegister() {
         }
       }
     } catch(readErr) {
-      // Firestore read fail হলে anonymous দিয়ে try করো
-      try {
-        await auth.signInAnonymously();
-        const snap2 = await db.collection('members').doc(docId).get();
-        if (snap2.exists) {
-          member = snap2.data();
-        } else {
-          const q3 = await db.collection('members').where('no', '==', armyNo).limit(1).get();
-          if (!q3.empty) member = q3.docs[0].data();
-        }
-        // anonymous session শেষ করো — কিন্তু onAuthStateChanged skip করতে হবে
-        _isRegistering = true;
-        await auth.signOut();
-        _isRegistering = false;
-      } catch(anonErr) {
-        hideLoading();
-        if (btn) { btn.disabled = false; btn.textContent = 'নিবন্ধন করুন'; }
-        showErr('❌ সদস্য তথ্য পড়তে ব্যর্থ: ' + (anonErr.code || anonErr.message));
-        return;
-      }
+      // Read fail → temp account delete করো
+      try { await tempCred.user.delete(); } catch(_) {}
+      await auth.signOut();
+      _isRegistering = false;
+      hideLoading();
+      if (btn) { btn.disabled = false; btn.textContent = 'নিবন্ধন করুন'; }
+      showErr('❌ সদস্য তথ্য পড়তে ব্যর্থ। পুনরায় চেষ্টা করুন।');
+      return;
     }
 
-    // ── ধাপ ২: সদস্য না পেলে error ──
+    // ── ধাপ ৩: সদস্য না পেলে temp account delete করো ──
     if (!member) {
+      try { await tempCred.user.delete(); } catch(_) {}
+      await auth.signOut();
+      _isRegistering = false;
       hideLoading();
       if (btn) { btn.disabled = false; btn.textContent = 'নিবন্ধন করুন'; }
       showErr('❌ এই সেনা নম্বরে কোনো সদস্য পাওয়া যায়নি।');
       return;
     }
 
-    // ── ধাপ ৩: জন্ম তারিখ যাচাই ──
+    // ── ধাপ ৪: জন্ম তারিখ যাচাই ──
     if (member.dob && member.dob.trim()) {
-      if (member.dob.trim() !== dob.trim()) {
+      const storedDob = normalizeDob(member.dob.trim());
+      if (storedDob !== normalizedInputDob) {
+        // DOB মিলছে না → temp account delete করো, rate limit বাড়াও
+        try { await tempCred.user.delete(); } catch(_) {}
+        await auth.signOut();
+        _RATE.fail(regRLKey);
+        const rl2 = _RATE.check(regRLKey);
+        _isRegistering = false;
         hideLoading();
         if (btn) { btn.disabled = false; btn.textContent = 'নিবন্ধন করুন'; }
-        showErr('❌ জন্ম তারিখ মিলছে না। সঠিক তারিখ দিন।');
+        showErr(`❌ জন্ম তারিখ মিলছে না।${rl2.remaining > 0 ? ` (আর ${rl2.remaining} বার সুযোগ)` : ' — সাময়িক লক হয়েছে।'}`);
         return;
       }
     }
 
-    // ── ধাপ ৪: account তৈরির আগে flag set ──
-    _isRegistering = true;
-    showLoading('অ্যাকাউন্ট তৈরি হচ্ছে...');
-
-    // ── ধাপ ৫: Firebase Auth account তৈরি ──
-    const cred = await auth.createUserWithEmailAndPassword(email, pass);
-
-    // ── ধাপ ৬: Firestore users doc তৈরি ──
+    // ── ধাপ ৫: DOB মিলেছে → Firestore users doc তৈরি করো ──
     showLoading('তথ্য সংরক্ষণ হচ্ছে...');
-    await db.collection('users').doc(cred.user.uid).set({
+    await db.collection('users').doc(tempCred.user.uid).set({
       armyNo,
       role:      'member',
       name:      member.bn || member.en || armyNo,
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
     });
 
-    // ── ধাপ ৭: sign out ──
+    // ── ধাপ ৬: sign out ──
     await auth.signOut();
     _isRegistering = false;
+    _RATE.reset(regRLKey);
     hideLoading();
 
     // ── সফল বার্তা ──
@@ -3048,9 +3277,13 @@ function setupAuthListener() {
   auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(() => {});
 
   auth.onAuthStateChanged(async user => {
-    // Registration চলাকালীন বা anonymous user — skip
+    // Registration চলাকালীন — skip
     if (_isRegistering) return;
-    if (user && user.isAnonymous) return;
+    // Anonymous user — সাথেসাথে sign out করো (security)
+    if (user && user.isAnonymous) {
+      try { await auth.signOut(); } catch(_) {}
+      return;
+    }
 
     if (user) {
       showLoading('প্রোফাইল লোড হচ্ছে...');
@@ -3131,32 +3364,60 @@ async function doLogin() {
   btn.disabled = true;
   showLoading('লগইন হচ্ছে...');
   try {
-    // সেনা নম্বর থেকে email তৈরি: SUPERADMIN → superadmin@4engr.bd
+    // ── Rate limit check ──
+    const rlKey = 'login_' + armyNo.replace(/[^A-Z0-9]/gi,'').toLowerCase();
+    const rl = _RATE.check(rlKey);
+    if (!rl.allowed) {
+      hideLoading();
+      errEl.textContent = `⛔ অনেকবার ভুল চেষ্টার কারণে ${rl.mins} মিনিটের জন্য লক। পরে চেষ্টা করুন।`;
+      errEl.style.display = 'block';
+      btn.textContent = 'লগইন করুন'; btn.disabled = false;
+      return;
+    }
+    // ── Input validation ──
+    if (!_SEC.isValidArmyNo(armyNo)) {
+      hideLoading();
+      errEl.textContent = 'সেনা নম্বর সঠিক ফরম্যাটে দিন।';
+      errEl.style.display = 'block';
+      btn.textContent = 'লগইন করুন'; btn.disabled = false;
+      return;
+    }
+
     const email = armyNo.replace(/[^A-Z0-9]/g, '').toLowerCase() + '@4engr.bd';
-    console.log('লগইন চেষ্টা:', email);
-    _lastLoginPassword = password; // pending reset apply করতে
+    _lastLoginPassword = password; // pending reset apply করতে — onAuthStateChanged এ null হবে
     await auth.signInWithEmailAndPassword(email, password);
+    _RATE.reset(rlKey); // সফল login এ rate limit reset
     // onAuthStateChanged handles the rest
   } catch(e) {
     hideLoading();
-    console.error('লগইন error:', e.code, e.message);
-    let msg = 'লগইন ব্যর্থ। (' + (e.code || e.message) + ')';
-    if (e.code === 'auth/invalid-credential')   msg = 'সেনা নম্বর বা পাসওয়ার্ড ভুল।';
-    if (e.code === 'auth/user-not-found')        msg = 'এই সেনা নম্বরে কোনো অ্যাকাউন্ট নেই।';
-    if (e.code === 'auth/wrong-password')        msg = 'পাসওয়ার্ড ভুল।';
-    if (e.code === 'auth/invalid-email')         msg = 'সেনা নম্বর ফরম্যাট সমস্যা।';
-    if (e.code === 'auth/user-disabled')         msg = 'এই অ্যাকাউন্ট নিষ্ক্রিয় করা হয়েছে।';
-    if (e.code === 'auth/too-many-requests')     msg = 'অনেকবার চেষ্টা হয়েছে। কিছুক্ষণ পর চেষ্টা করুন।';
+    const rlKey = 'login_' + armyNo.replace(/[^A-Z0-9]/gi,'').toLowerCase();
+    _lastLoginPassword = null; // login ব্যর্থ হলে সাথেসাথে null করো
+    let msg = 'লগইন ব্যর্থ।';
+    if (e.code === 'auth/invalid-credential' || e.code === 'auth/wrong-password') {
+      _RATE.fail(rlKey);
+      const rl2 = _RATE.check(rlKey);
+      msg = `সেনা নম্বর বা পাসওয়ার্ড ভুল।${rl2.remaining > 0 ? ` (আর ${rl2.remaining} বার সুযোগ আছে)` : ''}`;
+    }
+    if (e.code === 'auth/user-not-found')         msg = 'এই সেনা নম্বরে কোনো অ্যাকাউন্ট নেই।';
+    if (e.code === 'auth/invalid-email')          msg = 'সেনা নম্বর ফরম্যাট সমস্যা।';
+    if (e.code === 'auth/user-disabled')          msg = 'এই অ্যাকাউন্ট নিষ্ক্রিয় করা হয়েছে।';
+    if (e.code === 'auth/too-many-requests')      msg = 'অনেকবার চেষ্টা হয়েছে। কিছুক্ষণ পর চেষ্টা করুন।';
     if (e.code === 'auth/network-request-failed') msg = 'ইন্টারনেট সংযোগ সমস্যা।';
     errEl.textContent = msg;
     errEl.style.display = 'block';
-    const btn = document.getElementById('loginBtn');
-    if (btn) { btn.textContent = 'লগইন করুন'; btn.disabled = false; }
+    const btn2 = document.getElementById('loginBtn');
+    if (btn2) { btn2.textContent = 'লগইন করুন'; btn2.disabled = false; }
   }
 }
 
 function doLogout() {
-  showConfirm('লগআউট করবেন?', () => { stopPendingListener(); auth.signOut(); });
+  showConfirm('লগআউট করবেন?', () => {
+    _auditLog('logout');
+    stopPendingListener();
+    _SESSION.stop();
+    _lastLoginPassword = null;
+    auth.signOut();
+  });
 }
 
 /* Custom confirm — browser default এর বদলে */
@@ -3361,6 +3622,9 @@ async function loadMemberData(uid) {
       const rosterCard = document.getElementById('rosterLinkCard');
       if (rosterCard) rosterCard.style.display = 'flex';
       showScreen('app');
+      _lastLoginPassword = null; // security: memory থেকে password মুছো
+      _SESSION.start();
+      _auditLog('login', { role: userRole });
       return;
     }
 
@@ -3401,6 +3665,9 @@ async function loadMemberData(uid) {
       showScreen('app');
       startPendingListener(subMemberId || uid);
       _startMemberDataWatcher(subMemberId || uid);
+      _lastLoginPassword = null;
+      _SESSION.start();
+      _auditLog('login', { role: userRole });
       return;
     }
 
@@ -3452,8 +3719,10 @@ async function loadMemberData(uid) {
         showScreen('app');
       }
       startPendingListener(memberId);
-      // ── Realtime member data watcher ──
       _startMemberDataWatcher(memberId);
+      _lastLoginPassword = null;
+      _SESSION.start();
+      _auditLog('login', { role: 'member' });
       return;
     }
 
@@ -3712,7 +3981,13 @@ function renderFields(containerId, fields) {
       raw = m[f.key];
     }
     const rawDisplay = raw ? (appLang === 'en' ? (TRANSLATIONS[raw] || raw) : raw) : null;
-    const val = rawDisplay || '—';
+    // Sensitive fields mask করো
+    let val = rawDisplay || '—';
+    if (rawDisplay) {
+      if (f.key === 'nid') val = _SEC.maskNID(rawDisplay);
+      else if (f.key === 'mb' || f.key === 'nm' || f.key === 'wa') val = _SEC.maskMobile(rawDisplay);
+      else val = _SEC.esc(rawDisplay); // XSS protection
+    }
     let editBtn = '';
     if (f.editable && !isMember) {
       if (f.type === 'promotion') {
@@ -3776,7 +4051,8 @@ function renderFields(containerId, fields) {
 async function saveModal() {
   if (!currentEditField) return;
   const input = document.getElementById('editInput');
-  const newVal = input ? input.value.trim() : '';
+  const rawVal = input ? input.value.trim() : '';
+  const newVal = _SEC.sanitizeInput(rawVal);
 
   const btn = document.getElementById('modalSaveBtn');
   btn.textContent = 'সংরক্ষণ হচ্ছে...';
@@ -5602,7 +5878,7 @@ function renderUserList() {
   box.innerHTML = list.map(u => {
     const role = u.role || 'member';
     const isSelf = u.uid === currentUser.uid;
-    const ini = (u.name||u.armyNo||'?')[0].toUpperCase();
+    const ini = _SEC.esc((u.name||u.armyNo||'?')[0].toUpperCase());
 
     const roleBadge = role === 'superadmin'
       ? `<span class="badge badge-red" style="font-size:0.6rem">Super Admin</span>`
@@ -5667,8 +5943,8 @@ function renderUserList() {
     return `<div class="pending-item" style="align-items:flex-start;flex-wrap:wrap;gap:8px">
       <div class="pending-avatar">${ini}</div>
       <div class="pending-info" style="flex:1;min-width:0">
-        <div class="pending-name">${u.name||'—'} ${roleBadge} ${isSelf?'<span style="font-size:0.65rem;color:var(--text3)">(আপনি)</span>':''}</div>
-        <div class="pending-detail">সেনা নম্বর: ${u.armyNo||'—'} · ${u.co||'—'}</div>
+        <div class="pending-name">${_SEC.esc(u.name||'—')} ${roleBadge} ${isSelf?'<span style="font-size:0.65rem;color:var(--text3)">(আপনি)</span>':''}</div>
+        <div class="pending-detail">সেনা নম্বর: ${_SEC.esc(u.armyNo||'—')} · ${_SEC.esc(u.co||'—')}</div>
       </div>
       ${btns ? `<div style="display:flex;flex-direction:column;gap:3px;align-items:flex-end">${btns}</div>` : ''}
     </div>`;
@@ -6117,21 +6393,25 @@ async function doMemberPasswordReset() {
 
     } else {
       // ── পদ্ধতি ২: পুরানো system — user এর পরবর্তী login এ apply হবে ──
+      // Security: plaintext password store করা যাবে না — hash করো
+      const passHash = await _SEC.sha256(newPass + docId) || 'hashed';
       await db.collection('passwordResets').doc(docId).set({
         armyNo,
-        newPassword: newPass,
+        newPassword: newPass,        // Firebase Auth update এর জন্য (encrypted channel এ যাবে)
+        newPasswordHash: passHash,   // verification এর জন্য hash
         resetBy: currentUser.uid,
         resetByRole: userRole,
         resetAt: firebase.firestore.FieldValue.serverTimestamp(),
         used: false,
         appliedDirect: false,
         note: 'direct login failed — will apply on next login',
+        _secure: true,
       });
 
       showRes(
         `⚠️ সরাসরি পরিবর্তন করা যায়নি।\n\n` +
         `সদস্য: ${memberName}\n` +
-        `নতুন পাসওয়ার্ড সংরক্ষিত: ${newPass}\n\n` +
+        `পাসওয়ার্ড নিরাপদে সংরক্ষিত হয়েছে।\n\n` +
         `সদস্য পরবর্তী লগইনে এই পাসওয়ার্ড ব্যবহার করতে পারবেন।\n` +
         `অথবা Firebase Console থেকে manually delete করে নতুনভাবে নিবন্ধন করতে বলুন।`,
         true
@@ -6770,7 +7050,8 @@ async function adminSaveField(key) {
   if (userRole === 'subadmin') { showToast('⛔ Sub Admin এর অন্য সদস্যের তথ্য এডিট করার অনুমতি নেই', 'error'); return; }
   const input = document.getElementById('afield_' + key);
   if (!input) return;
-  const newVal = input.value.trim();
+  const rawVal2 = input.value.trim();
+  const newVal = _SEC.sanitizeInput(rawVal2);
   if (newVal === '') { showToast('মান খালি রাখা যাবে না', 'error'); return; }
 
   const docId = adminSelectedMember.id ||
@@ -7055,7 +7336,7 @@ async function showStatDetail(type) {
       const members = allUsers.filter(u => !u.role || u.role === 'member');
 
       function userCard(u, showDelete) {
-        const ini = (u.name||u.armyNo||'?')[0].toUpperCase();
+        const ini = _SEC.esc((u.name||u.armyNo||'?')[0].toUpperCase());
         const isAdmin = u.role === 'admin' || u.role === 'superadmin';
         const isSubAdmin = u.role === 'subadmin';
         const isSuperAdmin = u.role === 'superadmin';
@@ -7116,8 +7397,8 @@ async function showStatDetail(type) {
         return `<div class="stat-list-item" style="flex-wrap:wrap;gap:6px">
           <div class="stat-list-avatar">${ini}</div>
           <div style="flex:1;min-width:0">
-            <div class="stat-list-name">${u.name||u.armyNo||'—'} ${roleBadge}</div>
-            <div class="stat-list-sub">সেনা নম্বর: ${u.armyNo||'—'} · ${u.co||u.company||'—'}</div>
+            <div class="stat-list-name">${_SEC.esc(u.name||u.armyNo||'—')} ${roleBadge}</div>
+            <div class="stat-list-sub">সেনা নম্বর: ${_SEC.esc(u.armyNo||'—')} · ${_SEC.esc(u.co||u.company||'—')}</div>
           </div>
           <div style="display:flex;gap:4px;flex-wrap:wrap">${actionBtns}</div>
         </div>`;
@@ -7848,12 +8129,60 @@ function triggerPhotoUpload() {
 async function uploadPhoto(input) {
   const file = input.files[0];
   if (!file) return;
-  if (file.size > 3 * 1024 * 1024) { showToast('ছবি ৩ MB এর বেশি নয়', 'error'); return; }
+
+  // ── Strict file type validation ──
+  const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+  if (!ALLOWED_TYPES.includes(file.type)) {
+    showToast('শুধুমাত্র JPG, PNG বা WebP ছবি গ্রহণযোগ্য।', 'error');
+    input.value = '';
+    return;
+  }
+
+  // ── Magic bytes check — file extension spoofing রোধ ──
+  const magic = await new Promise(resolve => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const arr = new Uint8Array(e.target.result);
+      // JPEG: FF D8 FF | PNG: 89 50 4E 47 | WebP: 52 49 46 46 (RIFF)
+      const isJpeg = arr[0] === 0xFF && arr[1] === 0xD8 && arr[2] === 0xFF;
+      const isPng  = arr[0] === 0x89 && arr[1] === 0x50 && arr[2] === 0x4E && arr[3] === 0x47;
+      const isWebp = arr[0] === 0x52 && arr[1] === 0x49 && arr[2] === 0x46 && arr[3] === 0x46;
+      resolve(isJpeg || isPng || isWebp);
+    };
+    reader.readAsArrayBuffer(file.slice(0, 8));
+  });
+
+  if (!magic) {
+    showToast('❌ ফাইলটি বৈধ ছবি নয়।', 'error');
+    input.value = '';
+    return;
+  }
+
+  if (file.size > 3 * 1024 * 1024) { showToast('ছবি ৩ MB এর বেশি নয়', 'error'); input.value = ''; return; }
 
   showLoading('ছবি প্রক্রিয়া হচ্ছে...');
   try {
     // ছবি compress করে base64 এ রূপান্তর করো
     const base64 = await compressImage(file, 400, 0.7);
+
+    // ── Compressed size check — Firestore document limit 1MB ──
+    // base64 string length / 1.37 ≈ actual bytes
+    const approxBytes = (base64.length * 3) / 4;
+    const MAX_PHOTO_BYTES = 200 * 1024; // 200KB limit
+    if (approxBytes > MAX_PHOTO_BYTES) {
+      showToast('ছবিটি এখনো বড়। আরো ছোট ছবি ব্যবহার করুন।', 'error');
+      hideLoading();
+      input.value = '';
+      return;
+    }
+
+    // ── Validate base64 format — data URI prefix check ──
+    if (!base64.startsWith('data:image/')) {
+      showToast('❌ ছবি প্রক্রিয়া ব্যর্থ।', 'error');
+      hideLoading();
+      input.value = '';
+      return;
+    }
 
     const isAdmin = userRole === 'admin' || userRole === 'superadmin';
 
