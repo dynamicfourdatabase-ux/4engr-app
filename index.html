@@ -966,6 +966,15 @@ body {
       <div class="status-bar info" id="profileStatus" style="display:none">
         ⏳ আপনার সর্বশেষ এডিট অনুমোদনের অপেক্ষায় আছে
       </div>
+      <!-- Pending Requests Card -->
+      <div class="card" id="pendingRequestsCard" style="display:none">
+        <div class="card-header">
+          <span class="card-header-icon">⏳</span>
+          <span class="card-header-title">অনুমোদনের অপেক্ষায়</span>
+          <span id="pendingRequestsBadge" style="margin-left:auto;background:rgba(210,153,34,0.2);border:1px solid rgba(210,153,34,0.4);color:var(--warn);border-radius:20px;padding:1px 10px;font-family:'Rajdhani',sans-serif;font-size:0.7rem;font-weight:700"></span>
+        </div>
+        <div class="card-body" id="pendingRequestsList"></div>
+      </div>
 
       <!-- Photo + Name -->
       <div class="card">
@@ -1840,6 +1849,66 @@ function showLoginAfterRegister(armyNo) {
 }
 
 
+/* ══════════════════════════════════════════
+   REALTIME LISTENER — approved হলে সাথে সাথে UI আপডেট
+══════════════════════════════════════════ */
+let _pendingListener = null;
+
+function startPendingListener(docId) {
+  if (_pendingListener) { _pendingListener(); _pendingListener = null; }
+  if (!docId) return;
+
+  _pendingListener = db.collection('editRequests')
+    .where('memberId', '==', docId)
+    .where('status', '==', 'approved')
+    .orderBy('approvedAt', 'desc')
+    .limit(20)
+    .onSnapshot(async snap => {
+      if (snap.empty) return;
+
+      // নতুন approved গুলো বের করো
+      snap.docChanges().forEach(change => {
+        if (change.type !== 'added') return;
+        const r = change.doc.data();
+
+        // ইতিমধ্যে seen flag থাকলে skip
+        if (r._notifiedUser) return;
+
+        const fieldName = r.fieldLabel || r.field || 'তথ্য';
+
+        // currentMemberData আপডেট করো
+        if (currentMemberData && r.field && r.newValue !== undefined) {
+          currentMemberData[r.field] = r.newValue;
+          // sync related fields
+          const syncMap = { r_bn:'r_en', tr_bn:'tr_en', co_bn:'co_en', di_bn:'di_en', ma_bn:'ma_en' };
+          if (syncMap[r.field]) currentMemberData[syncMap[r.field]] = r.newValue;
+          // কোর্স হলে cr_en ও আপডেট করো
+          if (r.requestType === 'addCourse' && r.newValueEn) currentMemberData.cr_en = r.newValueEn;
+        }
+
+        // Toast notification দেখাও
+        showToast(`✅ অনুমোদিত: ${fieldName}`, 'success');
+
+        // Profile refresh করো
+        setTimeout(() => {
+          renderProfile();
+          checkPendingStatus();
+          if (document.getElementById('page-courses')?.classList.contains('active')) {
+            loadPendingCoursesAndRender();
+          }
+        }, 500);
+
+        // seen flag সেট করো যাতে বারবার না দেখায়
+        db.collection('editRequests').doc(change.doc.id)
+          .update({ _notifiedUser: true }).catch(() => {});
+      });
+    }, err => console.warn('Pending listener error:', err.message));
+}
+
+function stopPendingListener() {
+  if (_pendingListener) { _pendingListener(); _pendingListener = null; }
+}
+
 function setupAuthListener() {
   auth.onAuthStateChanged(async user => {
     // Registration চলাকালীন বা anonymous user — skip
@@ -1947,7 +2016,7 @@ async function doLogin() {
 }
 
 function doLogout() {
-  showConfirm('লগআউট করবেন?', () => auth.signOut());
+  showConfirm('লগআউট করবেন?', () => { stopPendingListener(); auth.signOut(); });
 }
 
 /* Custom confirm — browser default এর বদলে */
@@ -2702,23 +2771,75 @@ function closeModalOutside(e) {
 }
 
 async function checkPendingStatus() {
-  // Admin/Super Admin এর জন্য এই বার দেখানো হবে না
   if (userRole === 'admin' || userRole === 'superadmin') {
     document.getElementById('profileStatus').style.display = 'none';
+    const card = document.getElementById('pendingRequestsCard');
+    if (card) card.style.display = 'none';
     return;
   }
   try {
-    const q = await db.collection('editRequests')
-      .where('memberId', '==', currentMemberData.id || currentUser.uid)
-      .where('status', '==', 'pending').get();
-    const bar = document.getElementById('profileStatus');
+    const docId = currentMemberData.id || String(currentMemberData.no || '').replace(/[^A-Z0-9]/gi, '');
+    let q;
+    try {
+      q = await db.collection('editRequests')
+        .where('memberId', '==', docId)
+        .where('status', '==', 'pending')
+        .orderBy('createdAt', 'desc').get();
+    } catch(e) {
+      q = await db.collection('editRequests')
+        .where('memberId', '==', docId)
+        .where('status', '==', 'pending').get();
+    }
+
+    const bar  = document.getElementById('profileStatus');
+    const card = document.getElementById('pendingRequestsCard');
+    const list = document.getElementById('pendingRequestsList');
+    const badge = document.getElementById('pendingRequestsBadge');
+
     if (q.empty) {
       bar.style.display = 'none';
-    } else {
-      bar.style.display = 'flex';
-      bar.textContent = `⏳ ${q.size}টি এডিট অনুমোদনের অপেক্ষায়`;
+      if (card) card.style.display = 'none';
+      return;
     }
-  } catch(e) { /* ignore */ }
+
+    bar.style.display = 'flex';
+    bar.textContent = `⏳ ${q.size}টি এডিট অনুমোদনের অপেক্ষায়`;
+    if (card) card.style.display = 'block';
+    if (badge) badge.textContent = q.size + 'টি';
+
+    if (list) {
+      const FIELD_LABELS = {
+        bn:'বাংলা নাম', en:'ইংরেজি নাম', dob:'জন্ম তারিখ', bl:'রক্তের গ্রুপ',
+        mb:'মোবাইল', wa:'হোয়াটসঅ্যাপ', em:'জরুরি যোগাযোগ', ad:'ঠিকানা',
+        r_bn:'পদবী', tr_bn:'ট্রেড', co_bn:'কোম্পানী', niyog:'নিয়োগ',
+        ma_bn:'বৈবাহিক অবস্থা', sp:'স্ত্রীর নাম', sd:'স্ত্রীর জন্ম', wd:'বিবাহের তারিখ',
+        cr_bn:'কোর্স/ক্যাডার', dc_bn:'ডিভিশন কোর্স', di_bn:'জেলা', ed_bn:'শিক্ষা',
+      };
+      list.innerHTML = q.docs.map(d => {
+        const r = d.data();
+        const dt = r.createdAt?.toDate ? r.createdAt.toDate().toLocaleDateString('bn-BD') : '';
+        const fieldName = r.fieldLabel || FIELD_LABELS[r.field] || r.field || 'তথ্য';
+        // নতুন মান — কোর্স হলে শুধু নতুন কোর্সের নামটা দেখাও
+        let newValDisplay = r.newValue || '';
+        if (r.requestType === 'addCourse' && r.courseExtra) {
+          newValDisplay = r.courseExtra.nameBn || r.courseExtra.nameEn || newValDisplay.split(',').pop().trim();
+        } else if (r.requestType === 'editCourse' && r.courseEditExtra) {
+          newValDisplay = r.courseEditExtra.nameBn || newValDisplay.split(',').pop().trim();
+        } else if (newValDisplay.length > 40) {
+          newValDisplay = newValDisplay.substring(0, 40) + '...';
+        }
+        return `<div style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.04);display:flex;align-items:flex-start;gap:10px">
+          <div style="width:8px;height:8px;border-radius:50%;background:var(--warn);margin-top:5px;flex-shrink:0"></div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:0.82rem;color:var(--text);font-weight:600">${fieldName}</div>
+            <div style="font-size:0.78rem;color:var(--text2);margin-top:2px">নতুন মান: <span style="color:var(--gold)">${newValDisplay}</span></div>
+            ${dt ? `<div style="font-size:0.68rem;color:var(--text3);margin-top:2px">${dt}</div>` : ''}
+          </div>
+          <span style="font-size:0.65rem;background:rgba(210,153,34,0.15);border:1px solid rgba(210,153,34,0.3);color:var(--warn);border-radius:10px;padding:2px 8px;font-family:'Rajdhani',sans-serif;font-weight:700;white-space:nowrap;flex-shrink:0">⏳ অপেক্ষায়</span>
+        </div>`;
+      }).join('');
+    }
+  } catch(e) { console.warn('checkPendingStatus:', e.message); }
 }
 
 /* ══════════════════════════════════════════
@@ -3436,20 +3557,42 @@ async function loadNotifications() {
       }).join('');
     }
 
-    // এডিট ইতিহাস দেখাও
+    // এডিট ইতিহাস দেখাও — pending/approved/rejected আলাদা গ্রুপে
     if (editDocs.length > 0) {
-      html += '<div style="font-size:0.72rem;letter-spacing:2px;text-transform:uppercase;color:var(--text2);margin:14px 0 10px">📋 এডিট ইতিহাস</div>';
-      const statusIcon = { pending: '⏳', approved: '✅', rejected: '❌' };
-      const statusCls = { pending: 'pending', approved: 'approved', rejected: 'pending' };
-      html += editDocs.map(r => {
+      const pending  = editDocs.filter(r => r.status === 'pending');
+      const approved = editDocs.filter(r => r.status === 'approved');
+      const rejected = editDocs.filter(r => r.status === 'rejected');
+
+      const renderItem = (r, statusColor, statusBg, icon, statusText) => {
         const dt = r.createdAt?.toDate ? r.createdAt.toDate().toLocaleDateString('bn-BD') : '—';
-        const cls = r.status === 'approved' ? 'approved' : 'pending';
-        return '<div class="status-bar ' + cls + '" style="flex-direction:column;align-items:flex-start;gap:4px;margin-bottom:8px">' +
-          '<div style="font-weight:600">' + (statusIcon[r.status]||'—') + ' ' + (r.fieldLabel||'—') + '</div>' +
-          '<div style="font-size:0.78rem;opacity:0.8">' + (r.oldValue||'(খালি)') + ' → <strong>' + (r.newValue||'—') + '</strong></div>' +
-          '<div style="font-size:0.72rem;opacity:0.6">' + dt + '</div>' +
-          '</div>';
-      }).join('');
+        const approvedDt = r.approvedAt?.toDate ? r.approvedAt.toDate().toLocaleDateString('bn-BD') : '';
+        // display value
+        let dispVal = r.newValue || '—';
+        if (r.requestType === 'addCourse' && r.courseExtra) {
+          dispVal = r.courseExtra.nameBn || r.courseExtra.nameEn || dispVal.split(',').pop().trim();
+        } else if (dispVal.length > 50) { dispVal = dispVal.substring(0, 50) + '...'; }
+        return `<div style="background:var(--dark3);border:1px solid ${statusBg};border-left:3px solid ${statusColor};border-radius:10px;padding:11px 14px;margin-bottom:8px">`
+          + `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px">`
+          + `<div style="font-size:0.85rem;font-weight:600;color:var(--text)">${r.fieldLabel || r.field || '—'}</div>`
+          + `<span style="font-size:0.65rem;background:${statusBg};color:${statusColor};border-radius:10px;padding:2px 8px;font-family:'Rajdhani',sans-serif;font-weight:700;white-space:nowrap">${icon} ${statusText}</span>`
+          + `</div>`
+          + `<div style="font-size:0.8rem;color:var(--text2)">নতুন মান: <span style="color:var(--text);font-weight:600">${dispVal}</span></div>`
+          + (approvedDt ? `<div style="font-size:0.68rem;color:var(--text3);margin-top:4px">অনুমোদন: ${approvedDt}</div>` : `<div style="font-size:0.68rem;color:var(--text3);margin-top:4px">আবেদন: ${dt}</div>`)
+          + `</div>`;
+      };
+
+      if (approved.length > 0) {
+        html += `<div style="font-size:0.72rem;letter-spacing:2px;text-transform:uppercase;color:var(--success);margin:14px 0 8px;display:flex;align-items:center;gap:6px">✅ অনুমোদিত (${approved.length})</div>`;
+        html += approved.map(r => renderItem(r, 'var(--success)', 'rgba(63,185,80,0.15)', '✅', 'অনুমোদিত')).join('');
+      }
+      if (pending.length > 0) {
+        html += `<div style="font-size:0.72rem;letter-spacing:2px;text-transform:uppercase;color:var(--warn);margin:14px 0 8px;display:flex;align-items:center;gap:6px">⏳ অপেক্ষমাণ (${pending.length})</div>`;
+        html += pending.map(r => renderItem(r, 'var(--warn)', 'rgba(210,153,34,0.15)', '⏳', 'অপেক্ষায়')).join('');
+      }
+      if (rejected.length > 0) {
+        html += `<div style="font-size:0.72rem;letter-spacing:2px;text-transform:uppercase;color:var(--danger);margin:14px 0 8px;display:flex;align-items:center;gap:6px">❌ বাতিল (${rejected.length})</div>`;
+        html += rejected.map(r => renderItem(r, 'var(--danger)', 'rgba(224,85,85,0.15)', '❌', 'বাতিল')).join('');
+      }
     }
 
     if (!html) {
@@ -4078,6 +4221,9 @@ async function saveSetupData() {
     showToast('✅ তথ্য সফলভাবে সংরক্ষণ হয়েছে!', 'success');
     renderProfile();
     showScreen('app');
+    // Realtime listener শুরু করো
+    const memberDocId = currentMemberData.id || String(currentMemberData.no || '').replace(/[^A-Z0-9]/gi, '');
+    if (userRole !== 'admin' && userRole !== 'superadmin') startPendingListener(memberDocId);
 
   } catch(e) {
     err.textContent = '❌ সংরক্ষণ ব্যর্থ: ' + (e.code || e.message);
@@ -5620,6 +5766,24 @@ async function approveEdit(docId, silent = false) {
     });
 
     await batch.commit();
+
+    // ── ইউজারকে notification পাঠাও ──
+    try {
+      const fieldName = r.fieldLabel || r.field || 'তথ্য';
+      await db.collection('notifications').add({
+        uid: r.requestedBy,
+        memberId: r.memberId,
+        type: 'approved',
+        title: '✅ অনুরোধ অনুমোদিত হয়েছে',
+        body: `আপনার "${fieldName}" পরিবর্তনের অনুরোধ Admin অনুমোদন করেছেন।`,
+        requestId: docId,
+        field: r.field,
+        newValue: r.newValue,
+        read: false,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      });
+    } catch(notifErr) { console.warn('Notification error:', notifErr.message); }
+
     if (!silent) {
       showToast('✅ অনুমোদন করা হয়েছে', 'success');
       loadAdminData();
@@ -5627,18 +5791,36 @@ async function approveEdit(docId, silent = false) {
   } catch(e) {
     console.error('Approve error:', e);
     if (!silent) showToast('অনুমোদন ব্যর্থ: ' + e.message, 'error');
-    throw e; // caller এ handle করার জন্য
+    throw e;
   }
 }
 
 async function rejectEdit(docId, silent = false) {
   if (!silent && !confirm('এই অনুরোধটি প্রত্যাখ্যান করবেন?')) return;
   try {
+    const doc = await db.collection('editRequests').doc(docId).get();
+    const r = doc.exists ? doc.data() : {};
     await db.collection('editRequests').doc(docId).update({
       status: 'rejected',
       rejectedAt: firebase.firestore.FieldValue.serverTimestamp(),
       rejectedBy: currentUser.uid,
     });
+    // ইউজারকে rejected notification পাঠাও
+    if (r.requestedBy) {
+      try {
+        const fieldName = r.fieldLabel || r.field || 'তথ্য';
+        await db.collection('notifications').add({
+          uid: r.requestedBy,
+          memberId: r.memberId,
+          type: 'rejected',
+          title: '❌ অনুরোধ বাতিল হয়েছে',
+          body: `আপনার "${fieldName}" পরিবর্তনের অনুরোধ বাতিল করা হয়েছে।`,
+          requestId: docId,
+          read: false,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+      } catch(notifErr) { console.warn('Reject notification:', notifErr.message); }
+    }
     if (!silent) {
       showToast('অনুরোধ প্রত্যাখ্যান করা হয়েছে', 'error');
       loadAdminData();
