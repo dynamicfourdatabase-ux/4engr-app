@@ -2260,16 +2260,16 @@ function renderProfile() {
     { key: 'tr_bn',      label: 'ট্রেড',                  editable: true,  type: 'select', opts: TRADES },
     { key: 'co_bn',      label: 'কোম্পানী',               editable: true,  type: 'select', opts: COMPANIES },
     { key: 'niyog',      label: 'নিয়োগ',                 editable: true },
-    { key: 'jd',         label: 'ভর্তির তারিখ',           editable: false },
-    { key: 'od',         label: 'শপথের তারিখ',            editable: false },
+    { key: 'jd',         label: 'ভর্তির তারিখ',           editable: true },
+    { key: 'od',         label: 'শপথের তারিখ',            editable: true },
     { key: 'promo_date', label: 'প্রমোশনের তারিখ',        editable: false },
     { key: 'ai_bn',      label: 'AI ১/২০১৩ বর্ধিত',       editable: false },
-    { key: 'res_bn',     label: 'বাসস্থান অবস্থান',        editable: false },
-    { key: 'rt',         label: 'বাসস্থান মেয়াদ',          editable: false },
+    { key: 'res_bn',     label: 'বাসস্থান অবস্থান',        editable: true },
+    { key: 'rt',         label: 'বাসস্থান মেয়াদ',          editable: true },
     { key: 'rec',        label: 'সুপারিশ',                editable: false },
-    { key: 'pu',         label: 'পূর্বের ইউনিট',          editable: false },
+    { key: 'pu',         label: 'পূর্বের ইউনিট',          editable: true,  type: 'textarea' },
     { key: 'li',         label: 'লাইসেন্স',               editable: true, type: 'select', opts: VEHICLES },
-    { key: 'pn',         label: 'সাজা',                   editable: false },
+    { key: 'pn',         label: 'সাজা',                   editable: true },
     { key: 'pd',         label: 'পেনশন তারিখ',            editable: false },
   ];
   renderFields('militaryFields', militaryDef);
@@ -2307,10 +2307,12 @@ function renderProfile() {
     }
   }
 
-  // Check pending edits
-  checkPendingStatus();
   renderCourses();
   renderPromotionHistory();
+  // Fields render হওয়ার পরে pending check করো
+  if (userRole !== 'admin' && userRole !== 'superadmin') {
+    checkPendingStatus();
+  }
   // ভাষা প্রয়োগ করো
   setTimeout(() => {
     const btn = document.getElementById('langToggleBtn');
@@ -2784,36 +2786,70 @@ async function checkPendingStatus() {
     if (card) card.style.display = 'none';
     return;
   }
+  if (!currentMemberData || !currentUser) return;
+
+  const docId = currentMemberData.id ||
+    String(currentMemberData.no || currentMemberData.armyNo || '').replace(/[^A-Z0-9]/gi, '');
+  if (!docId) return;
+
+  const bar   = document.getElementById('profileStatus');
+  const card  = document.getElementById('pendingRequestsCard');
+  const list  = document.getElementById('pendingRequestsList');
+  const badge = document.getElementById('pendingRequestsBadge');
+
   try {
-    const docId = currentMemberData.id || String(currentMemberData.no || '').replace(/[^A-Z0-9]/gi, '');
-    let q;
+    // memberId বা requestedBy যেকোনো একটায় match করো
+    let docs = [];
     try {
-      q = await db.collection('editRequests')
-        .where('memberId', '==', docId)
-        .where('status', '==', 'pending')
-        .orderBy('createdAt', 'desc').get();
-    } catch(e) {
-      q = await db.collection('editRequests')
+      const q1 = await db.collection('editRequests')
         .where('memberId', '==', docId)
         .where('status', '==', 'pending').get();
+      docs = q1.docs;
+    } catch(e1) {
+      console.warn('pending query 1:', e1.message);
+    }
+    // memberId দিয়ে না পেলে requestedBy দিয়ে try
+    if (!docs.length) {
+      try {
+        const q2 = await db.collection('editRequests')
+          .where('requestedBy', '==', currentUser.uid)
+          .where('status', '==', 'pending').get();
+        docs = q2.docs;
+      } catch(e2) {
+        console.warn('pending query 2:', e2.message);
+      }
     }
 
-    const bar  = document.getElementById('profileStatus');
-    const card = document.getElementById('pendingRequestsCard');
-    const list = document.getElementById('pendingRequestsList');
-    const badge = document.getElementById('pendingRequestsBadge');
+    // ── pending map সবসময় rebuild করো ──
+    _pendingFieldMap = {};
+    docs.forEach(d => {
+      const r = d.data();
+      if (r.field && r.newValue !== undefined &&
+          r.requestType !== 'addCourse' && r.requestType !== 'editCourse') {
+        _pendingFieldMap[r.field] = r.newValue;
+      }
+    });
 
-    if (q.empty) {
-      bar.style.display = 'none';
+    // ── fields re-render (pending badge দেখাবে) ──
+    if (_lastPersonalDef.length) renderFields('personalFields', _lastPersonalDef);
+    if (_lastMilitaryDef.length) renderFields('militaryFields', _lastMilitaryDef);
+    if (_lastFamilyDef.length)   renderFields('familyFields',   _lastFamilyDef);
+
+    if (!docs.length) {
+      if (bar)  bar.style.display = 'none';
       if (card) card.style.display = 'none';
       return;
     }
 
-    bar.style.display = 'flex';
-    bar.textContent = `⏳ ${q.size}টি এডিট অনুমোদনের অপেক্ষায়`;
-    if (card) card.style.display = 'block';
-    if (badge) badge.textContent = q.size + 'টি';
+    // ── status bar + card ──
+    if (bar) {
+      bar.style.display = 'flex';
+      bar.textContent = `⏳ ${docs.length}টি এডিট অনুমোদনের অপেক্ষায়`;
+    }
+    if (card)  card.style.display = 'block';
+    if (badge) badge.textContent  = docs.length + 'টি';
 
+    // ── pending list render ──
     if (list) {
       const FIELD_LABELS = {
         bn:'বাংলা নাম', en:'ইংরেজি নাম', dob:'জন্ম তারিখ', bl:'রক্তের গ্রুপ',
@@ -2821,48 +2857,33 @@ async function checkPendingStatus() {
         r_bn:'পদবী', tr_bn:'ট্রেড', co_bn:'কোম্পানী', niyog:'নিয়োগ',
         ma_bn:'বৈবাহিক অবস্থা', sp:'স্ত্রীর নাম', sd:'স্ত্রীর জন্ম', wd:'বিবাহের তারিখ',
         cr_bn:'কোর্স/ক্যাডার', dc_bn:'ডিভিশন কোর্স', di_bn:'জেলা', ed_bn:'শিক্ষা',
+        jd:'ভর্তির তারিখ', od:'শপথের তারিখ', res_bn:'বাসস্থান অবস্থান',
+        rt:'বাসস্থান মেয়াদ', pu:'পূর্বের ইউনিট', pn:'সাজা',
       };
-      list.innerHTML = q.docs.map(d => {
+      list.innerHTML = docs.map(d => {
         const r = d.data();
         const dt = r.createdAt?.toDate ? r.createdAt.toDate().toLocaleDateString('bn-BD') : '';
         const fieldName = r.fieldLabel || FIELD_LABELS[r.field] || r.field || 'তথ্য';
-        // নতুন মান — কোর্স হলে শুধু নতুন কোর্সের নামটা দেখাও
-        let newValDisplay = r.newValue || '';
+        let dispVal = r.newValue || '';
         if (r.requestType === 'addCourse' && r.courseExtra) {
-          newValDisplay = r.courseExtra.nameBn || r.courseExtra.nameEn || newValDisplay.split(',').pop().trim();
-        } else if (r.requestType === 'editCourse' && r.courseEditExtra) {
-          newValDisplay = r.courseEditExtra.nameBn || newValDisplay.split(',').pop().trim();
-        } else if (newValDisplay.length > 40) {
-          newValDisplay = newValDisplay.substring(0, 40) + '...';
+          dispVal = r.courseExtra.nameBn || r.courseExtra.nameEn || dispVal.split(',').pop().trim();
+        } else if (dispVal.length > 40) {
+          dispVal = dispVal.substring(0, 40) + '...';
         }
-        return `<div style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.04);display:flex;align-items:flex-start;gap:10px">
-          <div style="width:8px;height:8px;border-radius:50%;background:var(--warn);margin-top:5px;flex-shrink:0"></div>
-          <div style="flex:1;min-width:0">
-            <div style="font-size:0.82rem;color:var(--text);font-weight:600">${fieldName}</div>
-            <div style="font-size:0.78rem;color:var(--text2);margin-top:2px">নতুন মান: <span style="color:var(--gold)">${newValDisplay}</span></div>
-            ${dt ? `<div style="font-size:0.68rem;color:var(--text3);margin-top:2px">${dt}</div>` : ''}
-          </div>
-          <span style="font-size:0.65rem;background:rgba(210,153,34,0.15);border:1px solid rgba(210,153,34,0.3);color:var(--warn);border-radius:10px;padding:2px 8px;font-family:'Rajdhani',sans-serif;font-weight:700;white-space:nowrap;flex-shrink:0">⏳ অপেক্ষায়</span>
-        </div>`;
+        return `<div style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.04);display:flex;align-items:flex-start;gap:10px">`
+          + `<div style="width:8px;height:8px;border-radius:50%;background:var(--warn);margin-top:5px;flex-shrink:0"></div>`
+          + `<div style="flex:1;min-width:0">`
+          + `<div style="font-size:0.85rem;color:var(--text);font-weight:600">${fieldName}</div>`
+          + `<div style="font-size:0.78rem;color:var(--text2);margin-top:3px">নতুন মান: <span style="color:var(--gold);font-weight:600">${dispVal}</span></div>`
+          + (dt ? `<div style="font-size:0.68rem;color:var(--text3);margin-top:2px">${dt}</div>` : '')
+          + `</div>`
+          + `<span style="font-size:0.65rem;background:rgba(210,153,34,0.15);border:1px solid rgba(210,153,34,0.3);color:var(--warn);border-radius:10px;padding:2px 8px;font-family:'Rajdhani',sans-serif;font-weight:700;white-space:nowrap;flex-shrink:0">⏳ অপেক্ষায়</span>`
+          + `</div>`;
       }).join('');
     }
-    // pending field map rebuild — login/refresh এ কাজ করবে
-    _pendingFieldMap = {};
-    if (!q.empty) {
-      q.docs.forEach(d => {
-        const r = d.data();
-        if (r.field && r.newValue !== undefined && r.requestType !== 'addCourse' && r.requestType !== 'editCourse') {
-          _pendingFieldMap[r.field] = r.newValue;
-        }
-      });
-      // pending map set হলে fields re-render করো
-      if (Object.keys(_pendingFieldMap).length > 0) {
-        renderFields('personalFields', _lastPersonalDef || []);
-        renderFields('militaryFields', _lastMilitaryDef || []);
-        renderFields('familyFields',   _lastFamilyDef   || []);
-      }
-    }
-  } catch(e) { console.warn('checkPendingStatus:', e.message); }
+  } catch(e) {
+    console.warn('checkPendingStatus error:', e.message);
+  }
 }
 
 /* ══════════════════════════════════════════
@@ -6269,6 +6290,7 @@ function _pensionCountdown(dateStr) {
 const MEMBER_EDITABLE_FIELDS = [
   'dob','bl','gn_bn','nid','mb','nm','wa','em','ad','di_bn','ed_bn',
   'r_bn','tr_bn','co_bn','niyog','ma_bn','sp','sd','wd',
+  'jd','od','res_bn','rt','pu','pn',
   'c1n','c1d','c2n','c2d','c3n','c3d','c4n','c4d','c5n','c5d',
 ];
 
