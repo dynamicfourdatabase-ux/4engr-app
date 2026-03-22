@@ -149,6 +149,7 @@ body {
   background: var(--surface); border-bottom: 1px solid var(--border);
   position: sticky; top: 76px; z-index: 90;
   box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  transition: top 0.15s ease;
 }
 .controls {
   max-width: 1440px; margin: 0 auto;
@@ -414,6 +415,7 @@ select:focus { border-color: var(--accent); }
   padding: 8px 20px;
   position: sticky; top: 76px; z-index: 89;
   backdrop-filter: blur(8px);
+  transition: top 0.15s ease;
 }
 .admin-bar-inner {
   max-width: 1440px; margin: 0 auto;
@@ -469,7 +471,7 @@ select:focus { border-color: var(--accent); }
   .view-btn { padding: 5px 8px; font-size: 12px; }
 
   /* Controls — collapsible filter grid */
-  .controls-wrap { position: sticky; top: 62px; }
+  .controls-wrap { position: sticky; /* top is set dynamically by JS */ }
   .controls { padding: 10px 12px; gap: 7px; }
   .search-wrap { flex: 1 1 100%; }
   .search-wrap input { font-size: 0.9rem; padding: 10px 14px 10px 36px; }
@@ -1491,13 +1493,31 @@ function injectAdminBar() {
     </div>`;
   const header = document.querySelector('.header');
   if (header) header.after(bar);
-  // adjust controls sticky offset after admin bar is added
-  requestAnimationFrame(() => {
-    const hh = document.querySelector('.header')?.offsetHeight || 76;
-    const abh = bar.offsetHeight || 44;
-    const cw = document.querySelector('.controls-wrap');
+
+  // ── Sticky offset — header + admin bar এর মোট height অনুযায়ী controls-wrap top ঠিক করো ──
+  function _adjustStickyOffset() {
+    const hh  = document.querySelector('.header')?.offsetHeight   || 0;
+    const abh = document.getElementById('adminBar')?.offsetHeight || 0;
+    const ab  = document.getElementById('adminBar');
+    const cw  = document.querySelector('.controls-wrap');
+    // admin bar header এর ঠিক নিচে
+    if (ab) ab.style.top = hh + 'px';
+    // controls-wrap admin bar এর ঠিক নিচে
     if (cw) cw.style.top = (hh + abh) + 'px';
-  });
+  }
+
+  // প্রথমবার চালাও
+  requestAnimationFrame(_adjustStickyOffset);
+
+  // Screen resize বা font load এ আবার চালাও
+  window.addEventListener('resize', _adjustStickyOffset, { passive: true });
+
+  // Admin bar এর নিজের height পরিবর্তন হলে (mobile wrap) আপডেট করো
+  if (window.ResizeObserver) {
+    const ro = new ResizeObserver(_adjustStickyOffset);
+    ro.observe(bar);
+    ro.observe(document.querySelector('.header'));
+  }
 }
 
 function openAddMemberModal() {
@@ -2970,25 +2990,78 @@ async function confirmDeleteMember(docId, name, no) {
   const reason = document.getElementById('deleteReasonInput')?.value.trim() || 'কারণ উল্লেখ নেই';
   const btn = document.getElementById('confirmDeleteBtn');
   if (btn) { btn.textContent = '⏳ ডিলিট হচ্ছে...'; btn.disabled = true; }
+
+  // Custom error toast function — alert() এর পরিবর্তে
+  const showDeleteError = (msg) => {
+    // পুরনো error modal সরাও
+    document.getElementById('_deleteErrModal')?.remove();
+    const em = document.createElement('div');
+    em.id = '_deleteErrModal';
+    em.style.cssText = 'position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px)';
+    em.innerHTML = `
+      <div style="background:#161b22;border:1px solid rgba(224,85,85,0.45);border-radius:20px;
+                  width:100%;max-width:360px;padding:28px 24px;box-shadow:0 20px 60px rgba(0,0,0,0.7);
+                  animation:_errFadeIn 0.25s ease">
+        <style>@keyframes _errFadeIn{from{opacity:0;transform:scale(0.92)}to{opacity:1;transform:scale(1)}}</style>
+        <div style="display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px">
+          <div style="width:56px;height:56px;border-radius:50%;background:rgba(224,85,85,0.12);
+                      border:2px solid rgba(224,85,85,0.35);display:flex;align-items:center;
+                      justify-content:center;font-size:26px">❌</div>
+          <div>
+            <div style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:1.05rem;
+                        color:#e05555;letter-spacing:1px;margin-bottom:6px">ডিলিট ব্যর্থ হয়েছে</div>
+            <div style="font-size:0.82rem;color:rgba(255,255,255,0.55);line-height:1.6">${msg}</div>
+          </div>
+          <div style="font-size:0.75rem;color:rgba(255,255,255,0.3);background:rgba(255,255,255,0.04);
+                      border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:8px 14px;
+                      font-family:'Rajdhani',sans-serif;width:100%">
+            Firebase Console → Firestore → Rules আপডেট করুন
+          </div>
+          <button onclick="document.getElementById('_deleteErrModal').remove()"
+            style="width:100%;padding:12px;background:linear-gradient(135deg,#c04040,#8a2020);
+                   border:none;border-radius:10px;color:#fff;font-family:'Rajdhani',sans-serif;
+                   font-size:0.9rem;font-weight:700;letter-spacing:1px;cursor:pointer;
+                   transition:opacity 0.2s" onmouseover="this.style.opacity='0.85'"
+                   onmouseout="this.style.opacity='1'">
+            ঠিক আছে
+          </button>
+        </div>
+      </div>`;
+    document.body.appendChild(em);
+    em.onclick = e => { if (e.target === em) em.remove(); };
+  };
+
   try {
-    await db.collection('deleteLog').add({
-      docId, memberName: name, armyNo: no, reason,
-      deletedBy: webCurrentUser?.uid || 'unknown',
-      deletedByRole: 'superadmin',
-      deletedAt: firebase.firestore.FieldValue.serverTimestamp(),
-    });
+    // deleteLog এ লগ রাখো
+    try {
+      await db.collection('deleteLog').add({
+        docId, memberName: name, armyNo: no, reason,
+        deletedBy: webCurrentUser?.uid || 'unknown',
+        deletedByRole: 'superadmin',
+        deletedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      });
+    } catch(_) { /* log fail হলেও delete continue করো */ }
+
     await db.collection('members').doc(docId).delete();
     document.getElementById('deleteMemberModal')?.remove();
     closeModalBtn();
-    const localIdx = members.findIndex(x =>
+    const localIdx = MEMBERS.findIndex(x =>
       (x._id || String(x.no || '').replace(/[^A-Z0-9]/gi, '')) === docId
     );
-    if (localIdx !== -1) members.splice(localIdx, 1);
+    if (localIdx !== -1) MEMBERS.splice(localIdx, 1);
     applyFilters();
     _showAdminToast('✅ ' + name + ' সফলভাবে ডিলিট হয়েছে', 'success');
   } catch(e) {
     if (btn) { btn.textContent = '🗑️ ডিলিট করুন'; btn.disabled = false; btn.style.opacity = '1'; }
-    alert('❌ ডিলিট ব্যর্থ: ' + (e.code || e.message));
+    let msg = e.code || e.message || 'অজানা সমস্যা';
+    if (e.code === 'permission-denied') {
+      msg = 'আপনার এই কাজ করার অনুমতি নেই।\nFirestore Rules এ superadmin delete permission নিশ্চিত করুন।';
+    } else if (e.code === 'not-found') {
+      msg = 'সদস্যটি ইতিমধ্যে ডিলিট হয়ে গেছে।';
+    } else if (e.code === 'unavailable') {
+      msg = 'ইন্টারনেট সংযোগ সমস্যা। কিছুক্ষণ পরে চেষ্টা করুন।';
+    }
+    showDeleteError(msg);
   }
 }
 
