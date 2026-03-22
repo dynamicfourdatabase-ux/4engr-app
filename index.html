@@ -3074,22 +3074,145 @@ function doLogout() {
 }
 
 /* Custom confirm — browser default এর বদলে */
-function showConfirm(msg, onOk, onCancel) {
+/* ══════════════════════════════════════════
+   PROFESSIONAL CONFIRM / ALERT MODAL
+══════════════════════════════════════════ */
+function showConfirm(msg, onOk, onCancel, opts = {}) {
+  const {
+    title      = opts.danger ? '⚠️ সতর্কতা' : 'নিশ্চিত করুন',
+    okLabel    = opts.danger ? 'হ্যাঁ, করুন' : 'নিশ্চিত',
+    cancelLabel= 'বাতিল',
+    icon       = opts.danger ? '🗑️' : '❓',
+    danger     = false,
+  } = opts;
+
+  // পুরনো modal থাকলে সরাও
+  document.querySelectorAll('._customConfirm').forEach(e => e.remove());
+
   const overlay = document.createElement('div');
-  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);backdrop-filter:blur(4px);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+  overlay.className = '_customConfirm';
+  overlay.style.cssText = `
+    position:fixed;inset:0;
+    background:rgba(0,0,0,0.6);
+    backdrop-filter:blur(6px);
+    -webkit-backdrop-filter:blur(6px);
+    z-index:99999;
+    display:flex;align-items:center;justify-content:center;
+    padding:24px;
+    animation:_cfIn 0.18s ease;
+  `;
+
+  const okColor = danger
+    ? 'linear-gradient(135deg,#e05555,#a03030)'
+    : 'linear-gradient(135deg,var(--gold),#9a7a20)';
+  const okText = danger ? '#fff' : '#0a0c10';
+
   overlay.innerHTML = `
-    <div style="background:var(--dark2);border:1px solid var(--border);border-radius:16px;padding:24px 20px;width:100%;max-width:320px;box-shadow:var(--shadow)">
-      <div style="font-size:0.95rem;color:var(--text);line-height:1.6;margin-bottom:20px;text-align:center">${msg}</div>
+    <style>
+      @keyframes _cfIn  { from{opacity:0;transform:scale(0.92)} to{opacity:1;transform:scale(1)} }
+      @keyframes _cfOut { from{opacity:1;transform:scale(1)} to{opacity:0;transform:scale(0.92)} }
+    </style>
+    <div style="
+      background:var(--bg2);
+      border:1px solid var(--border2);
+      border-radius:20px;
+      padding:28px 24px 20px;
+      width:100%;max-width:340px;
+      box-shadow:0 20px 60px rgba(0,0,0,0.5);
+      text-align:center;
+    ">
+      <div style="font-size:2.4rem;margin-bottom:12px;line-height:1">${icon}</div>
+      <div style="
+        font-family:'Rajdhani',sans-serif;
+        font-size:1rem;font-weight:700;
+        letter-spacing:1px;
+        color:var(--text);
+        margin-bottom:10px;
+      ">${title}</div>
+      <div style="
+        font-size:0.88rem;
+        color:var(--text2);
+        line-height:1.7;
+        margin-bottom:22px;
+        white-space:pre-line;
+      ">${msg}</div>
       <div style="display:flex;gap:10px">
-        <button id="_confirmCancel" style="flex:1;padding:11px;background:transparent;border:1px solid var(--border2);border-radius:10px;color:var(--text2);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:0.9rem;cursor:pointer">বাতিল</button>
-        <button id="_confirmOk" style="flex:1;padding:11px;background:linear-gradient(135deg,var(--danger),#a03030);border:none;border-radius:10px;color:#fff;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:0.9rem;cursor:pointer">হ্যাঁ</button>
+        <button id="_cfCancel" style="
+          flex:1;padding:13px 10px;
+          background:var(--bg3);
+          border:1.5px solid var(--border2);
+          border-radius:12px;
+          color:var(--text2);
+          font-family:'Rajdhani',sans-serif;
+          font-weight:700;font-size:0.92rem;
+          letter-spacing:1px;cursor:pointer;
+          transition:all 0.15s;
+        ">${cancelLabel}</button>
+        <button id="_cfOk" style="
+          flex:1;padding:13px 10px;
+          background:${okColor};
+          border:none;border-radius:12px;
+          color:${okText};
+          font-family:'Rajdhani',sans-serif;
+          font-weight:700;font-size:0.92rem;
+          letter-spacing:1px;cursor:pointer;
+          box-shadow:0 4px 14px rgba(0,0,0,0.25);
+          transition:all 0.15s;
+        ">${okLabel}</button>
       </div>
     </div>`;
+
   document.body.appendChild(overlay);
-  overlay.querySelector('#_confirmOk').onclick    = () => { document.body.removeChild(overlay); if(onOk) onOk(); };
-  overlay.querySelector('#_confirmCancel').onclick = () => { document.body.removeChild(overlay); if(onCancel) onCancel(); };
-  overlay.onclick = (e) => { if(e.target===overlay){ document.body.removeChild(overlay); if(onCancel) onCancel(); } };
+
+  const close = (ok) => {
+    overlay.style.animation = '_cfOut 0.15s ease forwards';
+    setTimeout(() => {
+      overlay.remove();
+      if (ok && onOk) onOk();
+      else if (!ok && onCancel) onCancel();
+    }, 140);
+  };
+
+  overlay.querySelector('#_cfOk').onclick     = () => close(true);
+  overlay.querySelector('#_cfCancel').onclick  = () => close(false);
+  overlay.onclick = (e) => { if (e.target === overlay) close(false); };
+
+  // Hover effects
+  const okBtn = overlay.querySelector('#_cfOk');
+  const cancelBtn = overlay.querySelector('#_cfCancel');
+  okBtn.onmouseenter = () => { okBtn.style.filter='brightness(1.1)'; okBtn.style.transform='translateY(-1px)'; };
+  okBtn.onmouseleave = () => { okBtn.style.filter=''; okBtn.style.transform=''; };
+  cancelBtn.onmouseenter = () => { cancelBtn.style.borderColor='var(--gold)'; cancelBtn.style.color='var(--gold)'; };
+  cancelBtn.onmouseleave = () => { cancelBtn.style.borderColor=''; cancelBtn.style.color=''; };
 }
+
+/* Promise-based version — async/await এ ব্যবহারের জন্য */
+function confirmAsync(msg, opts = {}) {
+  return new Promise(resolve => showConfirm(msg, () => resolve(true), () => resolve(false), opts));
+}
+
+/* Simple alert modal */
+function showAlert(msg, opts = {}) {
+  const { title = 'বার্তা', icon = 'ℹ️', type = 'info' } = opts;
+  const color = type === 'error' ? '#e05555' : type === 'success' ? 'var(--success)' : 'var(--gold)';
+
+  document.querySelectorAll('._customAlert').forEach(e => e.remove());
+  const overlay = document.createElement('div');
+  overlay.className = '_customAlert';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(6px);z-index:99999;display:flex;align-items:center;justify-content:center;padding:24px;';
+  overlay.innerHTML = `
+    <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:28px 24px 20px;width:100%;max-width:320px;box-shadow:0 20px 60px rgba(0,0,0,0.5);text-align:center;">
+      <div style="font-size:2.4rem;margin-bottom:12px">${icon}</div>
+      <div style="font-family:'Rajdhani',sans-serif;font-size:1rem;font-weight:700;letter-spacing:1px;color:${color};margin-bottom:10px">${title}</div>
+      <div style="font-size:0.88rem;color:var(--text2);line-height:1.7;margin-bottom:22px;white-space:pre-line">${msg}</div>
+      <button id="_alOk" style="width:100%;padding:13px;background:${color};border:none;border-radius:12px;color:${type==='info'?'#0a0c10':'#fff'};font-family:'Rajdhani',sans-serif;font-weight:700;font-size:0.92rem;letter-spacing:1px;cursor:pointer;">ঠিক আছে</button>
+    </div>`;
+  document.body.appendChild(overlay);
+  const close = () => overlay.remove();
+  overlay.querySelector('#_alOk').onclick = close;
+  overlay.onclick = (e) => { if (e.target === overlay) close(); };
+}
+
 
 /* ══════════════════════════════════════════
    LOAD MEMBER DATA
@@ -4384,7 +4507,7 @@ async function setCourseResult(idx, grade, btn) {
 /* ── Admin Reset Functions ── */
 async function adminResetResult(idx) {
   if (userRole !== 'admin' && userRole !== 'superadmin') return;
-  if (!confirm('এই কোর্সের ফলাফল মুছে দেবেন? সদস্য পুনরায় এন্ট্রি করতে পারবেন।')) return;
+  if (!await confirmAsync('এই কোর্সের ফলাফল মুছে দেবেন?\nসদস্য পুনরায় এন্ট্রি করতে পারবেন।', {danger:true,icon:'🗑️',title:'ফলাফল মুছুন'})) return;
 
   const docId = currentMemberData.id ||
     String(currentMemberData.no || currentMemberData.armyNo || '').replace(/[^A-Z0-9]/gi, '');
@@ -4417,7 +4540,7 @@ async function adminResetResult(idx) {
 
 async function adminResetPosition(idx) {
   if (userRole !== 'admin' && userRole !== 'superadmin') return;
-  if (!confirm('এই কোর্সের অবস্থান মুছে দেবেন? সদস্য পুনরায় এন্ট্রি করতে পারবেন।')) return;
+  if (!await confirmAsync('এই কোর্সের অবস্থান মুছে দেবেন?\nসদস্য পুনরায় এন্ট্রি করতে পারবেন।', {danger:true,icon:'🗑️',title:'অবস্থান মুছুন'})) return;
 
   const docId = currentMemberData.id ||
     String(currentMemberData.no || currentMemberData.armyNo || '').replace(/[^A-Z0-9]/gi, '');
@@ -4918,7 +5041,7 @@ async function editLeave(leaveId) {
 }
 
 async function deleteLeave(leaveId) {
-  if (!confirm('এই ছুটির রেকর্ড মুছে দেবেন?')) return;
+  if (!await confirmAsync('এই ছুটির রেকর্ড মুছে দেবেন?', {danger:true,icon:'🗑️',title:'ছুটি মুছুন'})) return;
   const docId = currentMemberData.id || String(currentMemberData.no || '').replace(/[^A-Z0-9]/gi, '');
   try {
     await db.collection('members').doc(docId).collection('leaves').doc(leaveId).delete();
@@ -5351,7 +5474,7 @@ function renderUserList() {
 }
 
 async function changeAdminRole(uid, newRole) {
-  if (!confirm(`এই Admin এর ভূমিকা পরিবর্তন করবেন?`)) return;
+  if (!await confirmAsync('এই Admin এর ভূমিকা পরিবর্তন করবেন?', {icon:'🔄',title:'ভূমিকা পরিবর্তন'})) return;
   try {
     await db.collection('users').doc(uid).update({ role: newRole });
     showToast('✅ ভূমিকা পরিবর্তন হয়েছে', 'success');
@@ -5360,8 +5483,7 @@ async function changeAdminRole(uid, newRole) {
 }
 
 async function removeAdmin(uid, name) {
-  if (!confirm(`"${name}" কে Admin তালিকা থেকে সরাবেন?
-তার অ্যাকাউন্ট থাকবে কিন্তু Admin ক্ষমতা যাবে।`)) return;
+  if (!await confirmAsync(`"${name}" কে Admin তালিকা থেকে সরাবেন?\nতার অ্যাকাউন্ট থাকবে কিন্তু Admin ক্ষমতা যাবে।`, {danger:true,icon:'⬇️',title:'Admin সরান'})) return;
   try {
     await db.collection('users').doc(uid).update({ role: 'member' });
     showToast('✅ Admin অপসারণ হয়েছে', 'success');
@@ -5559,8 +5681,8 @@ function setupPrev() {
   if (_setupStep > 1) updateSetupProgress(_setupStep - 1);
 }
 
-function skipSetup() {
-  if (confirm('এখন না করলে পরে Profile থেকে তথ্য পূরণ করতে পারবেন।\nএখন এড়িয়ে যাবেন?')) {
+async function skipSetup() {
+  if (await confirmAsync('এখন না করলে পরে Profile থেকে\nতথ্য পূরণ করতে পারবেন।\n\nএখন এড়িয়ে যাবেন?', {icon:'⏭️',title:'এড়িয়ে যান',okLabel:'এড়িয়ে যাই',cancelLabel:'পূরণ করব'})) {
     showScreen('app');
   }
 }
@@ -6113,7 +6235,7 @@ async function promoteExistingToAdmin() {
   const newCompany = document.getElementById('promoteCompanySelect').value;
   const roleLabel  = newRole === 'superadmin' ? 'Super Admin' : 'Admin';
 
-  if (!confirm(`"${u.name||u.armyNo}" কে ${roleLabel} হিসেবে নিয়োগ করবেন?`)) return;
+  if (!await confirmAsync(`"${u.name||u.armyNo}" কে ${roleLabel} হিসেবে নিয়োগ করবেন?`, {icon:'🔑',title:'ভূমিকা পরিবর্তন',okLabel:'নিয়োগ করুন'})) return;
 
   const btn = document.getElementById('btnPromoteExisting');
   btn.disabled = true;
@@ -6500,7 +6622,7 @@ async function adminSetCourseResult(idx, grade) {
 }
 
 async function adminClearCourseResult(idx) {
-  if (!confirm('ফলাফল মুছে দেবেন?')) return;
+  if (!await confirmAsync('এই কোর্সের ফলাফল মুছে দেবেন?', {danger:true,icon:'🗑️',title:'ফলাফল মুছুন'})) return;
   const docId = adminSelectedMember.id ||
     String(adminSelectedMember.no || adminSelectedMember.armyNo || '').replace(/[^A-Z0-9]/gi, '');
   if (!docId) { showToast('সদস্যের ID পাওয়া যায়নি', 'error'); return; }
@@ -6535,7 +6657,7 @@ async function adminSavePosition(idx) {
 }
 
 async function adminClearPosition(idx) {
-  if (!confirm('অবস্থান মুছে দেবেন?')) return;
+  if (!await confirmAsync('এই কোর্সের অবস্থান মুছে দেবেন?', {danger:true,icon:'🗑️',title:'অবস্থান মুছুন'})) return;
   const docId = adminSelectedMember.id ||
     String(adminSelectedMember.no || adminSelectedMember.armyNo || '').replace(/[^A-Z0-9]/gi, '');
   if (!docId) { showToast('সদস্যের ID পাওয়া যায়নি', 'error'); return; }
@@ -6915,7 +7037,7 @@ function renderPendingList(docs) {
     const ini = (grp.name || '?')[0].toUpperCase();
     const groupIds = grp.items.map(it => it.id);
     html += `
-    <div class="pending-group" style="background:var(--dark3);border:1px solid var(--border2);border-radius:12px;margin-bottom:12px;overflow:hidden">
+    <div class="pending-group" style="background:var(--bg2);border:1px solid var(--border2);border-radius:12px;margin-bottom:12px;overflow:hidden;transition:opacity 0.2s,transform 0.2s">
       <!-- সদস্যের হেডার -->
       <div style="padding:10px 14px;background:var(--dark4);border-bottom:1px solid var(--border2);display:flex;align-items:center;gap:10px">
         <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--gold),#7a5a10);display:flex;align-items:center;justify-content:center;font-family:'Rajdhani',sans-serif;font-weight:700;color:#0a0c10;font-size:14px;flex-shrink:0">${ini}</div>
@@ -6926,7 +7048,7 @@ function renderPendingList(docs) {
         <div style="display:flex;gap:6px">
           <button onclick="approveGroup(${JSON.stringify(groupIds)})"
             style="padding:5px 12px;background:rgba(63,185,80,0.15);border:1px solid rgba(63,185,80,0.4);border-radius:8px;color:var(--success);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:0.75rem;cursor:pointer;white-space:nowrap">
-            ✓ এই সদস্যের সব (${grp.items.length})
+            ✓ সব (<span class="grp-count">${grp.items.length}</span>)
           </button>
           <button onclick="rejectGroup(${JSON.stringify(groupIds)})"
             style="padding:5px 10px;background:rgba(224,85,85,0.1);border:1px solid rgba(224,85,85,0.3);border-radius:8px;color:var(--danger);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:0.75rem;cursor:pointer">
@@ -6948,17 +7070,22 @@ function renderPendingList(docs) {
           ${ex.recommendation ? `<span style="font-size:0.62rem;color:var(--text2);font-style:italic">💬 ${ex.recommendation}</span>` : ''}
         </div>` : '';
       html += `
-        <div style="background:var(--dark2);border:1px solid var(--border2);border-radius:8px;padding:9px 12px;display:flex;align-items:flex-start;gap:10px">
+        <div id="pitem_${it.id}" style="background:var(--bg2);border:1px solid var(--border2);border-radius:10px;padding:11px 13px;display:flex;align-items:flex-start;gap:10px;transition:all 0.2s">
           <div style="flex:1;min-width:0">
-            <div style="font-size:0.82rem;color:var(--text2);font-family:'Rajdhani',sans-serif;letter-spacing:0.5px">${it.fieldLabel}</div>
-            <div style="font-size:0.88rem;font-weight:600;color:var(--text);margin-top:2px">${displayVal}</div>
+            <div style="font-size:0.78rem;color:var(--text2);font-family:'Rajdhani',sans-serif;letter-spacing:0.5px;margin-bottom:3px">${it.fieldLabel || it.field || '—'}</div>
+            ${it.oldValue ? `<div style="font-size:0.75rem;color:var(--text3);text-decoration:line-through;margin-bottom:2px">${it.oldValue.length>40?it.oldValue.substring(0,40)+'...':it.oldValue}</div>` : ''}
+            <div style="font-size:0.9rem;font-weight:600;color:var(--text)">${displayVal}</div>
             ${extraBadges}
           </div>
-          <div style="display:flex;gap:5px;flex-shrink:0">
-            <button onclick="approveEdit('${it.id}',true)"
-              style="padding:4px 10px;background:rgba(63,185,80,0.12);border:1px solid rgba(63,185,80,0.35);border-radius:6px;color:var(--success);font-size:11px;font-family:'Rajdhani',sans-serif;font-weight:700;cursor:pointer">✓</button>
-            <button onclick="rejectEdit('${it.id}',true)"
-              style="padding:4px 10px;background:rgba(224,85,85,0.1);border:1px solid rgba(224,85,85,0.3);border-radius:6px;color:var(--danger);font-size:11px;font-family:'Rajdhani',sans-serif;font-weight:700;cursor:pointer">✗</button>
+          <div style="display:flex;flex-direction:column;gap:5px;flex-shrink:0">
+            <button onclick="pendingItemAction('${it.id}','approve',this)"
+              style="padding:6px 14px;background:rgba(63,185,80,0.12);border:1px solid rgba(63,185,80,0.4);border-radius:8px;color:var(--success);font-size:0.75rem;font-family:'Rajdhani',sans-serif;font-weight:700;cursor:pointer;white-space:nowrap;transition:all 0.15s">
+              ✓ অনুমোদন
+            </button>
+            <button onclick="pendingItemAction('${it.id}','reject',this)"
+              style="padding:6px 14px;background:rgba(224,85,85,0.08);border:1px solid rgba(224,85,85,0.35);border-radius:8px;color:var(--danger);font-size:0.75rem;font-family:'Rajdhani',sans-serif;font-weight:700;cursor:pointer;white-space:nowrap;transition:all 0.15s">
+              ✗ বাতিল
+            </button>
           </div>
         </div>`;
     });
@@ -6969,14 +7096,117 @@ function renderPendingList(docs) {
   box.innerHTML = html;
 }
 
-/* একটা গ্রুপের সব approve — bulk mode */
-async function approveGroup(ids) {
-  await approveGroupBulk(ids);
+/* ══ Individual pending item — approve বা reject, UI তাৎক্ষণিক আপডেট ══ */
+async function pendingItemAction(docId, action, btn) {
+  // বাটন disable করো — double click রোধ
+  if (btn) {
+    btn.disabled = true;
+    btn.style.opacity = '0.5';
+    btn.textContent = '⏳';
+  }
+  const sibling = btn?.parentElement?.querySelector(`button:not([disabled])`);
+  if (sibling) { sibling.disabled = true; sibling.style.opacity = '0.4'; }
+
+  try {
+    if (action === 'approve') {
+      await approveEdit(docId, true); // silent=true
+    } else {
+      // reject — no confirm for individual (already in context)
+      const doc = await db.collection('editRequests').doc(docId).get();
+      const r = doc.exists ? doc.data() : {};
+      await db.collection('editRequests').doc(docId).update({
+        status: 'rejected',
+        rejectedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        rejectedBy: currentUser.uid,
+      });
+      if (r.requestedBy) {
+        db.collection('notifications').add({
+          uid: r.requestedBy, memberId: r.memberId, type: 'rejected',
+          title: '❌ অনুরোধ বাতিল হয়েছে',
+          body: `আপনার "${r.fieldLabel||r.field||'তথ্য'}" পরিবর্তনের অনুরোধ বাতিল করা হয়েছে।`,
+          requestId: docId, read: false,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        }).catch(() => {});
+      }
+    }
+
+    // ── UI: item animate করে remove করো ──
+    const itemEl = document.getElementById('pitem_' + docId);
+    if (itemEl) {
+      const color = action === 'approve' ? 'rgba(63,185,80,0.15)' : 'rgba(224,85,85,0.12)';
+      itemEl.style.background = color;
+      itemEl.style.opacity = '0';
+      itemEl.style.transform = 'translateX(20px)';
+      await new Promise(r => setTimeout(r, 250));
+      itemEl.remove();
+    }
+
+    // ── group এর items check — সব গেলে group remove করো ──
+    const groupEl = btn?.closest('.pending-group');
+    if (groupEl) {
+      const remaining = groupEl.querySelectorAll('[id^="pitem_"]').length;
+      if (remaining === 0) {
+        groupEl.style.opacity = '0';
+        groupEl.style.transform = 'scale(0.97)';
+        await new Promise(r => setTimeout(r, 200));
+        groupEl.remove();
+      } else {
+        // group header counter আপডেট করো
+        const countSpan = groupEl.querySelector('.grp-count');
+        if (countSpan) countSpan.textContent = remaining;
+      }
+    }
+
+    // ── global counter আপডেট করো ──
+    _updatePendingCounters();
+
+    const msg = action === 'approve' ? '✅ অনুমোদন করা হয়েছে' : '❌ বাতিল করা হয়েছে';
+    showToast(msg, action === 'approve' ? 'success' : 'error');
+
+  } catch(e) {
+    console.error('pendingItemAction error:', e);
+    showToast('ব্যর্থ: ' + (e.code || e.message), 'error');
+    // বাটন restore করো
+    if (btn) { btn.disabled = false; btn.style.opacity = '1'; btn.textContent = action === 'approve' ? '✓ অনুমোদন' : '✗ বাতিল'; }
+    if (sibling) { sibling.disabled = false; sibling.style.opacity = '1'; }
+  }
 }
+
+/* pending counter আপডেট */
+function _updatePendingCounters() {
+  const box = document.getElementById('pendingList');
+  if (!box) return;
+  const remaining = box.querySelectorAll('[id^="pitem_"]').length;
+
+  // "সব অনুমোদন" বাটনের counter
+  const approveAllBtn = document.getElementById('btnApproveAll');
+  if (approveAllBtn) {
+    const span = approveAllBtn.querySelector('span');
+    if (span) span.textContent = remaining;
+    if (remaining === 0) approveAllBtn.style.opacity = '0.4';
+  }
+
+  // nav badge
+  _updatePendingNav(remaining);
+
+  // সব শেষ হলে empty message দেখাও
+  if (remaining === 0) {
+    setTimeout(() => {
+      const groups = box.querySelectorAll('.pending-group');
+      if (groups.length === 0) {
+        box.innerHTML = '<div style="color:var(--text2);text-align:center;padding:30px;font-size:0.85rem">✅ কোনো অপেক্ষমাণ অনুরোধ নেই</div>';
+        // admin stat card ও আপডেট করো
+        const stEl = document.getElementById('st-pending');
+        if (stEl) stEl.textContent = '০';
+      }
+    }, 400);
+  }
+}
+
 
 /* একটা গ্রুপের সব reject */
 async function rejectGroup(ids) {
-  if (!confirm(ids.length + 'টি অনুরোধ বাতিল করবেন?')) return;
+  if (!await confirmAsync(`${ids.length}টি অনুরোধ বাতিল করবেন?`, {danger:true,icon:'❌',title:'বাল্ক বাতিল'})) return;
   showLoading('বাতিল হচ্ছে...');
   let done = 0;
   for (const id of ids) {
@@ -6999,7 +7229,7 @@ async function approveAllPending() {
   const btn = document.getElementById('btnApproveAll');
   const allBtns = document.querySelectorAll('#pendingList [onclick^="approveEdit"], #pendingList [onclick^="approveGroup"]');
   const count = document.querySelectorAll('#pendingList .pending-group').length;
-  if (!confirm('সব ' + (btn?.querySelector('span')?.textContent || '') + 'টি অনুরোধ একসাথে অনুমোদন করবেন?')) return;
+  if (!await confirmAsync(`সব ${btn?.querySelector('span')?.textContent||''}টি অনুরোধ একসাথে অনুমোদন করবেন?`, {icon:'✅',title:'বাল্ক অনুমোদন',okLabel:'সব অনুমোদন করুন'})) return;
 
   showLoading('সব অনুমোদন হচ্ছে...');
   try {
@@ -7046,7 +7276,7 @@ async function approveAllPending() {
 
 /* সব pending একসাথে reject */
 async function rejectAllPending() {
-  if (!confirm('সব অপেক্ষমাণ অনুরোধ বাতিল করবেন?')) return;
+  if (!await confirmAsync('সব অপেক্ষমাণ অনুরোধ বাতিল করবেন?', {danger:true,icon:'❌',title:'সব বাতিল'})) return;
   showLoading('সব বাতিল হচ্ছে...');
   try {
     let pendingQuery;
@@ -7160,6 +7390,19 @@ async function approveCourseGroup(courseRequests) {
 }
 
 /* সদস্য অনুযায়ী group করে bulk approve করো */
+async function approveGroup(ids) {
+  if (!ids || !ids.length) return;
+  if (!await confirmAsync(`${ids.length}টি অনুরোধ অনুমোদন করবেন?`, {icon:'✅',title:'গ্রুপ অনুমোদন',okLabel:'অনুমোদন করুন'})) return;
+  await approveGroupBulk(ids);
+  // UI আপডেট — সব item remove করো
+  ids.forEach(id => {
+    const el = document.getElementById('pitem_' + id);
+    if (el) el.remove();
+  });
+  _updatePendingCounters();
+  showToast(`✅ ${ids.length}টি অনুমোদন হয়েছে`, 'success');
+}
+
 async function approveGroupBulk(ids) {
   showLoading('অনুমোদন হচ্ছে...');
   try {
@@ -7310,7 +7553,7 @@ async function approveEdit(docId, silent = false) {
 }
 
 async function rejectEdit(docId, silent = false) {
-  if (!silent && !confirm('এই অনুরোধটি প্রত্যাখ্যান করবেন?')) return;
+  if (!silent && !await confirmAsync('এই অনুরোধটি প্রত্যাখ্যান করবেন?', {danger:true,icon:'❌',title:'প্রত্যাখ্যান',okLabel:'বাতিল করুন'})) return;
   try {
     const doc = await db.collection('editRequests').doc(docId).get();
     const r = doc.exists ? doc.data() : {};
@@ -7434,7 +7677,7 @@ function compressImage(file, maxSize, quality) {
 async function promoteUser(uid, newRole, name, armyNo) {
   if (userRole !== 'superadmin') { showToast('অনুমতি নেই', 'error'); return; }
   const roleLabel = newRole === 'admin' ? 'Admin' : newRole === 'superadmin' ? 'Super Admin' : 'সাধারণ সদস্য';
-  if (!confirm(`"${name}" কে "${roleLabel}" করবেন?`)) return;
+  if (!await confirmAsync(`"${name}" কে "${roleLabel}" হিসেবে নিয়োগ করবেন?`, {icon:'🔑',title:'ভূমিকা পরিবর্তন',okLabel:'নিয়োগ করুন'})) return;
 
   showLoading('আপডেট হচ্ছে...');
   try {
@@ -7468,8 +7711,8 @@ async function promoteUser(uid, newRole, name, armyNo) {
 
 async function deleteUser(uid, name) {
   if (userRole !== 'superadmin') { showToast('অনুমতি নেই', 'error'); return; }
-  if (!confirm(`⚠️ "${name}" এর প্রোফাইল সম্পূর্ণ মুছে দেবেন? এটি পূর্বাবস্থায় ফেরানো যাবে না!`)) return;
-  if (!confirm(`নিশ্চিত করুন — "${name}" ডিলিট করবেন?`)) return;
+  if (!await confirmAsync(`"${name}" এর প্রোফাইল সম্পূর্ণ মুছে দেবেন?\n\n⚠️ এই কাজ পূর্বাবস্থায় ফেরানো যাবে না!`, {danger:true,icon:'🗑️',title:'ইউজার ডিলিট',okLabel:'স্থায়ীভাবে মুছুন'})) return;
+  // double confirm removed - single is enough
 
   showLoading('ডিলিট হচ্ছে...');
   try {
