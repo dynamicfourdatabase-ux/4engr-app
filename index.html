@@ -2781,113 +2781,146 @@ function showConfirm(msg, onOk, onCancel) {
 ══════════════════════════════════════════ */
 async function loadMemberData(uid) {
   try {
+    // ══ Step 1: users collection থেকে ইউজার ডেটা লোড ══
     const userDoc = await db.collection('users').doc(uid).get();
 
-    // ══ users doc নেই = Admin delete করেছিল, পুনরায় নিবন্ধন হয়েছে ══
-    // Auth email থেকে armyNo বের করে members থেকে সব তথ্য ফিরিয়ে আনো
-    if (!userDoc.exists) {
-      const email     = auth.currentUser?.email || '';
-      const armyNoRaw = email.replace('@4engr.bd', '').toUpperCase();
+    let armyNo = '';
+    userRole   = 'member';
 
-      if (armyNoRaw) {
-        showLoading('তথ্য পুনরুদ্ধার হচ্ছে...');
-        try {
-          // প্রথমে docId দিয়ে খোঁজো
-          let memberSnap = await db.collection('members').doc(armyNoRaw).get();
-          let memberData = {};
-          if (memberSnap.exists) {
-            memberData = memberSnap.data();
-          } else {
-            // 'no' field দিয়ে খোঁজো
-            const q = await db.collection('members').where('no', '==', armyNoRaw).limit(1).get();
-            if (!q.empty) memberData = q.docs[0].data();
-          }
-
-          // users doc পুনরায় তৈরি করো (ওয়েবসাইটের ডেটা সহ)
-          await db.collection('users').doc(uid).set({
-            armyNo:      armyNoRaw,
-            role:        'member',
-            name:        memberData.bn || memberData.en || armyNoRaw,
-            createdAt:   firebase.firestore.FieldValue.serverTimestamp(),
-            restoredAt:  firebase.firestore.FieldValue.serverTimestamp(),
-          });
-
-          userRole          = 'member';
-          currentMemberData = memberSnap.exists
-            ? { id: memberSnap.id, ...memberData }
-            : { id: uid, armyNo: armyNoRaw, no: armyNoRaw,
-                bn: memberData.bn || armyNoRaw, en: memberData.en || armyNoRaw };
-
-          showToast('✅ আপনার সকল তথ্য ওয়েবসাইট থেকে পুনরুদ্ধার হয়েছে', 'success');
-          renderProfile();
-          return;
-        } catch(restoreErr) {
-          console.error('Restore error:', restoreErr);
-        }
-      }
-
-      showToast('প্রোফাইল ডেটা পাওয়া যায়নি। Admin এর সাথে যোগাযোগ করুন।', 'error');
-      return;
-    }
-
-    const userData = userDoc.data();
-    userRole = userData.role || 'member';
-    const armyNo = userData.armyNo;
-
-    // Load from members collection
-    // armyNo দিয়ে খোঁজো, না পেলে সরাসরি docId দিয়ে
-    const armyNoDocId = String(armyNo).replace(/[^A-Z0-9]/gi, '');
-    let memberQuery = await db.collection('members').where('no', '==', armyNo).get();
-    if (memberQuery.empty) {
-      // numeric হলে সরাসরি doc get করো
-      const directDoc = await db.collection('members').doc(armyNoDocId).get();
-      if (directDoc.exists) {
-        currentMemberData = { id: directDoc.id, ...directDoc.data() };
-        } else {
-        // Admin/SuperAdmin এর জন্য adminProfiles collection থেকে লোড করো
-        const adminProfileDoc = await db.collection('adminProfiles').doc(currentUser.uid).get();
-        if (adminProfileDoc.exists) {
-          currentMemberData = {
-            id: currentUser.uid,
-            ...adminProfileDoc.data(),
-            armyNo: armyNo,
-            no: armyNo,
-            r_bn: adminProfileDoc.data().r_bn || (userRole === 'superadmin' ? 'Super Admin' : 'Admin'),
-          };
-        } else {
-          currentMemberData = {
-            id: currentUser.uid,
-            armyNo: armyNo,
-            no: armyNo,
-            bn: userData.name || armyNo,
-            en: userData.name || armyNo,
-            r_bn: userRole === 'superadmin' ? 'Super Admin' : 'Admin',
-            r_en: userRole === 'superadmin' ? 'Super Admin' : 'Admin',
-          };
-        }
-      }
+    if (userDoc.exists) {
+      const ud = userDoc.data();
+      userRole = ud.role || 'member';
+      armyNo   = ud.armyNo || ud.no || '';
     } else {
-      currentMemberData = { id: memberQuery.docs[0].id, ...memberQuery.docs[0].data() };
+      // users doc নেই — email থেকে armyNo বের করো
+      const email = auth.currentUser?.email || '';
+      armyNo = email.replace(/@.*/, '').toUpperCase();
+      // users doc নতুনভাবে তৈরি করো
+      if (armyNo) {
+        await db.collection('users').doc(uid).set({
+          armyNo, role: 'member',
+          name: armyNo,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+      }
     }
 
-    renderProfile();
-    // নতুন user হলে first setup দেখাও
-    if (userRole === 'member') checkFirstSetup();
+    const armyNoClean = String(armyNo).replace(/[^A-Z0-9]/gi, '');
+
+    // ══ Step 2: Admin/SuperAdmin হলে adminProfiles থেকে লোড ══
     if (userRole === 'admin' || userRole === 'superadmin') {
+      const adminProfileDoc = await db.collection('adminProfiles').doc(uid).get();
+      if (adminProfileDoc.exists) {
+        currentMemberData = {
+          id: uid,
+          ...adminProfileDoc.data(),
+          armyNo, no: armyNo,
+          r_bn: adminProfileDoc.data().r_bn || (userRole === 'superadmin' ? 'Super Admin' : 'Admin'),
+        };
+      } else {
+        currentMemberData = {
+          id: uid, armyNo, no: armyNo,
+          bn: userDoc.data()?.name || armyNo,
+          en: userDoc.data()?.name || armyNo,
+          r_bn: userRole === 'superadmin' ? 'Super Admin' : 'Admin',
+          r_en: userRole === 'superadmin' ? 'Super Admin' : 'Admin',
+        };
+      }
+      renderProfile();
       document.getElementById('nav-admin').style.display = 'flex';
       if (userRole === 'superadmin') {
         document.getElementById('superAdminSection').style.display = 'block';
       }
-      // Admin এর জন্য পারিবারিক তথ্য কার্ড লুকাও
       const familyCard = document.getElementById('familyFields')?.closest('.card');
       if (familyCard) familyCard.style.display = 'none';
-      // শুধু admin ও superadmin এর জন্য ওয়েবসাইট লিংক দেখাও
       const rosterCard = document.getElementById('rosterLinkCard');
       if (rosterCard) rosterCard.style.display = 'flex';
+      return;
     }
+
+    // ══ Step 3: সাধারণ member — members collection থেকে লোড ══
+    let memberData = null;
+    let memberId   = armyNoClean;
+
+    // ৩a: সরাসরি docId দিয়ে খোঁজো
+    if (armyNoClean) {
+      const snap = await db.collection('members').doc(armyNoClean).get();
+      if (snap.exists) {
+        memberData = snap.data();
+        memberId   = snap.id;
+      }
+    }
+
+    // ৩b: 'no' field দিয়ে query করো
+    if (!memberData && armyNo) {
+      const q = await db.collection('members').where('no', '==', armyNo).limit(1).get();
+      if (!q.empty) {
+        memberData = q.docs[0].data();
+        memberId   = q.docs[0].id;
+      }
+    }
+
+    // ৩c: no field এ padded version (032273) দিয়ে খোঁজো
+    if (!memberData && armyNoClean && armyNoClean.length <= 6) {
+      const padded = armyNoClean.padStart(6, '0');
+      if (padded !== armyNoClean) {
+        const snap2 = await db.collection('members').doc(padded).get();
+        if (snap2.exists) { memberData = snap2.data(); memberId = snap2.id; }
+        if (!memberData) {
+          const q2 = await db.collection('members').where('no', '==', padded).limit(1).get();
+          if (!q2.empty) { memberData = q2.docs[0].data(); memberId = q2.docs[0].id; }
+        }
+      }
+    }
+
+    // ══ Step 4: ডেটা পাওয়া গেলে — প্রোফাইল দেখাও ══
+    if (memberData) {
+      currentMemberData = { id: memberId, armyNo, no: armyNo, ...memberData };
+      renderProfile();
+      // নতুন user (bn/r_bn নেই) — Setup Screen দেখাও
+      checkFirstSetup();
+      startPendingListener(memberId);
+      return;
+    }
+
+    // ══ Step 5: members collection এ কোনো ডেটা নেই ══
+    // নতুন নিবন্ধিত ইউজার — members doc তৈরি করে Setup Screen দেখাও
+    if (armyNoClean) {
+      // প্রথমে check করো Admin এই armyNo যোগ করেছে কিনা
+      // (Admin শুধু no ও dob দিয়ে member তৈরি করে)
+      currentMemberData = {
+        id: armyNoClean,
+        armyNo, no: armyNo,
+        dob: userDoc.data()?.dob || '',
+      };
+
+      // members collection এ minimal doc তৈরি করো (যদি না থাকে)
+      try {
+        const newRef = db.collection('members').doc(armyNoClean);
+        const newSnap = await newRef.get();
+        if (!newSnap.exists) {
+          await newRef.set({
+            no: armyNo,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            createdBy: uid,
+          });
+        }
+      } catch(_) {}
+
+      renderProfile();
+      // Setup Screen দেখাও — ইউজার নিজে তথ্য পূরণ করবে
+      showScreen('setup');
+      updateSetupProgress(1);
+      showToast('স্বাগতম! আপনার তথ্য পূরণ করুন।', 'success');
+      return;
+    }
+
+    // armyNo ও কিছুই নেই — সত্যিকারের error
+    showToast('প্রোফাইল লোড করা যায়নি। Admin এর সাথে যোগাযোগ করুন।', 'error');
+
   } catch(e) {
-    console.error('Load error:', e);
-    showToast('ডেটা লোড ব্যর্থ', 'error');
+    console.error('loadMemberData error:', e);
+    showToast('ডেটা লোড ব্যর্থ: ' + (e.code || e.message), 'error');
   }
 }
 
@@ -4975,11 +5008,11 @@ let _setupStep = 1;
 function checkFirstSetup() {
   const m = currentMemberData;
   if (!m) return;
-  // Data পূরণ হয়েছে কিনা চেক — bn (নাম) এবং r_bn (পদবী) না থাকলে নতুন user
-  const isNewUser = !m.bn && !m.en && !m.r_bn;
+  // bn (নাম) না থাকলে নতুন user — Setup দেখাও
+  const isNewUser = !m.bn && !m.en;
   if (isNewUser) {
     _setupStep = 1;
-    // dob আগে থেকে আছে, readonly দেখাব
+    // Admin যদি আগে dob দিয়ে রাখে — readonly দেখাও
     const dobEl = document.getElementById('s_dob_display');
     if (dobEl) dobEl.textContent = m.dob || '—';
     showScreen('setup');
