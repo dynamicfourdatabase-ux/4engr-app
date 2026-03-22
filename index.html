@@ -198,7 +198,14 @@ body {
 
 /* ══ SCREENS ══ */
 .screen { display: none; min-height: 100vh; }
-.screen.active { display: flex; flex-direction: column; }
+.screen.active {
+  display: flex; flex-direction: column;
+  animation: _screenIn 0.18s ease;
+}
+@keyframes _screenIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
 
 /* ══ LOGIN SCREEN ══ */
 #loginScreen {
@@ -369,6 +376,12 @@ select.form-input { cursor: pointer; }
   box-shadow: 0 -4px 20px rgba(0,0,0,0.12);
   transition: background var(--transition);
 }
+
+/* ══ INSTANT BUTTON FEEDBACK ══ */
+button:active:not(:disabled),
+.nav-item:active { transform: scale(0.96); }
+.field-edit-btn:active { transform: scale(0.90); }
+
 .nav-item {
   flex: 1; display: flex; flex-direction: column;
   align-items: center; gap: 2px; padding: 6px 4px;
@@ -854,11 +867,13 @@ select.form-input { cursor: pointer; }
 
     <div class="form-group">
       <label class="form-label">সেনা নম্বর</label>
-      <input type="text" class="form-input" id="armyNo" placeholder="যেমন: BA-12345">
+      <input type="text" class="form-input" id="armyNo" placeholder="যেমন: BA-12345"
+        onkeydown="if(event.key==='Enter')document.getElementById('password').focus()">
     </div>
     <div class="form-group">
       <label class="form-label">পাসওয়ার্ড</label>
-      <input type="password" class="form-input" id="password" placeholder="পাসওয়ার্ড লিখুন">
+      <input type="password" class="form-input" id="password" placeholder="পাসওয়ার্ড লিখুন"
+        onkeydown="if(event.key==='Enter')doLogin()">
     </div>
     <button class="btn btn-primary" id="loginBtn" onclick="doLogin()">লগইন করুন</button>
     <div id="loginError" class="login-error"></div>
@@ -2106,8 +2121,15 @@ function initFirebase(config) {
     }
     auth = firebase.auth();
     db = firebase.firestore();
+
+    // ── Firestore offline cache — পরের বার আরো দ্রুত load হবে ──
+    db.settings({ merge: true });
+    db.enablePersistence({ synchronizeTabs: false }).catch(() => {});
+    // নেটওয়ার্ক সবসময় চালু রাখো
+    db.enableNetwork().catch(() => {});
+
     storage = firebase.storage();
-    // App Check — debug mode (Monitoring এ আছে বলে block করছিল)
+    // App Check
     try {
       const appCheck = firebase.appCheck();
       // ⚠️ PRODUCTION: '6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI' is Google's TEST key.
@@ -3286,14 +3308,12 @@ function setupAuthListener() {
     }
 
     if (user) {
-      showLoading('প্রোফাইল লোড হচ্ছে...');
       currentUser = user;
 
-      // পাসওয়ার্ড রিসেট চেক
-      await checkPendingPasswordReset(user);
+      // পাসওয়ার্ড রিসেট চেক — background এ চলবে, login block করবে না
+      checkPendingPasswordReset(user).catch(() => {});
 
       await loadMemberData(user.uid);
-      hideLoading();
       // ── loadMemberData নিজেই showScreen call করে (app বা setup)
       // তাই এখানে আর showScreen call করা হচ্ছে না
     } else {
@@ -3360,38 +3380,30 @@ async function doLogin() {
     return;
   }
 
-  btn.textContent = '⏳ লগইন হচ্ছে...';
-  btn.disabled = true;
-  showLoading('লগইন হচ্ছে...');
-  try {
-    // ── Rate limit check ──
-    const rlKey = 'login_' + armyNo.replace(/[^A-Z0-9]/gi,'').toLowerCase();
-    const rl = _RATE.check(rlKey);
-    if (!rl.allowed) {
-      hideLoading();
-      errEl.textContent = `⛔ অনেকবার ভুল চেষ্টার কারণে ${rl.mins} মিনিটের জন্য লক। পরে চেষ্টা করুন।`;
-      errEl.style.display = 'block';
-      btn.textContent = 'লগইন করুন'; btn.disabled = false;
-      return;
-    }
-    // ── Input validation ──
-    if (!_SEC.isValidArmyNo(armyNo)) {
-      hideLoading();
-      errEl.textContent = 'সেনা নম্বর সঠিক ফরম্যাটে দিন।';
-      errEl.style.display = 'block';
-      btn.textContent = 'লগইন করুন'; btn.disabled = false;
-      return;
-    }
+  // ── Rate limit check ── (validate করো loading দেখানোর আগেই)
+  const rlKey = 'login_' + armyNo.replace(/[^A-Z0-9]/gi,'').toLowerCase();
+  const rl = _RATE.check(rlKey);
+  if (!rl.allowed) {
+    errEl.textContent = `⛔ অনেকবার ভুল চেষ্টার কারণে ${rl.mins} মিনিটের জন্য লক। পরে চেষ্টা করুন।`;
+    errEl.style.display = 'block'; return;
+  }
+  if (!_SEC.isValidArmyNo(armyNo)) {
+    errEl.textContent = 'সেনা নম্বর সঠিক ফরম্যাটে দিন।';
+    errEl.style.display = 'block'; return;
+  }
 
+  btn.textContent = '⏳'; // ছোট indicator — full loading screen নয়
+  btn.disabled = true;
+  errEl.style.display = 'none';
+
+  try {
     const email = armyNo.replace(/[^A-Z0-9]/g, '').toLowerCase() + '@4engr.bd';
-    _lastLoginPassword = password; // pending reset apply করতে — onAuthStateChanged এ null হবে
+    _lastLoginPassword = password;
     await auth.signInWithEmailAndPassword(email, password);
-    _RATE.reset(rlKey); // সফল login এ rate limit reset
-    // onAuthStateChanged handles the rest
+    _RATE.reset(rlKey);
+    // onAuthStateChanged handles the rest — loadMemberData সাথেসাথে screen দেখাবে
   } catch(e) {
-    hideLoading();
-    const rlKey = 'login_' + armyNo.replace(/[^A-Z0-9]/gi,'').toLowerCase();
-    _lastLoginPassword = null; // login ব্যর্থ হলে সাথেসাথে null করো
+    _lastLoginPassword = null;
     let msg = 'লগইন ব্যর্থ।';
     if (e.code === 'auth/invalid-credential' || e.code === 'auth/wrong-password') {
       _RATE.fail(rlKey);
@@ -3405,8 +3417,7 @@ async function doLogin() {
     if (e.code === 'auth/network-request-failed') msg = 'ইন্টারনেট সংযোগ সমস্যা।';
     errEl.textContent = msg;
     errEl.style.display = 'block';
-    const btn2 = document.getElementById('loginBtn');
-    if (btn2) { btn2.textContent = 'লগইন করুন'; btn2.disabled = false; }
+    btn.textContent = 'লগইন করুন'; btn.disabled = false;
   }
 }
 
@@ -3562,11 +3573,11 @@ function showAlert(msg, opts = {}) {
 
 
 /* ══════════════════════════════════════════
-   LOAD MEMBER DATA
+   LOAD MEMBER DATA — অপ্টিমাইজড (parallel reads)
 ══════════════════════════════════════════ */
 async function loadMemberData(uid) {
   try {
-    // ══ Step 1: users collection থেকে ইউজার ডেটা লোড ══
+    // ══ Step 1: users doc লোড ══
     const userDoc = await db.collection('users').doc(uid).get();
 
     let armyNo = '';
@@ -3577,91 +3588,75 @@ async function loadMemberData(uid) {
       userRole = ud.role || 'member';
       armyNo   = ud.armyNo || ud.no || '';
     } else {
-      // users doc নেই — email থেকে armyNo বের করো
       const email = auth.currentUser?.email || '';
       armyNo = email.replace(/@.*/, '').toUpperCase();
-      // users doc নতুনভাবে তৈরি করো
       if (armyNo) {
-        await db.collection('users').doc(uid).set({
-          armyNo, role: 'member',
-          name: armyNo,
+        // background এ set করো — block করবে না
+        db.collection('users').doc(uid).set({
+          armyNo, role: 'member', name: armyNo,
           createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-        });
+        }).catch(() => {});
       }
     }
 
     const armyNoClean = String(armyNo).replace(/[^A-Z0-9]/gi, '');
 
-    // ══ Step 2: Admin/SuperAdmin/SubAdmin হলে adminProfiles থেকে লোড ══
-    // ══ Step 2: Admin/SuperAdmin হলে adminProfiles থেকে লোড ══
+    // ══ Step 2: Admin/SuperAdmin — adminProfiles parallel লোড ══
     if (userRole === 'admin' || userRole === 'superadmin') {
       const adminProfileDoc = await db.collection('adminProfiles').doc(uid).get();
-      if (adminProfileDoc.exists) {
-        currentMemberData = {
-          id: uid,
-          ...adminProfileDoc.data(),
-          armyNo, no: armyNo,
-          r_bn: adminProfileDoc.data().r_bn || (userRole === 'superadmin' ? 'Super Admin' : 'Admin'),
-        };
-      } else {
-        currentMemberData = {
-          id: uid, armyNo, no: armyNo,
-          bn: userDoc.data()?.name || armyNo,
-          en: userDoc.data()?.name || armyNo,
-          r_bn: userRole === 'superadmin' ? 'Super Admin' : 'Admin',
-          r_en: userRole === 'superadmin' ? 'Super Admin' : 'Admin',
-        };
-      }
+      currentMemberData = adminProfileDoc.exists
+        ? { id: uid, ...adminProfileDoc.data(), armyNo, no: armyNo,
+            r_bn: adminProfileDoc.data().r_bn || (userRole === 'superadmin' ? 'Super Admin' : 'Admin') }
+        : { id: uid, armyNo, no: armyNo,
+            bn: userDoc.data()?.name || armyNo, en: userDoc.data()?.name || armyNo,
+            r_bn: userRole === 'superadmin' ? 'Super Admin' : 'Admin',
+            r_en: userRole === 'superadmin' ? 'Super Admin' : 'Admin' };
+
+      // সাথেসাথে screen দেখাও
       renderProfile();
       document.getElementById('nav-admin').style.display = 'flex';
-      if (userRole === 'superadmin') {
-        document.getElementById('superAdminSection').style.display = 'block';
-      }
+      if (userRole === 'superadmin') document.getElementById('superAdminSection').style.display = 'block';
       const familyCard = document.getElementById('familyFields')?.closest('.card');
       if (familyCard) familyCard.style.display = 'none';
       const rosterCard = document.getElementById('rosterLinkCard');
       if (rosterCard) rosterCard.style.display = 'flex';
       showScreen('app');
-      _lastLoginPassword = null; // security: memory থেকে password মুছো
+      _lastLoginPassword = null;
       _SESSION.start();
-      _auditLog('login', { role: userRole });
+      _auditLog('login', { role: userRole }); // background
       return;
     }
 
-    // ══ Step 2b: SubAdmin — members collection থেকে নিজের data লোড করো (member এর মতো) ══
-    // SubAdmin সাধারণ সদস্য হিসেবে নিজের profile দেখবে ও edit করবে
-    // কিন্তু অতিরিক্তভাবে admin panel view করতে পারবে
+    // ══ Step 2b: SubAdmin — members + adminProfiles parallel ══
     if (userRole === 'subadmin') {
-      // প্রথমে members collection থেকে data লোড করার চেষ্টা
-      let subMemberData = null;
-      let subMemberId = armyNoClean;
+      let subMemberData = null, subMemberId = armyNoClean;
 
-      if (armyNoClean) {
-        const snap = await db.collection('members').doc(armyNoClean).get();
-        if (snap.exists) { subMemberData = snap.data(); subMemberId = snap.id; }
-      }
-      if (!subMemberData && armyNo) {
-        const q = await db.collection('members').where('no', '==', armyNo).limit(1).get();
-        if (!q.empty) { subMemberData = q.docs[0].data(); subMemberId = q.docs[0].id; }
+      // members doc + adminProfiles একসাথে fetch করো
+      const [memberSnap, adminSnap] = await Promise.all([
+        armyNoClean ? db.collection('members').doc(armyNoClean).get() : Promise.resolve(null),
+        db.collection('adminProfiles').doc(uid).get(),
+      ]);
+
+      if (memberSnap?.exists) {
+        subMemberData = memberSnap.data(); subMemberId = memberSnap.id;
+      } else if (armyNo) {
+        // fallback query — background
+        try {
+          const q = await db.collection('members').where('no', '==', armyNo).limit(1).get();
+          if (!q.empty) { subMemberData = q.docs[0].data(); subMemberId = q.docs[0].id; }
+        } catch(_) {}
       }
 
-      if (subMemberData) {
-        // members collection এ data আছে — member এর মতো সব কিছু করতে পারবে
-        currentMemberData = { id: subMemberId, armyNo, no: armyNo, ...subMemberData };
-      } else {
-        // members collection এ নেই — adminProfiles থেকে fallback
-        const adminProfileDoc = await db.collection('adminProfiles').doc(uid).get();
-        currentMemberData = adminProfileDoc.exists
-          ? { id: uid, ...adminProfileDoc.data(), armyNo, no: armyNo, r_bn: adminProfileDoc.data().r_bn || 'Sub Admin' }
+      currentMemberData = subMemberData
+        ? { id: subMemberId, armyNo, no: armyNo, ...subMemberData }
+        : adminSnap.exists
+          ? { id: uid, ...adminSnap.data(), armyNo, no: armyNo, r_bn: adminSnap.data().r_bn || 'Sub Admin' }
           : { id: uid, armyNo, no: armyNo, bn: userDoc.data()?.name || armyNo, en: userDoc.data()?.name || armyNo, r_bn: 'Sub Admin', r_en: 'Sub Admin' };
-      }
 
       renderProfile();
-      // Admin nav দেখাও (view only)
       document.getElementById('nav-admin').style.display = 'flex';
-      // Family card দেখাবে (নিজের পরিবার তথ্য)
-      const rosterCard = document.getElementById('rosterLinkCard');
-      if (rosterCard) rosterCard.style.display = 'flex';
+      const rosterCard2 = document.getElementById('rosterLinkCard');
+      if (rosterCard2) rosterCard2.style.display = 'flex';
       showScreen('app');
       startPendingListener(subMemberId || uid);
       _startMemberDataWatcher(subMemberId || uid);
@@ -3671,53 +3666,35 @@ async function loadMemberData(uid) {
       return;
     }
 
-    // ══ Step 3: সাধারণ member — members collection থেকে লোড ══
-    let memberData = null;
-    let memberId   = armyNoClean;
+    // ══ Step 3: সাধারণ member — parallel fetches ══
+    let memberData = null, memberId = armyNoClean;
 
-    // ৩a: সরাসরি docId দিয়ে খোঁজো
-    if (armyNoClean) {
-      const snap = await db.collection('members').doc(armyNoClean).get();
-      if (snap.exists) {
-        memberData = snap.data();
-        memberId   = snap.id;
-      }
+    // armyNoClean doc + padded doc একসাথে fetch করো
+    const padded = armyNoClean && armyNoClean.length <= 6
+      ? armyNoClean.padStart(6, '0') : null;
+
+    const fetchPromises = [];
+    if (armyNoClean) fetchPromises.push(db.collection('members').doc(armyNoClean).get());
+    if (padded && padded !== armyNoClean) fetchPromises.push(db.collection('members').doc(padded).get());
+
+    const snapResults = await Promise.all(fetchPromises);
+    for (const snap of snapResults) {
+      if (snap.exists) { memberData = snap.data(); memberId = snap.id; break; }
     }
 
-    // ৩b: 'no' field দিয়ে query করো
+    // fallback query (শুধু দরকার হলে)
     if (!memberData && armyNo) {
       const q = await db.collection('members').where('no', '==', armyNo).limit(1).get();
-      if (!q.empty) {
-        memberData = q.docs[0].data();
-        memberId   = q.docs[0].id;
-      }
+      if (!q.empty) { memberData = q.docs[0].data(); memberId = q.docs[0].id; }
     }
 
-    // ৩c: no field এ padded version (01452511) দিয়ে খোঁজো
-    if (!memberData && armyNoClean && armyNoClean.length <= 6) {
-      const padded = armyNoClean.padStart(6, '0');
-      if (padded !== armyNoClean) {
-        const snap2 = await db.collection('members').doc(padded).get();
-        if (snap2.exists) { memberData = snap2.data(); memberId = snap2.id; }
-        if (!memberData) {
-          const q2 = await db.collection('members').where('no', '==', padded).limit(1).get();
-          if (!q2.empty) { memberData = q2.docs[0].data(); memberId = q2.docs[0].id; }
-        }
-      }
-    }
-
-    // ══ Step 4: ডেটা পাওয়া গেলে — প্রোফাইল দেখাও ══
+    // ══ Step 4: পাওয়া গেলে সাথেসাথে দেখাও ══
     if (memberData) {
       currentMemberData = { id: memberId, armyNo, no: armyNo, ...memberData };
       renderProfile();
-      // নতুন user (bn নেই) — Setup Screen দেখাও, নইলে app দেখাও
       const isNew = !memberData.bn && !memberData.en;
-      if (isNew) {
-        showScreen('setup');
-        updateSetupProgress(1);
-      } else {
-        showScreen('app');
-      }
+      if (isNew) { showScreen('setup'); updateSetupProgress(1); }
+      else { showScreen('app'); }
       startPendingListener(memberId);
       _startMemberDataWatcher(memberId);
       _lastLoginPassword = null;
@@ -5760,10 +5737,9 @@ async function adminSearchMembers(q) {
 }
 
 async function selectAdminMember(docId) {
-  showLoading('সদস্যের তথ্য লোড হচ্ছে...');
   try {
     const doc = await db.collection('members').doc(docId).get();
-    if (!doc.exists) { hideLoading(); showToast('সদস্য পাওয়া যায়নি', 'error'); return; }
+    if (!doc.exists) { showToast('সদস্য পাওয়া যায়নি', 'error'); return; }
     adminSelectedMember = { id: doc.id, ...doc.data() };
 
     document.getElementById('adminSearchResults').innerHTML = '';
@@ -5791,11 +5767,9 @@ async function selectAdminMember(docId) {
     document.getElementById('adminEditSection').style.display = 'block';
 
     renderAdminFields();
-    hideLoading();
     setTimeout(() => addLeaveTabToAdminEdit(), 120);
     document.getElementById('adminEditSection').scrollIntoView({ behavior: 'smooth' });
   } catch(e) {
-    hideLoading();
     showToast('লোড ব্যর্থ: ' + e.message, 'error');
   }
 }
@@ -6644,11 +6618,10 @@ async function searchPromoteCandidate(q) {
 
 async function selectPromoteUser(uid) {
   document.getElementById('promoteSearchResults').innerHTML = '';
-  showLoading('তথ্য লোড হচ্ছে...');
 
   try {
     const userDoc = await db.collection('users').doc(uid).get();
-    if (!userDoc.exists) { hideLoading(); showToast('User পাওয়া যায়নি', 'error'); return; }
+    if (!userDoc.exists) { showToast('User পাওয়া যায়নি', 'error'); return; }
 
     _promoteSelectedUser = { uid, ...userDoc.data() };
     const u = _promoteSelectedUser;
@@ -7734,7 +7707,6 @@ function _updatePendingCounters() {
 /* একটা গ্রুপের সব reject */
 async function rejectGroup(ids) {
   if (!await confirmAsync(`${ids.length}টি অনুরোধ বাতিল করবেন?`, {danger:true,icon:'❌',title:'বাল্ক বাতিল'})) return;
-  showLoading('বাতিল হচ্ছে...');
   let done = 0;
   for (const id of ids) {
     try {
@@ -7758,7 +7730,6 @@ async function approveAllPending() {
   const count = document.querySelectorAll('#pendingList .pending-group').length;
   if (!await confirmAsync(`সব ${btn?.querySelector('span')?.textContent||''}টি অনুরোধ একসাথে অনুমোদন করবেন?`, {icon:'✅',title:'বাল্ক অনুমোদন',okLabel:'সব অনুমোদন করুন'})) return;
 
-  showLoading('সব অনুমোদন হচ্ছে...');
   try {
     // সব pending doc load করো
     let pendingQuery;
