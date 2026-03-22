@@ -2451,21 +2451,21 @@ function renderFields(containerId, fields) {
   const m = currentMemberData;
   const isMember = userRole === 'member';
 
-  // কোর্সের সুপারিশ (courseResults.rec_0, rec_1...) একসাথে জোড়া দিয়ে rec field এ দেখাবো
+  // কোর্সের সুপারিশ (courseResults.rec_0, rec_1...) ক্রমধারায় দেখাবো
   const courseRecs = [];
   if (m.courseResults) {
     const crBnArr = (m.cr_bn || '').split(',').map(s => s.trim()).filter(Boolean);
-    Object.keys(m.courseResults).forEach(k => {
-      if (k.startsWith('rec_')) {
+    Object.keys(m.courseResults)
+      .filter(k => k.startsWith('rec_'))
+      .sort((a, b) => parseInt(a.replace('rec_','')) - parseInt(b.replace('rec_','')))
+      .forEach(k => {
         const idx = parseInt(k.replace('rec_', ''));
         const courseName = crBnArr[idx] || ('কোর্স ' + (idx + 1));
         const recText = m.courseResults[k];
-        if (recText) courseRecs.push(`${courseName}: ${recText}`);
-      }
-    });
+        if (recText) courseRecs.push(`${courseRecs.length + 1}. ${courseName}: ${recText}`);
+      });
   }
-  // m.rec override — courseResults এর rec গুলো join করে virtual 'rec' তৈরি
-  const computedRec = courseRecs.length ? courseRecs.join(' | ') : (m.rec || '');
+  const computedRec = courseRecs.length ? courseRecs.join('<br>') : (m.rec || '');
 
   const html = fields.map(f => {
     // rec field — courseResults থেকে computed value ব্যবহার করো
@@ -2502,11 +2502,14 @@ function renderFields(containerId, fields) {
         </div>`
       : null;
 
+    // rec field — <br> HTML দেখানোর জন্য আলাদা handling
+    const fieldValueContent = pendingBadge
+      ? pendingBadge
+      : (val + (sub ? `<br><span style="font-size:0.68rem;color:var(--text2);font-weight:400;display:block;margin-top:2px">${sub}</span>` : ''));
+
     return `<div class="field-row" style="${pendingBadge ? 'border-left:2px solid rgba(210,153,34,0.5);padding-left:8px;margin-left:-8px' : ''}">
       <span class="field-label">${f.label}</span>
-      <span class="field-value" id="fv-${f.key}">
-        ${pendingBadge || (val + (sub ? `<br><span style="font-size:0.68rem;color:var(--text2);font-weight:400;display:block;margin-top:2px">${sub}</span>` : ''))}
-      </span>
+      <span class="field-value" id="fv-${f.key}" style="${f.key === 'rec' ? 'line-height:1.8' : ''}">${fieldValueContent}</span>
       ${editBtn}
     </div>`;
   }).join('');
