@@ -148,27 +148,31 @@ body {
 }
 .controls {
   max-width: 1440px; margin: 0 auto;
-  display: flex; gap: 8px; flex-wrap: wrap; padding: 10px 20px;
+  display: flex; gap: 7px; flex-wrap: wrap; padding: 10px 20px;
+  align-items: center;
 }
-.search-wrap { flex: 2; min-width: 200px; position: relative; }
+.search-wrap { flex: 2 1 220px; position: relative; }
 .search-wrap input {
   width: 100%; background: var(--bg); border: 1px solid var(--border);
-  border-radius: 8px; padding: 8px 14px 8px 36px;
+  border-radius: 8px; padding: 9px 14px 9px 36px;
   color: var(--text); font-family: 'Noto Serif Bengali', serif; font-size: 0.88rem;
   outline: none; transition: border-color 0.2s, box-shadow 0.2s;
 }
 .search-wrap input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(184,144,42,0.1); }
 .search-wrap::before { content:"🔍"; position:absolute; left:11px; top:50%; transform:translateY(-50%); font-size:12px; }
 select {
+  flex: 1 1 140px;
   background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
-  padding: 8px 10px; color: var(--text);
+  padding: 9px 10px; color: var(--text);
   font-family: 'Noto Serif Bengali', serif; font-size: 0.82rem;
   outline: none; cursor: pointer; transition: border-color 0.2s;
+  min-width: 0;
 }
 select:focus { border-color: var(--accent); }
 .btn-reset {
+  flex: 0 0 auto;
   background: transparent; border: 1px solid var(--border); border-radius: 8px;
-  padding: 8px 14px; color: var(--text2); font-family: 'Rajdhani', sans-serif;
+  padding: 9px 14px; color: var(--text2); font-family: 'Rajdhani', sans-serif;
   font-size: 0.82rem; letter-spacing: 1px; cursor: pointer; transition: all 0.2s; white-space: nowrap;
 }
 .btn-reset:hover { border-color: var(--danger); color: var(--danger); }
@@ -195,7 +199,7 @@ select:focus { border-color: var(--accent); }
 
 /* ═══════ GRID VIEW ═══════ */
 .main-area { max-width: 1440px; margin: 0 auto; padding: 12px 20px 40px; }
-.grid-view { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px,1fr)); gap: 13px; }
+.grid-view { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px,1fr)); gap: 13px; }
 
 .card {
   background: var(--card); border: 1px solid var(--border); border-radius: 12px;
@@ -399,19 +403,114 @@ select:focus { border-color: var(--accent); }
 .ctable td { padding: 7px 10px; border-bottom: 1px solid var(--border2); color: var(--text); }
 .ctable tr:last-child td { border-bottom: none; }
 
+/* ═══════ ADMIN BAR ═══════ */
+.admin-bar {
+  background: linear-gradient(90deg, rgba(184,144,42,0.08), rgba(184,144,42,0.04));
+  border-bottom: 1px solid rgba(184,144,42,0.18);
+  padding: 8px 20px;
+  position: sticky; top: 76px; z-index: 89;
+  backdrop-filter: blur(8px);
+}
+.admin-bar-inner {
+  max-width: 1440px; margin: 0 auto;
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+}
+.admin-bar-id {
+  font-family: 'Rajdhani', sans-serif; font-size: 0.75rem;
+  letter-spacing: 1px; color: var(--accent); white-space: nowrap;
+  display: flex; align-items: center; gap: 6px;
+}
+.admin-bar-id strong { color: #fff; font-weight: 700; }
+.admin-bar-btns {
+  margin-left: auto; display: flex; gap: 7px; align-items: center; flex-wrap: wrap;
+}
+.ab-btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 6px 13px; border-radius: 8px;
+  font-family: 'Rajdhani', sans-serif; font-size: 0.73rem; font-weight: 700;
+  letter-spacing: 0.8px; cursor: pointer; border: 1px solid; transition: all 0.2s;
+  white-space: nowrap; text-decoration: none;
+}
+.ab-btn-gold  { background: rgba(200,169,74,0.12); border-color: rgba(200,169,74,0.3); color: #c8a94a; }
+.ab-btn-gold:hover { background: rgba(200,169,74,0.22); border-color: rgba(200,169,74,0.55); }
+.ab-btn-blue  { background: rgba(56,139,253,0.12); border-color: rgba(56,139,253,0.3); color: #79b8ff; }
+.ab-btn-blue:hover { background: rgba(56,139,253,0.22); }
+.ab-btn-slate { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.12); color: rgba(255,255,255,0.6); }
+.ab-btn-slate:hover { background: rgba(255,255,255,0.12); color: rgba(255,255,255,0.9); }
+.ab-btn-red   { background: rgba(224,85,85,0.12); border-color: rgba(224,85,85,0.3); color: #e05555; }
+.ab-btn-red:hover { background: rgba(224,85,85,0.22); }
+.ab-pending-badge {
+  display: none; background: rgba(224,85,85,0.15); border: 1px solid rgba(224,85,85,0.35);
+  color: #e05555; border-radius: 20px; padding: 4px 11px;
+  font-family: 'Rajdhani', sans-serif; font-size: 0.7rem; font-weight: 700; cursor: pointer;
+  white-space: nowrap;
+}
+
+/* ═══════ RESPONSIVE ═══════ */
 @media (max-width: 900px) {
   .stat-group { display: none; }
   .list-row { grid-template-columns: 44px 1fr auto; }
   .list-row > *:nth-child(n+4) { display: none; }
   .list-header { display: none; }
-  .dg { grid-template-columns: 1fr; }
+  .dg { grid-template-columns: 1fr 1fr; gap: 8px; }
 }
-@media (max-width: 600px) {
-  .header-inner { padding: 9px 12px; }
-  .controls { padding: 8px 12px; }
-  .main-area { padding: 10px 12px 30px; }
+
+@media (max-width: 640px) {
+  /* Header */
+  .header-inner { padding: 10px 14px; gap: 10px; }
+  .logo { width: 42px; height: 42px; font-size: 18px; }
+  .header-title h1 { font-size: 1rem; }
+  .header-title p { font-size: 0.6rem; letter-spacing: 2px; }
+  .lang-btn { padding: 5px 9px; font-size: 0.72rem; }
+  .view-btn { padding: 5px 8px; font-size: 12px; }
+
+  /* Controls — collapsible filter grid */
+  .controls-wrap { position: sticky; top: 62px; }
+  .controls { padding: 10px 12px; gap: 7px; }
+  .search-wrap { flex: 1 1 100%; }
+  .search-wrap input { font-size: 0.9rem; padding: 10px 14px 10px 36px; }
+  select {
+    flex: 1 1 calc(50% - 4px);
+    font-size: 0.8rem;
+    padding: 9px 8px;
+    min-width: 0;
+  }
+  .btn-reset {
+    flex: 1 1 100%;
+    text-align: center;
+    padding: 9px;
+    font-size: 0.8rem;
+  }
+  .results-bar { padding: 5px 12px 6px; font-size: 0.76rem; }
+
+  /* Cards */
+  .main-area { padding: 10px 10px 40px; }
+  .grid-view { grid-template-columns: 1fr; gap: 10px; }
+  .card-body { grid-template-columns: 1fr 1fr; gap: 6px; }
+
+  /* Modal */
+  .overlay { padding: 0; align-items: flex-end; }
+  .modal { border-radius: 18px 18px 0 0; max-height: 92vh; overflow-y: auto; }
+  .modal-header { padding: 16px 16px 14px; }
+  .modal-photo { width: 66px; height: 66px; }
+  .modal-title h2 { font-size: 1.05rem; }
+  .modal-tabs .tab-btn { font-size: 0.64rem; padding: 9px 4px; letter-spacing: 1px; }
+  .tab-content { padding: 14px 14px; }
+  .dg { grid-template-columns: 1fr 1fr; gap: 8px; }
+
+  /* Admin bar */
+  .admin-bar-inner { flex-wrap: wrap; gap: 8px; }
+  .admin-bar-btns { flex-wrap: wrap; gap: 6px; }
+  .admin-bar-btns button,
+  .admin-bar-btns a { flex: 1 1 calc(50% - 3px); justify-content: center; }
+}
+
+@media (max-width: 380px) {
+  .header-title h1 { font-size: 0.88rem; }
   .grid-view { grid-template-columns: 1fr; }
-  .modal-tabs .tab-btn { font-size: 0.66rem; padding: 8px 3px; }
+  select { font-size: 0.74rem; }
+  .admin-bar-btns button,
+  .admin-bar-btns a { flex: 1 1 100%; }
 }
 </style>
 </head>
@@ -1227,18 +1326,33 @@ function injectAdminBar() {
   const roleLabel = webUserRole === 'superadmin' ? 'Super Admin' : 'Admin';
   const bar = document.createElement('div');
   bar.id = 'adminBar';
-  bar.style.cssText = 'background:rgba(184,144,42,0.1);border-bottom:1px solid rgba(184,144,42,0.2);padding:8px 20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;position:sticky;top:76px;z-index:89;backdrop-filter:blur(4px)';
+  bar.className = 'admin-bar';
   bar.innerHTML = `
-    <span style="font-family:'Rajdhani',sans-serif;font-size:0.72rem;letter-spacing:1px;color:#b8902a">🛡️ ${roleLabel}: <strong>${name}</strong></span>
-    <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-      <span id="webPendingBadge" style="display:none;background:rgba(224,85,85,0.15);border:1px solid rgba(224,85,85,0.3);color:#e05555;border-radius:20px;padding:3px 10px;font-family:'Rajdhani',sans-serif;font-size:0.7rem;font-weight:700;cursor:pointer" onclick="openWebPendingModal()">⏳ <span id="webPendingCount">0</span>টি অপেক্ষমাণ</span>
-      <button onclick="webSendAnnouncement()" style="background:rgba(200,169,74,0.15);border:1px solid rgba(200,169,74,0.3);color:#c8a94a;border-radius:7px;padding:5px 12px;font-family:'Rajdhani',sans-serif;font-size:0.7rem;font-weight:700;letter-spacing:1px;cursor:pointer">📣 বিজ্ঞপ্তি</button>
-      <button onclick="openPasswordReset()" style="background:rgba(56,139,253,0.15);border:1px solid rgba(56,139,253,0.3);color:#79b8ff;border-radius:7px;padding:5px 12px;font-family:'Rajdhani',sans-serif;font-size:0.7rem;font-weight:700;letter-spacing:1px;cursor:pointer">🔑 পাসওয়ার্ড রিসেট</button>
-      <button onclick="openAdminProfile()" style="background:rgba(184,144,42,0.15);border:1px solid rgba(184,144,42,0.3);color:#b8902a;border-radius:7px;padding:5px 12px;font-family:'Rajdhani',sans-serif;font-size:0.7rem;font-weight:700;letter-spacing:1px;cursor:pointer">👤 আমার প্রোফাইল</button>
-      <button onclick="webLogout()" style="background:linear-gradient(135deg,rgba(224,85,85,0.2),rgba(192,40,40,0.15));border:1px solid rgba(224,85,85,0.4);color:#e05555;border-radius:7px;padding:5px 14px;font-family:'Rajdhani',sans-serif;font-size:0.7rem;font-weight:700;letter-spacing:1px;cursor:pointer;display:flex;align-items:center;gap:4px">🚪 লগআউট</button>
+    <div class="admin-bar-inner">
+      <div class="admin-bar-id">
+        <span style="opacity:0.7">🛡️</span>
+        <span>${roleLabel}:</span>
+        <strong>${name}</strong>
+        <span id="webPendingBadge" class="ab-pending-badge" onclick="openWebPendingModal()">
+          ⏳ <span id="webPendingCount">0</span>টি
+        </span>
+      </div>
+      <div class="admin-bar-btns">
+        <button class="ab-btn ab-btn-gold" onclick="webSendAnnouncement()">📣 বিজ্ঞপ্তি</button>
+        <button class="ab-btn ab-btn-blue" onclick="openPasswordReset()">🔑 পাসওয়ার্ড রিসেট</button>
+        <button class="ab-btn ab-btn-slate" onclick="openAdminProfile()">👤 আমার প্রোফাইল</button>
+        <button class="ab-btn ab-btn-red"  onclick="webLogout()">🚪 লগআউট</button>
+      </div>
     </div>`;
   const header = document.querySelector('.header');
   if (header) header.after(bar);
+  // adjust controls sticky offset after admin bar is added
+  requestAnimationFrame(() => {
+    const hh = document.querySelector('.header')?.offsetHeight || 76;
+    const abh = bar.offsetHeight || 44;
+    const cw = document.querySelector('.controls-wrap');
+    if (cw) cw.style.top = (hh + abh) + 'px';
+  });
 }
 
 function openAddMemberModal() {
@@ -2028,9 +2142,10 @@ async function loadMembersFromFirebase() {
   // Loading indicator দেখাও
   const con = document.getElementById('memberContainer');
   if (con) {
-    con.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--text2)">
-      <div style="font-size:2rem;margin-bottom:16px">⏳</div>
-      <div style="font-family:'Rajdhani',sans-serif;letter-spacing:2px;font-size:0.85rem">Firebase থেকে ডেটা লোড হচ্ছে...</div>
+    con.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:80px 20px;color:var(--text2)">
+      <div style="display:inline-block;width:44px;height:44px;border:3px solid rgba(184,144,42,0.15);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;margin-bottom:20px"></div>
+      <div style="font-family:'Rajdhani',sans-serif;letter-spacing:3px;font-size:0.8rem;text-transform:uppercase;opacity:0.7">তথ্য লোড হচ্ছে...</div>
+      <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
     </div>`;
   }
 
@@ -2324,14 +2439,14 @@ function openFieldClearModal(m) {
   const groups = {};
   available.forEach(f => { if (!groups[f.group]) groups[f.group] = []; groups[f.group].push(f); });
   const groupsHtml = Object.entries(groups).map(([grp, fields]) => `
-    <div style="margin-bottom:14px">
-      <div style="font-family:'Rajdhani',sans-serif;font-size:0.68rem;letter-spacing:2px;color:rgba(200,169,74,0.7);text-transform:uppercase;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid rgba(255,255,255,0.06)">${grp}</div>
+    <div style="margin-bottom:16px">
+      <div style="font-family:'Rajdhani',sans-serif;font-size:0.65rem;letter-spacing:3px;color:rgba(192,64,64,0.6);text-transform:uppercase;margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid rgba(255,255,255,0.04)">${grp}</div>
       ${fields.map(f => `
-        <label style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;margin-bottom:4px" onmouseover="this.style.background='rgba(192,64,64,0.08)'" onmouseout="this.style.background='transparent'">
+        <label style="display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:9px;cursor:pointer;margin-bottom:3px;border:1px solid transparent;transition:all 0.15s" onmouseover="this.style.background='rgba(192,64,64,0.07)';this.style.borderColor='rgba(192,64,64,0.15)'" onmouseout="this.style.background='transparent';this.style.borderColor='transparent'">
           <input type="checkbox" value="${f.key}" onchange="updateClearBtn()" style="accent-color:#e05555;width:16px;height:16px;cursor:pointer;flex-shrink:0">
           <div style="flex:1;min-width:0">
-            <div style="font-size:0.82rem;color:rgba(255,255,255,0.85)">${f.label}</div>
-            <div style="font-size:0.72rem;color:rgba(255,255,255,0.35);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${String(m[f.key]).substring(0,55)}${String(m[f.key]).length>55?'...':''}</div>
+            <div style="font-size:0.82rem;color:rgba(255,255,255,0.82);font-weight:500">${f.label}</div>
+            <div style="font-size:0.7rem;color:rgba(255,255,255,0.28);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${String(m[f.key]).substring(0,58)}${String(m[f.key]).length>58?'…':''}</div>
           </div>
         </label>`).join('')}
     </div>`).join('');
@@ -2339,36 +2454,49 @@ function openFieldClearModal(m) {
   modal.id = 'fieldClearModal';
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:10001;display:flex;align-items:center;justify-content:center;padding:16px';
   modal.innerHTML = `
-    <div style="background:#161b22;border:1px solid rgba(192,64,64,0.35);border-radius:16px;width:100%;max-width:480px;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 8px 40px rgba(0,0,0,0.7)">
-      <div style="padding:20px 20px 12px;border-bottom:1px solid rgba(255,255,255,0.06);flex-shrink:0">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-          <span style="font-family:'Rajdhani',sans-serif;font-size:0.9rem;font-weight:700;color:#e05555">🗑️ ফিল্ড মুছুন</span>
-          <button onclick="document.getElementById('fieldClearModal').remove()" style="background:transparent;border:none;color:rgba(255,255,255,0.4);cursor:pointer;font-size:20px">✕</button>
+    <div style="background:linear-gradient(160deg,#1a1f2e,#161b22);border:1px solid rgba(192,64,64,0.3);border-radius:18px;width:100%;max-width:500px;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 24px 64px rgba(0,0,0,0.8),0 0 0 1px rgba(255,255,255,0.03)">
+      <!-- Header -->
+      <div style="padding:22px 22px 14px;border-bottom:1px solid rgba(255,255,255,0.05);flex-shrink:0">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+          <div>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:5px">
+              <div style="width:32px;height:32px;border-radius:10px;background:rgba(192,64,64,0.15);border:1px solid rgba(192,64,64,0.3);display:flex;align-items:center;justify-content:center;font-size:15px">🗑️</div>
+              <span style="font-family:'Rajdhani',sans-serif;font-size:1rem;font-weight:700;letter-spacing:1px;color:#e05555">ফিল্ড মুছুন</span>
+            </div>
+            <div style="font-size:0.78rem;color:rgba(255,255,255,0.35);padding-left:42px"><strong style="color:rgba(255,255,255,0.65)">${name}</strong> — মুছতে চান এমন ফিল্ড সিলেক্ট করুন</div>
+          </div>
+          <button onclick="document.getElementById('fieldClearModal').remove()" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.4);cursor:pointer;font-size:16px;border-radius:8px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;transition:all 0.2s;flex-shrink:0" onmouseover="this.style.background='rgba(192,64,64,0.15)';this.style.color='#e05555'" onmouseout="this.style.background='rgba(255,255,255,0.06)';this.style.color='rgba(255,255,255,0.4)'">✕</button>
         </div>
-        <div style="font-size:0.78rem;color:rgba(255,255,255,0.4)"><strong style="color:rgba(255,255,255,0.7)">${name}</strong> — মুছতে চান এমন ফিল্ড সিলেক্ট করুন</div>
       </div>
-      <div id="fieldClearList" style="overflow-y:auto;flex:1;padding:16px">
-        ${available.length===0?'<div style="text-align:center;padding:30px;color:rgba(255,255,255,0.3);font-size:0.85rem">মুছার মতো কোনো তথ্য নেই</div>':groupsHtml}
+      <!-- List -->
+      <div id="fieldClearList" style="overflow-y:auto;flex:1;padding:16px 18px">
+        ${available.length===0
+          ? `<div style="text-align:center;padding:40px 20px">
+               <div style="font-size:28px;margin-bottom:10px;opacity:0.4">📭</div>
+               <div style="color:rgba(255,255,255,0.3);font-size:0.85rem">মুছার মতো কোনো তথ্য নেই</div>
+             </div>`
+          : groupsHtml}
       </div>
       ${available.length>0?`
-      <div style="padding:14px 20px;border-top:1px solid rgba(255,255,255,0.06);flex-shrink:0">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:0.78rem;color:rgba(255,255,255,0.5)">
-            <input type="checkbox" id="selectAllFields" onchange="document.querySelectorAll('#fieldClearList input[type=checkbox]').forEach(c=>c.checked=this.checked);updateClearBtn()" style="accent-color:#e05555;cursor:pointer">
+      <!-- Footer -->
+      <div style="padding:14px 18px 18px;border-top:1px solid rgba(255,255,255,0.05);flex-shrink:0;background:rgba(0,0,0,0.2);border-radius:0 0 18px 18px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.78rem;color:rgba(255,255,255,0.45);user-select:none">
+            <input type="checkbox" id="selectAllFields" onchange="document.querySelectorAll('#fieldClearList input[type=checkbox]').forEach(c=>c.checked=this.checked);updateClearBtn()" style="accent-color:#e05555;cursor:pointer;width:15px;height:15px">
             সব সিলেক্ট করুন
           </label>
-          <span id="selectedCount" style="font-family:'Rajdhani',sans-serif;font-size:0.75rem;color:rgba(192,64,64,0.8)">০টি সিলেক্ট</span>
+          <span id="selectedCount" style="font-family:'Rajdhani',sans-serif;font-size:0.72rem;font-weight:700;color:rgba(192,64,64,0.7);letter-spacing:1px">০টি সিলেক্ট</span>
         </div>
         <div style="display:flex;gap:10px">
           <button id="clearSelectedBtn" disabled onclick="confirmFieldClear('${docId}','${name}')"
-            style="flex:1;padding:11px;background:linear-gradient(135deg,#c04040,#8a2020);border:none;border-radius:9px;color:#fff;font-family:'Rajdhani',sans-serif;font-size:0.85rem;font-weight:700;cursor:not-allowed;opacity:0.45;transition:all 0.2s">🗑️ নির্বাচিত ফিল্ড মুছুন</button>
+            style="flex:1;padding:12px;background:linear-gradient(135deg,#c04040,#8a2020);border:none;border-radius:10px;color:#fff;font-family:'Rajdhani',sans-serif;font-size:0.85rem;font-weight:700;cursor:not-allowed;opacity:0.4;transition:all 0.25s;letter-spacing:0.5px;box-shadow:0 4px 16px rgba(192,64,64,0)">🗑️ নির্বাচিত ফিল্ড মুছুন</button>
           <button onclick="document.getElementById('fieldClearModal').remove()"
-            style="padding:11px 18px;background:transparent;border:1px solid rgba(255,255,255,0.1);border-radius:9px;color:rgba(255,255,255,0.45);font-family:'Rajdhani',sans-serif;cursor:pointer">বাতিল</button>
+            style="padding:12px 18px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;color:rgba(255,255,255,0.4);font-family:'Rajdhani',sans-serif;cursor:pointer;transition:all 0.2s" onmouseover="this.style.borderColor='rgba(255,255,255,0.2)';this.style.color='rgba(255,255,255,0.7)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.08)';this.style.color='rgba(255,255,255,0.4)'">বাতিল</button>
         </div>
       </div>`:`
-      <div style="padding:14px 20px;border-top:1px solid rgba(255,255,255,0.06)">
+      <div style="padding:14px 18px 18px">
         <button onclick="document.getElementById('fieldClearModal').remove()"
-          style="width:100%;padding:11px;background:transparent;border:1px solid rgba(255,255,255,0.1);border-radius:9px;color:rgba(255,255,255,0.45);font-family:'Rajdhani',sans-serif;cursor:pointer">বন্ধ করুন</button>
+          style="width:100%;padding:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;color:rgba(255,255,255,0.4);font-family:'Rajdhani',sans-serif;cursor:pointer">বন্ধ করুন</button>
       </div>`}
     </div>
   `;
@@ -2383,8 +2511,10 @@ function updateClearBtn() {
   if (!btn) return;
   const n = checked.length;
   btn.disabled = n===0;
-  btn.style.opacity = n>0?'1':'0.45';
+  btn.style.opacity = n>0?'1':'0.4';
   btn.style.cursor  = n>0?'pointer':'not-allowed';
+  btn.style.boxShadow = n>0?'0 4px 20px rgba(192,64,64,0.4)':'none';
+  btn.style.transform = n>0?'translateY(-1px)':'translateY(0)';
   if (cnt) cnt.textContent = n+'টি সিলেক্ট';
 }
 
@@ -2406,7 +2536,7 @@ async function confirmFieldClear(docId, name) {
       clearedByRole: 'superadmin',
       clearedAt: firebase.firestore.FieldValue.serverTimestamp(),
     });
-    const localMember = members.find(x =>
+    const localMember = MEMBERS.find(x =>
       (x._id || String(x.no||'').replace(/[^A-Z0-9]/gi,'')) === docId
     );
     if (localMember) keys.forEach(k => delete localMember[k]);
@@ -2424,12 +2554,16 @@ function _showAdminToast(msg, type='success') {
   document.querySelectorAll('._adminToast').forEach(e=>e.remove());
   const t = document.createElement('div');
   t.className = '_adminToast';
-  t.textContent = msg;
-  const color = type==='success'?'rgba(63,185,80,0.4)':'rgba(192,64,64,0.4)';
-  const tc    = type==='success'?'#3fb950':'#e05555';
-  t.style.cssText = `position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:#1c2333;border:1px solid ${color};color:${tc};border-radius:30px;padding:12px 24px;font-family:'Rajdhani',sans-serif;font-size:0.88rem;font-weight:700;z-index:99999;box-shadow:0 4px 20px rgba(0,0,0,0.5);white-space:nowrap;pointer-events:none`;
+  const isSuccess = type === 'success';
+  const icon = isSuccess ? '✓' : '✕';
+  const bgColor = isSuccess ? 'rgba(15,30,15,0.97)' : 'rgba(30,10,10,0.97)';
+  const borderColor = isSuccess ? 'rgba(63,185,80,0.5)' : 'rgba(192,64,64,0.5)';
+  const tc = isSuccess ? '#3fb950' : '#e05555';
+  t.innerHTML = `<span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:${tc}20;border:1px solid ${tc}60;color:${tc};font-size:12px;font-weight:700;flex-shrink:0">${icon}</span><span>${msg}</span>`;
+  t.style.cssText = `position:fixed;bottom:32px;left:50%;transform:translateX(-50%) translateY(8px);background:${bgColor};border:1px solid ${borderColor};color:${tc};border-radius:40px;padding:12px 22px;font-family:'Rajdhani',sans-serif;font-size:0.85rem;font-weight:700;z-index:99999;box-shadow:0 8px 32px rgba(0,0,0,0.6),0 0 0 1px rgba(255,255,255,0.04);white-space:nowrap;pointer-events:none;display:flex;align-items:center;gap:10px;letter-spacing:0.5px;opacity:0;transition:opacity 0.25s ease,transform 0.25s ease`;
   document.body.appendChild(t);
-  setTimeout(()=>t.remove(), 3500);
+  requestAnimationFrame(() => { t.style.opacity='1'; t.style.transform='translateX(-50%) translateY(0)'; });
+  setTimeout(() => { t.style.opacity='0'; t.style.transform='translateX(-50%) translateY(6px)'; setTimeout(()=>t.remove(),300); }, 3200);
 }
 
 function closeModalBtn() {
