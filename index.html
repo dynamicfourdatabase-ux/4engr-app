@@ -1165,6 +1165,11 @@ select.form-input { cursor: pointer; }
       </div>
     </div>
 
+    <!-- ── PAGE: Pending (অপেক্ষমান) ── -->
+    <div class="page" id="page-pending">
+      <div id="pendingPageContent"></div>
+    </div>
+
     <!-- ── PAGE: Notifications ── -->
     <div class="page" id="page-notifications">
       <div id="notificationsList"></div>
@@ -1660,6 +1665,10 @@ select.form-input { cursor: pointer; }
     <button class="nav-item" id="nav-admin" onclick="navTo('admin')" style="display:none">
       <span class="nav-icon">🛡️</span>Admin
     </button>
+    <button class="nav-item" id="nav-pending" onclick="navTo('pending')" style="display:none;position:relative">
+      <span class="nav-icon">⏳</span>অপেক্ষমান
+      <span id="pendingNavBadge" style="position:absolute;top:4px;right:12px;background:var(--warn);color:#0a0c10;border-radius:50%;width:16px;height:16px;font-size:9px;font-family:'Rajdhani',sans-serif;font-weight:700;display:flex;align-items:center;justify-content:center;"></span>
+    </button>
     <button class="nav-item" id="nav-settings" onclick="navTo('settings')">
       <span class="nav-icon">⚙️</span>সেটিংস
     </button>
@@ -1761,6 +1770,7 @@ function navTo(page) {
   if (page === 'notifications') loadNotifications();
   if (page === 'courses') { loadPendingCoursesAndRender(); }
   if (page === 'leave') loadLeave();
+  if (page === 'pending') loadPendingPage();
 }
 
 /* ══════════════════════════════════════════
@@ -2010,12 +2020,15 @@ function startPendingListener(docId) {
         // pending map থেকে সরাও
         if (r.field) delete _pendingFieldMap[r.field];
 
-        // Profile refresh করো
+        // Profile ও pending page refresh করো
         setTimeout(() => {
           renderProfile();
           checkPendingStatus();
           if (document.getElementById('page-courses')?.classList.contains('active')) {
             loadPendingCoursesAndRender();
+          }
+          if (document.getElementById('page-pending')?.classList.contains('active')) {
+            loadPendingPage();
           }
         }, 500);
 
@@ -2897,6 +2910,123 @@ function closeModalOutside(e) {
   if (e.target === document.getElementById('editModal')) closeModal();
 }
 
+/* ══════════════════════════════════════════
+   PENDING NAV — pending থাকলে nav দেখায়
+══════════════════════════════════════════ */
+function _updatePendingNav(count) {
+  const navBtn  = document.getElementById('nav-pending');
+  const navBadge = document.getElementById('pendingNavBadge');
+  if (!navBtn) return;
+  if (count > 0) {
+    navBtn.style.display = 'flex';
+    if (navBadge) navBadge.textContent = count > 9 ? '9+' : String(count);
+  } else {
+    navBtn.style.display = 'none';
+    // যদি এই মুহূর্তে pending page active থাকে তাহলে profile এ ফিরে যাও
+    if (document.getElementById('page-pending')?.classList.contains('active')) {
+      navTo('profile');
+    }
+  }
+}
+
+async function loadPendingPage() {
+  const box = document.getElementById('pendingPageContent');
+  if (!box) return;
+  box.innerHTML = '<div style="color:var(--text2);text-align:center;padding:30px;font-size:0.85rem">লোড হচ্ছে...</div>';
+
+  if (!currentUser || !currentMemberData) return;
+  const docId = currentMemberData.id || String(currentMemberData.no || '').replace(/[^A-Z0-9]/gi, '');
+
+  const FIELD_LABELS = {
+    bn:'বাংলা নাম', en:'ইংরেজি নাম', dob:'জন্ম তারিখ', bl:'রক্তের গ্রুপ',
+    mb:'মোবাইল', wa:'হোয়াটসঅ্যাপ', em:'জরুরি যোগাযোগ', ad:'ঠিকানা',
+    r_bn:'পদবী', tr_bn:'ট্রেড', co_bn:'কোম্পানী', niyog:'নিয়োগ',
+    ma_bn:'বৈবাহিক অবস্থা', sp:'স্ত্রীর নাম', sd:'স্ত্রীর জন্ম', wd:'বিবাহের তারিখ',
+    cr_bn:'কোর্স/ক্যাডার', dc_bn:'ডিভিশন কোর্স', di_bn:'জেলা', ed_bn:'শিক্ষা',
+    jd:'ভর্তির তারিখ', od:'শপথের তারিখ', res_bn:'বাসস্থান অবস্থান',
+    rt:'বাসস্থান মেয়াদ', pu:'পূর্বের ইউনিট', pn:'সাজা',
+  };
+
+  try {
+    let docs = [];
+    try {
+      const q = await db.collection('editRequests')
+        .where('memberId', '==', docId)
+        .where('status', '==', 'pending').get();
+      docs = q.docs;
+    } catch(e1) {
+      const q = await db.collection('editRequests')
+        .where('requestedBy', '==', currentUser.uid)
+        .where('status', '==', 'pending').get();
+      docs = q.docs;
+    }
+
+    // sort — নতুন আগে
+    docs = docs.slice().sort((a, b) =>
+      (b.data().createdAt?.seconds || 0) - (a.data().createdAt?.seconds || 0)
+    );
+
+    if (!docs.length) {
+      box.innerHTML = `<div style="text-align:center;padding:50px 20px">
+        <div style="font-size:3rem;margin-bottom:14px">✅</div>
+        <div style="font-size:1rem;font-weight:700;color:var(--text);margin-bottom:6px">কোনো অপেক্ষমান অনুরোধ নেই</div>
+        <div style="font-size:0.82rem;color:var(--text2)">সব তথ্য আপডেট হয়েছে</div>
+      </div>`;
+      _updatePendingNav(0);
+      return;
+    }
+
+    let html = `<div style="margin-bottom:14px">
+      <div style="font-size:0.72rem;font-family:'Rajdhani',sans-serif;letter-spacing:2px;text-transform:uppercase;color:var(--warn);margin-bottom:4px">
+        ⏳ ${docs.length}টি অনুরোধ অনুমোদনের অপেক্ষায়
+      </div>
+      <div style="font-size:0.78rem;color:var(--text2)">Admin অনুমোদন দিলে স্বয়ংক্রিয়ভাবে আপডেট হবে।</div>
+    </div>`;
+
+    docs.forEach(d => {
+      const r = d.data();
+      const dt = r.createdAt?.toDate ? r.createdAt.toDate().toLocaleDateString('bn-BD') : '';
+      const fieldName = r.fieldLabel || FIELD_LABELS[r.field] || r.field || 'তথ্য';
+      const isEdit = r.requestType === 'editCourse';
+      const isCourse = r.requestType === 'addCourse' || isEdit;
+      const isCourseResult = r.requestType === 'courseResult' || r.requestType === 'coursePosition';
+
+      let dispVal = r.newValue || '—';
+      let oldVal  = r.oldValue || '';
+      if (r.requestType === 'addCourse' && r.courseExtra) {
+        dispVal = r.courseExtra.nameBn || r.courseExtra.nameEn || dispVal.split(',').pop().trim();
+        oldVal  = '';
+      } else if (r.requestType === 'editCourse' && r.courseEditExtra) {
+        dispVal = r.courseEditExtra.nameBn || dispVal.split(',').pop().trim();
+      } else if (dispVal.length > 50) {
+        dispVal = dispVal.substring(0, 50) + '...';
+      }
+      if (oldVal.length > 50) oldVal = oldVal.substring(0, 50) + '...';
+
+      const badgeColor  = isEdit || isCourseResult ? 'var(--info)' : 'var(--warn)';
+      const badgeBg     = isEdit || isCourseResult ? 'rgba(56,139,253,0.12)' : 'rgba(210,153,34,0.12)';
+      const badgeBorder = isEdit || isCourseResult ? 'rgba(56,139,253,0.35)' : 'rgba(210,153,34,0.35)';
+      const badgeText   = isEdit ? '✏️ সম্পাদনা' : isCourseResult ? '📊 ফলাফল/অবস্থান' : '⏳ নতুন';
+
+      html += `<div style="background:var(--bg2);border:1px solid var(--border2);border-left:3px solid ${badgeColor};border-radius:var(--radius-sm);padding:13px 14px;margin-bottom:10px">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px">
+          <div style="font-size:0.88rem;font-weight:700;color:var(--text)">${fieldName}</div>
+          <span style="font-size:0.62rem;background:${badgeBg};border:1px solid ${badgeBorder};color:${badgeColor};border-radius:10px;padding:2px 8px;font-family:'Rajdhani',sans-serif;font-weight:700;white-space:nowrap">${badgeText}</span>
+        </div>
+        ${oldVal ? `<div style="font-size:0.78rem;color:var(--text3);text-decoration:line-through;margin-bottom:3px">${oldVal}</div>` : ''}
+        <div style="font-size:0.88rem;color:var(--gold);font-weight:600">${dispVal}</div>
+        ${dt ? `<div style="font-size:0.68rem;color:var(--text3);margin-top:6px">📅 ${dt}</div>` : ''}
+      </div>`;
+    });
+
+    box.innerHTML = html;
+    _updatePendingNav(docs.length);
+
+  } catch(e) {
+    box.innerHTML = `<div style="color:var(--danger);padding:20px;font-size:0.82rem">লোড ব্যর্থ: ${e.message}</div>`;
+  }
+}
+
 async function checkPendingStatus() {
   if (userRole === 'admin' || userRole === 'superadmin') {
     document.getElementById('profileStatus').style.display = 'none';
@@ -2956,6 +3086,8 @@ async function checkPendingStatus() {
     if (!docs.length) {
       if (bar)  bar.style.display = 'none';
       if (card) card.style.display = 'none';
+      // pending নেই — nav সরিয়ে দাও
+      _updatePendingNav(0);
       return;
     }
 
@@ -2966,6 +3098,8 @@ async function checkPendingStatus() {
     }
     if (card)  card.style.display = 'block';
     if (badge) badge.textContent  = docs.length + 'টি';
+    // pending আছে — nav দেখাও
+    _updatePendingNav(docs.length);
 
     // ── pending list render ──
     if (list) {
@@ -6837,6 +6971,7 @@ function applyLangToUI() {
     'nav-courses': [t('কোর্স'), '📚'],
     'nav-notifications': [t('বিজ্ঞপ্তি'), '🔔'],
     'nav-admin': ['Admin', '🛡️'],
+    'nav-pending': [appLang==='en'?'Pending':'অপেক্ষমান', '⏳'],
     'nav-settings': [t('সেটিংস'), '⚙️'],
   };
   Object.entries(navMap).forEach(([id, [label, icon]]) => {
