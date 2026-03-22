@@ -11,7 +11,7 @@
 <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+Bengali:wght@400;600;700&family=Cormorant+Garamond:wght@400;600;700&family=Rajdhani:wght@400;600;700&display=swap"></noscript>
 
 <!-- Firebase — রিয়েলটাইম ডেটা -->
-<script>self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;</script>
+<script>self.FIREBASE_APPCHECK_DEBUG_TOKEN = false;</script>
 <script src="https://www.gstatic.com/firebasejs/12.11.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.11.0/firebase-app-check-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore-compat.js"></script>
@@ -774,8 +774,8 @@ function fmtTags(str,cls=''){
 
 function fmtCoursesWithResults(str, results) {
   if(!str) return '';
-  const grades = { alpha:'Alpha', bplus:'B+', b:'B', bminus:'B-' };
-  const gradeColor = { alpha:'#3fb950', bplus:'#388bfd', b:'#c8a94a', bminus:'#d29922' };
+  const grades = { pass:'পাস', alpha:'Alpha', bplus:'B+', b:'B', bminus:'B-', fail:'ফেল' };
+  const gradeColor = { pass:'#3fb950', alpha:'#3fb950', bplus:'#388bfd', b:'#c8a94a', bminus:'#d29922', fail:'#e05555' };
   const courses = str.split(/[,،]/).map(s=>s.trim()).filter(s=>s&&s.toLowerCase()!=='no'&&s!=='নাই'&&s!=='না');
   return `<div style="display:flex;flex-direction:column;gap:8px">` +
     courses.map((course, i) => {
@@ -1021,6 +1021,8 @@ function renderCard(m,idx){
   const eduShort=(edu||'—').replace('HSC (Higher Secondary)','HSC').replace('SSC (Secondary)','SSC').replace('উচ্চ মাধ্যমিক (এইচএসসি)','এইচএসসি').replace('মাধ্যমিক (এসএসসি)','এসএসসি').replace('ডিগ্রী/অনার্স','ডিগ্রী').replace('Degree/Honours','Degree');
   const blank = isBlankMember(m);
   const canEdit = webCurrentUser && (webUserRole === 'admin' || webUserRole === 'superadmin');
+  // stable ID দিয়ে modal খোলো — array index নয়
+  const mKey = JSON.stringify(m._id || String(m.no||'').replace(/[^A-Z0-9]/gi,'') || idx);
 
   const blankBadge = blank
     ? `<span style="font-family:'Rajdhani',sans-serif;font-size:0.6rem;font-weight:700;letter-spacing:1px;
@@ -1028,7 +1030,7 @@ function renderCard(m,idx){
         background:rgba(210,153,34,0.08);white-space:nowrap">${L('তথ্য অপূর্ণ','Incomplete')}</span>`
     : '';
 
-  return `<div class="card${blank?' card-blank':''}" onclick="showModal(${idx})" style="${blank?'border-color:rgba(210,153,34,0.35)':''}">
+  return `<div class="card${blank?' card-blank':''}" onclick="showModal(${mKey})" style="${blank?'border-color:rgba(210,153,34,0.35)':''}">
     <div class="card-top">
       ${avatarHtml(m)}
       <div class="card-name">
@@ -1067,7 +1069,8 @@ function renderListRow(m,idx){
     ? (m.bn||m.en||(blank?L('(অপূর্ণ)','(Incomplete)'):'—'))
     : (m.en||m.bn||(blank?'(Incomplete)':'—'));
   const nm2=lang==='bn'?(m.en||''):(m.bn||'');
-  return `<div class="list-row${blank?' list-row-blank':''}" onclick="showModal(${idx})"
+  const mKey = JSON.stringify(m._id || String(m.no||'').replace(/[^A-Z0-9]/gi,'') || idx);
+  return `<div class="list-row${blank?' list-row-blank':''}" onclick="showModal(${mKey})"
     style="${blank?'border-left:3px solid rgba(210,153,34,0.5);opacity:0.8':''}">
     ${listAvatarHtml(m)}
     <div class="list-name">
@@ -1110,8 +1113,8 @@ function goPage(p){
 const PROMO_BN=['সৈনিক → ল্যান্স কর্পোরাল','ল্যান্স কর্পোরাল → কর্পোরাল','কর্পোরাল → সার্জেন্ট','সার্জেন্ট → ওয়ারেন্ট অফিসার','ওয়াঃ অফিঃ → সিনিঃ ওয়াঃ অফিঃ'];
 const PROMO_EN=['Sainik → Lance Cpl','Lance Cpl → Corporal','Corporal → Sergeant','Sergeant → Warrant Off.','WO → Senior WO'];
 
-function showModal(idx){
-  const m=filtered[idx];
+function showModal(memberNo){
+  const m = filtered.find(x => (x._id || String(x.no||'').replace(/[^A-Z0-9]/gi,'')) === memberNo) || filtered[memberNo];
   if(!m)return;
 
   // Blank member — Admin/Superadmin হলে সরাসরি edit modal দেখাও (subadmin নয়)
@@ -1371,6 +1374,7 @@ async function webLogin() {
     if (e.code === 'auth/invalid-credential' || e.code === 'auth/wrong-password') msg = 'আইডি বা পাসওয়ার্ড ভুল।';
     if (e.code === 'auth/user-not-found') msg = 'এই আইডিতে কোনো অ্যাকাউন্ট নেই।';
     if (e.code === 'auth/too-many-requests') msg = 'অনেকবার চেষ্টা হয়েছে। কিছুক্ষণ পর আবার চেষ্টা করুন।';
+    if (e.code === 'auth/network-request-failed') msg = 'ইন্টারনেট সংযোগ সমস্যা।';
     errEl.textContent = msg; errEl.style.display = 'block';
     btn.textContent = 'লগইন করুন'; btn.disabled = false;
   }
@@ -1496,6 +1500,12 @@ async function submitAddMember() {
   const dobParts = dob.split('/');
   if (dobParts.length !== 3 || dobParts[2].length !== 4) {
     showRes('জন্ম তারিখ সঠিক ফরম্যাটে দিন: DD/MM/YYYY', false); return;
+  }
+  // তারিখ সত্যিই valid কিনা চেক করো
+  const [_dd, _mm, _yyyy] = dobParts.map(Number);
+  const _testDate = new Date(_yyyy, _mm - 1, _dd);
+  if (_testDate.getFullYear() !== _yyyy || _testDate.getMonth() !== _mm - 1 || _testDate.getDate() !== _dd) {
+    showRes('জন্ম তারিখ সঠিক নয় (যেমন: 15/03/1990)।', false); return;
   }
 
   const docId = no.replace(/[^A-Z0-9]/gi, '');
@@ -1663,21 +1673,43 @@ async function startPendingListener() {
 
 /* ── ওয়েবসাইট থেকে বিজ্ঞপ্তি পাঠানো ── */
 async function webSendAnnouncement() {
-  const title = prompt('বিজ্ঞপ্তির শিরোনাম:');
-  if (!title) return;
-  const body = prompt('বিজ্ঞপ্তির বিস্তারিত:');
-  if (!body) return;
-  const urgent = confirm('জরুরি বিজ্ঞপ্তি? (OK = হ্যাঁ)');
-  try {
-    await db.collection('announcements').add({
-      title, body, urgent,
-      author: webAdminData?.name || 'Admin',
-      authorRole: webUserRole,
-      active: true,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-    });
-    alert('✅ বিজ্ঞপ্তি পাঠানো হয়েছে!');
-  } catch(e) { alert('ব্যর্থ: ' + e.message); }
+  // prompt() এর বদলে custom modal ব্যবহার করো
+  const modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9998;display:flex;align-items:center;justify-content:center;padding:20px';
+  modal.innerHTML = `
+    <div style="background:#161b22;border:1px solid rgba(200,169,74,0.25);border-radius:16px;width:100%;max-width:440px;padding:24px">
+      <div style="font-family:'Rajdhani',sans-serif;font-size:0.9rem;font-weight:700;letter-spacing:2px;color:#c8a94a;text-transform:uppercase;margin-bottom:16px">📣 নতুন বিজ্ঞপ্তি</div>
+      <div style="margin-bottom:10px">
+        <label style="display:block;font-family:'Rajdhani',sans-serif;font-size:0.68rem;color:#8b949e;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">শিরোনাম *</label>
+        <input id="_ann_title" type="text" placeholder="বিজ্ঞপ্তির শিরোনাম" style="width:100%;background:#1c2333;border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:9px 12px;color:#e6e6e6;font-size:0.85rem;outline:none">
+      </div>
+      <div style="margin-bottom:12px">
+        <label style="display:block;font-family:'Rajdhani',sans-serif;font-size:0.68rem;color:#8b949e;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">বিস্তারিত *</label>
+        <textarea id="_ann_body" rows="3" placeholder="বিজ্ঞপ্তির বিস্তারিত বিবরণ" style="width:100%;background:#1c2333;border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:9px 12px;color:#e6e6e6;font-size:0.85rem;outline:none;resize:vertical"></textarea>
+      </div>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:16px;font-size:0.82rem;color:#e6e6e6">
+        <input type="checkbox" id="_ann_urgent" style="width:16px;height:16px;accent-color:#c8a94a">
+        🚨 জরুরি বিজ্ঞপ্তি
+      </label>
+      <div id="_ann_err" style="display:none;color:#e05555;font-size:0.78rem;margin-bottom:10px"></div>
+      <div style="display:flex;gap:10px">
+        <button id="_ann_send" onclick="
+          const title=document.getElementById('_ann_title').value.trim();
+          const body=document.getElementById('_ann_body').value.trim();
+          const urgent=document.getElementById('_ann_urgent').checked;
+          const errEl=document.getElementById('_ann_err');
+          if(!title||!body){errEl.textContent='শিরোনাম ও বিস্তারিত দিন।';errEl.style.display='block';return;}
+          this.disabled=true;this.textContent='⏳ পাঠানো হচ্ছে...';
+          db.collection('announcements').add({title,body,urgent,author:webAdminData?.name||'Admin',authorRole:webUserRole,active:true,createdAt:firebase.firestore.FieldValue.serverTimestamp()})
+            .then(()=>{document.querySelector('#_ann_send').closest('div[style*=fixed]').remove();_showAdminToast('✅ বিজ্ঞপ্তি পাঠানো হয়েছে!','success');})
+            .catch(e=>{errEl.textContent='❌ ব্যর্থ: '+(e.message||e.code);errEl.style.display='block';document.getElementById('_ann_send').disabled=false;document.getElementById('_ann_send').textContent='📣 পাঠান';});
+        " style="flex:1;padding:11px;background:linear-gradient(135deg,#c8a94a,#9a7a20);border:none;border-radius:8px;color:#0a0c10;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:0.85rem;letter-spacing:1px;cursor:pointer">📣 পাঠান</button>
+        <button onclick="this.closest('div[style*=fixed]').remove()" style="padding:11px 18px;background:transparent;border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:rgba(255,255,255,0.45);cursor:pointer;font-family:'Rajdhani',sans-serif">বাতিল</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.onclick = e => { if (e.target === modal) modal.remove(); };
+  setTimeout(() => document.getElementById('_ann_title')?.focus(), 100);
 }
 
 async function openWebPendingModal() {
@@ -1930,9 +1962,11 @@ function openPasswordReset() {
    (সরাসরি Firebase Auth password পরিবর্তন)
 ══════════════════════════════════════════════ */
 function _webMakeDefaultPassword(armyNo) {
-  // index4.html এর makeDefaultPassword এর মতো
-  const d = armyNo.replace(/[^A-Z0-9]/gi,'').toLowerCase();
-  return d + '@4e';
+  // ডিফল্ট পাসওয়ার্ড — সেনা নম্বরের শেষ ৬ সংখ্যা (index.html এর makeDefaultPassword এর মতো)
+  const num = String(armyNo).replace(/[^0-9]/g, '');
+  if (num.length === 0) return '4engr1234';
+  if (num.length <= 6) return num.padStart(6, '0');
+  return num.slice(-6);
 }
 
 async function doPasswordReset() {
@@ -2665,7 +2699,6 @@ async function loadMembersFromFirebase() {
     });
 
     MEMBERS_LOADED = true;
-    console.log('Firebase থেকে লোড:', MEMBERS.length, 'সদস্য');
 
     // Init করো
     document.getElementById('totalCount').textContent = MEMBERS.length;
@@ -2684,8 +2717,7 @@ async function loadMembersFromFirebase() {
           const idx = MEMBERS.findIndex(m => m._id === change.doc.id || m.no === data.no);
           if (idx !== -1) {
             MEMBERS[idx] = data;
-            filtered = [...MEMBERS];
-            applyFilters();
+            applyFilters(); // filter অনুযায়ী re-render
           }
         } else if (change.type === 'added') {
           const exists = MEMBERS.some(m => m._id === change.doc.id);
@@ -2727,9 +2759,10 @@ async function loadRosterLeave(docId) {
   if (!box) return;
   if (!docId) { box.innerHTML = '<span style="color:var(--text3)">সদস্য ID পাওয়া যায়নি</span>'; return; }
 
-  // Cache check
-  if (_rosterLeaveCache[docId]) {
-    box.innerHTML = _rosterLeaveCache[docId];
+  // Cache — শুধু same session এ, max 5 মিনিট
+  const cached = _rosterLeaveCache[docId];
+  if (cached && cached.ts && (Date.now() - cached.ts) < 5 * 60 * 1000) {
+    box.innerHTML = cached.html;
     return;
   }
 
@@ -2748,7 +2781,7 @@ async function loadRosterLeave(docId) {
 
     if (snap.empty) {
       const html = `<span style="color:var(--text3);font-size:0.85rem">${lang==='bn'?'কোনো ছুটির তথ্য নেই':'No leave records found'}</span>`;
-      _rosterLeaveCache[docId] = html;
+      _rosterLeaveCache[docId] = { html, ts: Date.now() };
       box.innerHTML = html;
       return;
     }
@@ -2795,7 +2828,7 @@ async function loadRosterLeave(docId) {
       </div>
       <div style="max-height:220px;overflow-y:auto">${rowsHtml}</div>`;
 
-    _rosterLeaveCache[docId] = html;
+    _rosterLeaveCache[docId] = { html, ts: Date.now() };
     box.innerHTML = html;
   } catch(e) {
     box.innerHTML = `<span style="color:var(--danger);font-size:0.82rem">❌ ${e.message}</span>`;
@@ -2871,7 +2904,22 @@ async function confirmDeleteMember(docId, name, no) {
   const btn = document.getElementById('confirmDeleteBtn');
   if (btn) { btn.textContent = '⏳ ডিলিট হচ্ছে...'; btn.disabled = true; }
   try {
-    // প্রথমে member delete — main operation
+    // ── leaves subcollection আগে মুছো ──
+    try {
+      const leavesSnap = await db.collection('members').doc(docId).collection('leaves').get();
+      if (!leavesSnap.empty) {
+        const CHUNK = 499;
+        for (let i = 0; i < leavesSnap.docs.length; i += CHUNK) {
+          const batch = db.batch();
+          leavesSnap.docs.slice(i, i + CHUNK).forEach(d => batch.delete(d.ref));
+          await batch.commit();
+        }
+      }
+    } catch(leaveErr) {
+      console.warn('leaves delete skipped:', leaveErr.code);
+    }
+
+    // ── member doc delete ──
     await db.collection('members').doc(docId).delete();
 
     // deleteLog লেখার চেষ্টা (optional — Rules-এ না থাকলেও delete সফল)
@@ -2888,10 +2936,11 @@ async function confirmDeleteMember(docId, name, no) {
 
     document.getElementById('deleteMemberModal')?.remove();
     closeModalBtn();
-    const localIdx = members.findIndex(x =>
+    const localIdx = MEMBERS.findIndex(x =>
       (x._id || String(x.no || '').replace(/[^A-Z0-9]/gi, '')) === docId
     );
-    if (localIdx !== -1) members.splice(localIdx, 1);
+    if (localIdx !== -1) MEMBERS.splice(localIdx, 1);
+    document.getElementById('totalCount').textContent = MEMBERS.length;
     applyFilters();
     _showAdminToast('✅ ' + name + ' সফলভাবে ডিলিট হয়েছে', 'success');
   } catch(e) {
@@ -3082,6 +3131,7 @@ function closeModalBtn() {
   document.body.style.overflow = '';
   const box = document.getElementById('rosterLeaveBody');
   if (box) box.innerHTML = lang==='bn'?'ছুটি ট্যাবে ক্লিক করুন...':'Click Leave tab to load...';
+  // cache clear করো না — TTL based cache ব্যবহার হচ্ছে
 }
 
 /* ══════════════════════════════════════════
@@ -3195,16 +3245,17 @@ function avatarHtml(m, size = 'sm') {
     const cls = size === 'lg' ? 'modal-photo' : 'avatar';
     const icls = size === 'lg' ? 'minit' : '';
     const ini = initials(m).toUpperCase();
-    const img = m.ph ? `<img src="${m.ph}" alt="" onclick="showImageModal('${m.ph}'); event.stopPropagation();" onerror="this.style.display='none'">` : '';
-    // শুধুমাত্র ছবি না থাকলে আদ্যক্ষর দেখাবে। ছবি থাকলে সেটাই দেখাবে।
-    return `<div class="${cls}" style="cursor: ${m.ph ? 'pointer' : 'default'};">${img}${!m.ph ? `<span class="${icls}">${ini}</span>` : ''}</div>`;
+    // ph কে onclick attribute এ সরাসরি না রেখে data-src ব্যবহার করো
+    const img = m.ph ? `<img src="${m.ph}" alt="" data-ph="1" onerror="this.style.display='none'" onclick="event.stopPropagation();showImageModal(this.closest('[data-memberph]')?.dataset?.memberph||'')">` : '';
+    const wrapper = `<div class="${cls}" style="cursor:${m.ph?'pointer':'default'};" data-memberph="${m.ph ? m.ph.substring(0,20) : ''}" onclick="${m.ph ? `showImageModal(event.currentTarget.dataset.memberph);event.stopPropagation()` : ''}">${img}${!m.ph ? `<span class="${icls}">${ini}</span>` : ''}</div>`;
+    return wrapper;
 }
 
 // listAvatarHtml ফাংশনটিও আপডেট করা হলো
 function listAvatarHtml(m) {
     const ini = initials(m).toUpperCase();
-    const img = m.ph ? `<img src="${m.ph}" alt="" onclick="showImageModal('${m.ph}'); event.stopPropagation();" onerror="this.style.display='none'">` : '';
-    return `<div class="list-avatar" style="cursor: ${m.ph ? 'pointer' : 'default'};">${img}${!m.ph ? `<span>${ini}</span>` : ''}</div>`;
+    const img = m.ph ? `<img src="${m.ph}" alt="" onerror="this.style.display='none'">` : '';
+    return `<div class="list-avatar" style="cursor:${m.ph?'pointer':'default'};" ${m.ph ? `onclick="showImageModal('${encodeURIComponent(m.ph)}');event.stopPropagation()"` : ''}>${img}${!m.ph ? `<span>${ini}</span>` : ''}</div>`;
 }
 
 

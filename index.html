@@ -21,9 +21,9 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 
-<!-- App Check Debug Token — development এ unverified block এড়াতে -->
+<!-- App Check Debug Token — শুধুমাত্র local development এ true করুন, production এ false রাখুন -->
 <script>
-  self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+  self.FIREBASE_APPCHECK_DEBUG_TOKEN = false;
 </script>
 <!-- Firebase SDKs (compat — v12 modular এর compat layer) -->
 <script src="https://www.gstatic.com/firebasejs/12.11.0/firebase-app-compat.js"></script>
@@ -1418,59 +1418,6 @@ select.form-input { cursor: pointer; }
         </div>
       </div>
 
-      <!-- ══ সদস্য সংশোধন ══ -->
-      <div class="card">
-        <div class="card-header">
-          <span class="card-header-icon">✏️</span>
-          <span class="card-header-title">সদস্য তথ্য সংশোধন</span>
-        </div>
-        <div class="card-body">
-          <div style="display:flex;gap:8px;margin-bottom:12px">
-            <input type="text" id="adminSearchInput"
-              class="form-input" placeholder="সেনা নম্বর বা নাম লিখুন..."
-              style="flex:1"
-              oninput="adminSearchMembers(this.value)">
-            <button onclick="adminSearchMembers(document.getElementById('adminSearchInput').value)"
-              style="background:linear-gradient(135deg,var(--gold),#9a7a20);border:none;border-radius:10px;padding:0 16px;color:#0a0c10;font-family:'Rajdhani',sans-serif;font-weight:700;cursor:pointer;font-size:0.85rem">
-              🔍
-            </button>
-          </div>
-          <div id="adminSearchResults"></div>
-          <!-- নির্বাচিত সদস্যের এডিট ফর্ম -->
-          <div id="adminEditSection" style="display:none">
-            <div style="display:flex;align-items:center;gap:10px;padding:12px;background:var(--dark3);border-radius:10px;margin-bottom:14px;border:1px solid var(--border)">
-              <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--gold),#7a5a10);display:flex;align-items:center;justify-content:center;font-family:'Rajdhani',sans-serif;font-weight:700;color:#0a0c10;font-size:16px;flex-shrink:0" id="adminEditAvatar">?</div>
-              <div>
-                <div style="font-weight:700;font-size:0.95rem" id="adminEditName">—</div>
-                <div style="font-size:0.75rem;color:var(--text2)" id="adminEditMeta">—</div>
-              </div>
-              <button onclick="closeAdminEdit()" style="margin-left:auto;background:transparent;border:none;color:var(--text2);cursor:pointer;font-size:18px">✕</button>
-            </div>
-
-            <!-- ট্যাব -->
-            <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap">
-              <button class="admin-tab-btn active" onclick="switchAdminTab('personal',this)">👤 ব্যক্তিগত</button>
-              <button class="admin-tab-btn" onclick="switchAdminTab('military',this)">🎖️ সামরিক</button>
-              <button class="admin-tab-btn" onclick="switchAdminTab('family',this)">👨‍👩‍👧 পরিবার</button>
-              <button class="admin-tab-btn" onclick="switchAdminTab('courses',this)">📚 কোর্স</button>
-            </div>
-
-            <div id="adminTabPersonal" class="admin-tab-content">
-              <div id="adminPersonalFields"></div>
-            </div>
-            <div id="adminTabMilitary" class="admin-tab-content" style="display:none">
-              <div id="adminMilitaryFields"></div>
-            </div>
-            <div id="adminTabFamily" class="admin-tab-content" style="display:none">
-              <div id="adminFamilyFields"></div>
-            </div>
-            <div id="adminTabCourses" class="admin-tab-content" style="display:none">
-              <div id="adminCoursesFields"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <!-- Pending Approvals -->
       <div class="card">
         <div class="card-header">
@@ -1956,9 +1903,11 @@ function initFirebase(config) {
         }
       });
 
-    // App Check — debug mode (Monitoring এ আছে বলে block করছিল)
+    // App Check — production এ real reCAPTCHA Enterprise site key দিন
     try {
       const appCheck = firebase.appCheck();
+      // ⚠️ নিচের key টি Google এর public TEST key — production এ Firebase Console থেকে
+      // আসল reCAPTCHA Enterprise site key দিয়ে replace করুন
       appCheck.activate(
         new firebase.appCheck.ReCaptchaEnterpriseProvider('6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI'),
         true
@@ -2805,6 +2754,12 @@ async function doRegister() {
   if (dobParts.length !== 3 || dobParts[2].length !== 4) {
     showErr('জন্ম তারিখ সঠিক ফরম্যাটে দিন: DD/MM/YYYY'); return;
   }
+  // তারিখ সত্যিই valid কিনা চেক করো
+  const [dd, mm, yyyy] = dobParts.map(Number);
+  const testDate = new Date(yyyy, mm - 1, dd);
+  if (testDate.getFullYear() !== yyyy || testDate.getMonth() !== mm - 1 || testDate.getDate() !== dd) {
+    showErr('জন্ম তারিখ সঠিক নয় (যেমন: 15/03/1990)।'); return;
+  }
 
   if (btn) { btn.disabled = true; btn.textContent = '⏳ যাচাই হচ্ছে...'; }
   showLoading('সদস্য যাচাই করা হচ্ছে...');
@@ -2895,8 +2850,9 @@ async function doRegister() {
     _isRegistering = false;
     hideLoading();
 
-    // ── সফল বার্তা ──
+    // সফল বার্তা
     const memberName = member.bn || member.en || armyNo;
+    const safeArmyNo = armyNo.replace(/[^A-Z0-9]/g, ''); // onclick এ safe
     errEl.style.cssText = 'display:block;background:rgba(63,185,80,0.12);border:1px solid rgba(63,185,80,0.3);color:#3fb950;border-radius:10px;padding:16px;margin-top:14px;text-align:center;line-height:1.9';
     errEl.innerHTML = `
       <div style="font-size:2rem;margin-bottom:6px">✅</div>
@@ -2904,7 +2860,7 @@ async function doRegister() {
       <div style="font-size:0.82rem;opacity:0.85;margin-bottom:14px">
         স্বাগতম, ${memberName}!<br>এখন লগইন করুন।
       </div>
-      <button onclick="showLoginAfterRegister('${armyNo}')"
+      <button onclick="showLoginAfterRegister('${safeArmyNo}')"
         style="background:linear-gradient(135deg,#3fb950,#2a8a40);border:none;border-radius:8px;
         padding:12px;color:#fff;font-family:'Rajdhani',sans-serif;font-weight:700;
         font-size:0.95rem;letter-spacing:2px;cursor:pointer;width:100%">
@@ -2932,7 +2888,8 @@ async function doRegister() {
     errEl.textContent = msg;
 
     if (e.code === 'auth/email-already-in-use') {
-      errEl.innerHTML += `<br><button onclick="showLoginAfterRegister('${armyNo}')"
+      const safeNo = armyNo.replace(/[^A-Z0-9]/g, '');
+      errEl.innerHTML += `<br><button onclick="showLoginAfterRegister('${safeNo}')"
         style="background:#388bfd;border:none;border-radius:7px;padding:8px 16px;
         color:#fff;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:0.8rem;
         cursor:pointer;margin-top:10px;letter-spacing:1px">🔐 লগইন করুন</button>`;
@@ -3176,13 +3133,13 @@ async function doLogin() {
   try {
     // সেনা নম্বর থেকে email তৈরি: SUPERADMIN → superadmin@4engr.bd
     const email = armyNo.replace(/[^A-Z0-9]/g, '').toLowerCase() + '@4engr.bd';
-    console.log('লগইন চেষ্টা:', email);
     _lastLoginPassword = password; // pending reset apply করতে
     await auth.signInWithEmailAndPassword(email, password);
     // onAuthStateChanged handles the rest
   } catch(e) {
+    _lastLoginPassword = null; // login fail হলে password clear করো
     hideLoading();
-    console.error('লগইন error:', e.code, e.message);
+    console.error('লগইন error:', e.code);
     let msg = 'লগইন ব্যর্থ। (' + (e.code || e.message) + ')';
     if (e.code === 'auth/invalid-credential')   msg = 'সেনা নম্বর বা পাসওয়ার্ড ভুল।';
     if (e.code === 'auth/user-not-found')        msg = 'এই সেনা নম্বরে কোনো অ্যাকাউন্ট নেই।';
@@ -3710,15 +3667,15 @@ function renderFields(containerId, fields) {
     const val = rawDisplay || '—';
     let editBtn = '';
     if (f.editable) {
-    if (f.editable) {
       if (f.type === 'promotion') {
         editBtn = `<button class="field-edit-btn" onclick="openEdit('${f.key}','${f.label}','promotion','')" title="পদোন্নতি আবেদন করুন">⭐</button>`;
       } else if (f.type === 'address') {
         editBtn = `<button class="field-edit-btn" onclick="openAddressEdit()" title="ঠিকানা সম্পাদনা">✏️</button>`;
       } else {
-        editBtn = `<button class="field-edit-btn" onclick="openEdit('${f.key}','${f.label}','${f.type||'text'}','${(f.opts||[]).join(',')}')" title="${f.label} সম্পাদনা">✏️</button>`;
+        const safeLabel = f.label.replace(/'/g, "\\'");
+        const safeOpts  = (f.opts||[]).join(',').replace(/'/g, "\\'");
+        editBtn = `<button class="field-edit-btn" onclick="openEdit('${f.key}','${safeLabel}','${f.type||'text'}','${safeOpts}')" title="${f.label} সম্পাদনা">✏️</button>`;
       }
-    }
     }
 
     // তারিখ fields এ বছর/মাস/দিন সাবটেক্সট
@@ -6011,7 +5968,8 @@ function makeDefaultPassword(armyNo) {
   const num = String(armyNo).replace(/[^0-9]/g, '');
   if (num.length === 0) return '4engr1234';
   if (num.length <= 6) return num.padStart(6, '0');
-  return num; // ৭+ সংখ্যা হলে পুরোটাই
+  // ৭+ সংখ্যা হলে শেষ ৬ সংখ্যা ব্যবহার করো (পুরো নম্বর নিরাপদ নয়)
+  return num.slice(-6);
 }
 
 async function doMemberPasswordReset() {
@@ -6707,17 +6665,19 @@ function buildAdminFieldsHTML(fields) {
 
 // Admin panel এ address edit — adminSelectedMember কে currentMemberData হিসেবে ব্যবহার করে
 function openAdminAddressEdit() {
-  // adminSelectedMember কে temporarily currentMemberData তে রেখে modal খোলো
   const _backup = currentMemberData;
   currentMemberData = adminSelectedMember;
   openAddressEdit();
-  // modal close হলে restore করো
+  // modal close হলে সর্বদা restore করো (error হলেও)
   const origClose = window._adminAddrClose;
   window._adminAddrClose = () => {
-    adminSelectedMember = currentMemberData;
-    currentMemberData = _backup;
-    renderAdminFields();
-    window._adminAddrClose = origClose;
+    try {
+      adminSelectedMember = currentMemberData;
+      renderAdminFields();
+    } finally {
+      currentMemberData = _backup;
+      window._adminAddrClose = origClose;
+    }
   };
 }
 
@@ -6954,10 +6914,12 @@ async function showStatDetail(type) {
         return 99;
       }
 
-      sortedGroups.forEach(([co, members]) => {
+      sortedGroups.forEach(([rankLabel, members]) => {
+        // কোম্পানী অনুযায়ী sort করো
+        members.sort((a, b) => coRank(a.co_bn||'') - coRank(b.co_bn||''));
         html += `<div style="margin-bottom:16px">
           <div style="font-family:'Rajdhani',sans-serif;font-size:0.72rem;letter-spacing:2px;text-transform:uppercase;color:var(--gold);padding:6px 0;border-bottom:1px solid var(--border);margin-bottom:8px">
-            ${co} — ${members.length} জন
+            ${rankLabel} — ${members.length} জন
           </div>`;
         members.forEach(m => {
           const ini = (m.bn||m.en||'?')[0];
@@ -7436,11 +7398,23 @@ async function rejectGroup(ids) {
   let done = 0;
   for (const id of ids) {
     try {
+      const docSnap = await db.collection('editRequests').doc(id).get();
+      const r = docSnap.exists ? docSnap.data() : {};
       await db.collection('editRequests').doc(id).update({
         status: 'rejected',
         rejectedAt: firebase.firestore.FieldValue.serverTimestamp(),
         rejectedBy: currentUser.uid,
       });
+      // ── সদস্যকে notification পাঠাও (pendingItemAction এর মতো) ──
+      if (r.requestedBy) {
+        db.collection('notifications').add({
+          uid: r.requestedBy, memberId: r.memberId, type: 'rejected',
+          title: '❌ অনুরোধ বাতিল হয়েছে',
+          body: `আপনার "${r.fieldLabel||r.field||'তথ্য'}" পরিবর্তনের অনুরোধ বাতিল করা হয়েছে।`,
+          requestId: id, read: false,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        }).catch(() => {});
+      }
       done++;
     } catch(e) {}
   }
@@ -7515,15 +7489,23 @@ async function rejectAllPending() {
         : db.collection('editRequests').where('status', '==', 'pending');
     }
     const snap = await pendingQuery.get();
-    const batch = db.batch();
-    snap.docs.forEach(d => {
-      batch.update(db.collection('editRequests').doc(d.id), {
-        status: 'rejected',
-        rejectedAt: firebase.firestore.FieldValue.serverTimestamp(),
-        rejectedBy: currentUser.uid,
+
+    // Firestore batch limit = 500 — chunk এ ভাগ করো
+    const CHUNK = 499;
+    const docs = snap.docs;
+    for (let i = 0; i < docs.length; i += CHUNK) {
+      const chunk = docs.slice(i, i + CHUNK);
+      const batch = db.batch();
+      chunk.forEach(d => {
+        batch.update(db.collection('editRequests').doc(d.id), {
+          status: 'rejected',
+          rejectedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          rejectedBy: currentUser.uid,
+        });
       });
-    });
-    await batch.commit();
+      await batch.commit();
+    }
+
     hideLoading();
     showToast(`${snap.size}টি অনুরোধ বাতিল করা হয়েছে`, 'error');
     loadAdminData();
@@ -7666,7 +7648,9 @@ async function approveGroupBulk(ids) {
 async function approveEdit(docId, silent = false) {
   try {
     const doc = await db.collection('editRequests').doc(docId).get();
+    if (!doc.exists) { console.warn('approveEdit: doc not found', docId); return; }
     const r = doc.data();
+    if (!r) { console.warn('approveEdit: empty data', docId); return; }
     const batch = db.batch();
 
     let memberRef;
@@ -7716,8 +7700,11 @@ async function approveEdit(docId, silent = false) {
 
       // কোর্স যোগ — addCourse
       if (r.requestType === 'addCourse' && r.courseExtra) {
-        const crOldArr = (r.oldValue || '').split(',').map(s => s.trim()).filter(Boolean);
-        const newIdx   = crOldArr.length;
+        // সর্বদা Firestore থেকে current cr_bn পড়ো — oldValue stale হতে পারে
+        const freshSnap = await memberRef.get();
+        const freshData = freshSnap.data() || {};
+        const crBnCurrent = (freshData.cr_bn || '').split(',').map(s => s.trim()).filter(Boolean);
+        const newIdx = crBnCurrent.length;
         const ex = r.courseExtra;
         if (r.newValueEn) updateData['cr_en'] = r.newValueEn;
         if (ex.result)   updateData['courseResults.course_' + newIdx] = ex.result;
@@ -7825,7 +7812,12 @@ function triggerPhotoUpload() {
 async function uploadPhoto(input) {
   const file = input.files[0];
   if (!file) return;
-  if (file.size > 3 * 1024 * 1024) { showToast('ছবি ৩ MB এর বেশি নয়', 'error'); return; }
+  // ফাইল type চেক করো
+  if (!file.type.startsWith('image/')) {
+    showToast('শুধুমাত্র ছবি ফাইল (.jpg, .png, .webp) আপলোড করুন', 'error');
+    input.value = ''; return;
+  }
+  if (file.size > 3 * 1024 * 1024) { showToast('ছবি ৩ MB এর বেশি নয়', 'error'); input.value = ''; return; }
 
   showLoading('ছবি প্রক্রিয়া হচ্ছে...');
   try {
@@ -7936,8 +7928,7 @@ async function promoteUser(uid, newRole, name, armyNo) {
 
 async function deleteUser(uid, name) {
   if (userRole !== 'superadmin') { showToast('অনুমতি নেই', 'error'); return; }
-  if (!await confirmAsync(`"${name}" এর প্রোফাইল সম্পূর্ণ মুছে দেবেন?\n\n⚠️ এই কাজ পূর্বাবস্থায় ফেরানো যাবে না!`, {danger:true,icon:'🗑️',title:'ইউজার ডিলিট',okLabel:'স্থায়ীভাবে মুছুন'})) return;
-  // double confirm removed - single is enough
+  if (!await confirmAsync(`"${name}" এর প্রোফাইল সম্পূর্ণ মুছে দেবেন?\n\n⚠️ এই কাজ পূর্বাবস্থায় ফেরানো যাবে না!\n⚠️ Firebase Auth account আলাদাভাবে Console থেকে মুছতে হবে।`, {danger:true,icon:'🗑️',title:'ইউজার ডিলিট',okLabel:'স্থায়ীভাবে মুছুন'})) return;
 
   showLoading('ডিলিট হচ্ছে...');
   try {
@@ -7948,7 +7939,7 @@ async function deleteUser(uid, name) {
     if (apSnap.exists) batch.delete(adminProfileRef);
     await batch.commit();
 
-    showToast(`✅ "${name}" ডিলিট হয়েছে`, 'success');
+    showToast(`✅ "${name}" Firestore থেকে ডিলিট হয়েছে। Firebase Console থেকে Auth account মুছুন।`, 'success');
     setTimeout(() => loadSuperAdminList(), 800);
   } catch(e) {
     showToast('ডিলিট ব্যর্থ: ' + (e.code || e.message), 'error');
@@ -7966,12 +7957,14 @@ async function adminResetPassword(uid, armyNo) {
   try {
     const docId = String(armyNo).replace(/[^A-Z0-9]/gi, '');
     await db.collection('passwordResets').doc(docId).set({
-      armyNo, newPassword: password,
+      armyNo,
+      // ⚠️ NOTE: এটি সাময়িক — সদস্য next login এ apply হবে এবং used:true হবে
+      newPassword: password,
       resetBy: currentUser.uid, resetByRole: userRole,
       resetAt: firebase.firestore.FieldValue.serverTimestamp(),
       used: false,
     });
-    showToast(`✅ পাসওয়ার্ড রিসেট হয়েছে: ${password}`, 'success');
+    showToast(`✅ পাসওয়ার্ড রিসেট হবে। সদস্য পরের login এ নতুন পাসওয়ার্ড পাবেন: ${password}`, 'success');
   } catch(e) {
     showToast('রিসেট ব্যর্থ: ' + (e.code || e.message), 'error');
   }
@@ -8673,7 +8666,6 @@ function addLeaveTabToAdminEdit() {
   tabContent.className = 'admin-tab-content';
   tabContent.style.display = 'none';
   tabContent.innerHTML = `<div id="adminLeaveSummary"><div style="color:var(--text2);font-size:0.82rem;padding:8px 0">ট্যাবে ক্লিক করুন</div></div>`;
-  tabContent.previousSibling?.after?.(tabContent);
 
   // Courses tab এর পরে insert করো
   const coursesTab = document.getElementById('adminTabCourses');
@@ -8927,8 +8919,12 @@ function applyLangToUI() {
   // Topbar role
   const roleEl = document.getElementById('topbarRole');
   if (roleEl && currentMemberData) {
-    if (userRole === 'superadmin' || userRole === 'admin') {
+    if (userRole === 'superadmin') {
       roleEl.textContent = isBn ? 'সুপার অ্যাডমিন' : 'Super Admin';
+    } else if (userRole === 'admin') {
+      roleEl.textContent = isBn ? 'অ্যাডমিন' : 'Admin';
+    } else if (userRole === 'subadmin') {
+      roleEl.textContent = isBn ? 'সাব অ্যাডমিন' : 'Sub Admin';
     } else {
       roleEl.textContent = isBn
         ? (currentMemberData.r_bn || currentMemberData.r_en || '')
