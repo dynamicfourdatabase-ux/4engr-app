@@ -896,7 +896,7 @@ body {
           <div style="text-align:center;padding:10px 0 16px">
             <div style="font-size:40px;margin-bottom:10px">✅</div>
             <div style="font-size:1rem;font-weight:700;color:var(--success);margin-bottom:6px">সব তথ্য প্রস্তুত!</div>
-            <div style="font-size:0.82rem;color:var(--text2);line-height:1.7">নিচের তথ্য সঠিক থাকলে সংরক্ষণ করুন।<br>পরে যেকোনো তথ্য একবার সংশোধন করা যাবে।</div>
+            <div style="font-size:0.82rem;color:var(--text2);line-height:1.7">নিচের তথ্য সঠিক থাকলে সংরক্ষণ করুন।<br>পরে যেকোনো তথ্য Admin অনুমোদন সাপেক্ষে সংশোধন করা যাবে।</div>
           </div>
           <div id="setupSummary" style="background:var(--dark3);border-radius:10px;padding:14px;font-size:0.82rem;line-height:2"></div>
         </div>
@@ -1584,6 +1584,7 @@ let userRole = 'member'; // 'member' | 'admin' | 'superadmin'
 let _lastPersonalDef = [];
 let _lastMilitaryDef = [];
 let _lastFamilyDef   = [];
+let _pendingFieldMap = {}; // { fieldKey: pendingValue } — pending এ থাকা field গুলো
 let _isRegistering   = false; // registration এর পরে signOut এ login screen এ না যেতে
 let _lastLoginPassword = null; // pending password reset apply করতে
 
@@ -1888,6 +1889,9 @@ function startPendingListener(docId) {
 
         // Toast notification দেখাও
         showToast(`✅ অনুমোদিত: ${fieldName}`, 'success');
+
+        // pending map থেকে সরাও
+        if (r.field) delete _pendingFieldMap[r.field];
 
         // Profile refresh করো
         setTimeout(() => {
@@ -2325,21 +2329,12 @@ function renderFields(containerId, fields) {
   const html = fields.map(f => {
     const raw = m[f.key];
     const val = raw || '—';
-    const locked = isFieldLocked(f.key);
-    const canEditOnce = isMember && MEMBER_EDITABLE_FIELDS.includes(f.key);
     let editBtn = '';
     if (f.editable) {
-      if (locked && f.type !== 'promotion') {
-        editBtn = `<span
-          title="এই তথ্য আপনি একবার পরিবর্তন করেছেন। Admin এর সাথে যোগাযোগ করুন।"
-          style="font-size:13px;color:var(--text3);cursor:help">🔒</span>`;
-      } else if (f.type === 'promotion') {
+      if (f.type === 'promotion') {
         editBtn = `<button class="field-edit-btn" onclick="openEdit('${f.key}','${f.label}','promotion','')" title="পদোন্নতি আবেদন করুন">⭐</button>`;
       } else {
-        const warningIcon = canEditOnce
-          ? `<span style="font-size:9px;color:var(--warn);vertical-align:super;margin-left:1px" title="একবারই পরিবর্তন করা যাবে">1×</span>`
-          : '';
-        editBtn = `<button class="field-edit-btn" onclick="openEdit('${f.key}','${f.label}','${f.type||'text'}','${(f.opts||[]).join(',')}')" title="${canEditOnce ? 'একবারই পরিবর্তন করা যাবে' : f.label + ' সম্পাদনা'}">✏️${warningIcon}</button>`;
+        editBtn = `<button class="field-edit-btn" onclick="openEdit('${f.key}','${f.label}','${f.type||'text'}','${(f.opts||[]).join(',')}')" title="${f.label} সম্পাদনা">✏️</button>`;
       }
     }
 
@@ -2354,10 +2349,21 @@ function renderFields(containerId, fields) {
       }
     }
 
-    return `<div class="field-row">
+    // pending field হলে আলাদাভাবে দেখাও
+    const pendingVal = _pendingFieldMap[f.key];
+    const pendingBadge = pendingVal !== undefined
+      ? `<div style="display:flex;align-items:center;gap:6px;margin-top:4px;flex-wrap:wrap">
+          <span style="font-size:0.72rem;color:var(--text2);text-decoration:line-through;opacity:0.6">${val}</span>
+          <span style="font-size:0.7rem;color:var(--warn)">→</span>
+          <span style="font-size:0.78rem;color:var(--gold);font-weight:600">${String(pendingVal).substring(0,40)}</span>
+          <span style="font-size:0.6rem;background:rgba(210,153,34,0.15);border:1px solid rgba(210,153,34,0.4);color:var(--warn);border-radius:10px;padding:1px 7px;font-family:'Rajdhani',sans-serif;font-weight:700;white-space:nowrap">⏳ অপেক্ষায়</span>
+        </div>`
+      : null;
+
+    return `<div class="field-row" style="${pendingBadge ? 'border-left:2px solid rgba(210,153,34,0.5);padding-left:8px;margin-left:-8px' : ''}">
       <span class="field-label">${f.label}</span>
       <span class="field-value" id="fv-${f.key}">
-        ${val}${sub ? `<br><span style="font-size:0.68rem;color:var(--text2);font-weight:400;display:block;margin-top:2px">${sub}</span>` : ''}
+        ${pendingBadge || (val + (sub ? `<br><span style="font-size:0.68rem;color:var(--text2);font-weight:400;display:block;margin-top:2px">${sub}</span>` : ''))}
       </span>
       ${editBtn}
     </div>`;
@@ -2745,11 +2751,12 @@ async function saveModal() {
       status: 'pending',
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
     });
-    _markFieldSelfEdited(currentEditField.key);
+    // pending map এ যোগ করো — UI তে সাথে সাথে দেখাবে
+    _pendingFieldMap[currentEditField.key] = newVal;
     closeModal();
-    showToast('✅ অনুমোদনের জন্য জমা দেওয়া হয়েছে', 'success');
+    showToast('⏳ জমা হয়েছে — Admin অনুমোদনের অপেক্ষায়', 'success');
     checkPendingStatus();
-    // সব section re-render করো যাতে lock icon দেখায়
+    // সব section re-render করো — pending badge দেখাবে
     renderFields('personalFields',  _lastPersonalDef   || []);
     renderFields('militaryFields',  _lastMilitaryDef   || []);
     renderFields('familyFields',    _lastFamilyDef     || []);
@@ -2838,6 +2845,22 @@ async function checkPendingStatus() {
           <span style="font-size:0.65rem;background:rgba(210,153,34,0.15);border:1px solid rgba(210,153,34,0.3);color:var(--warn);border-radius:10px;padding:2px 8px;font-family:'Rajdhani',sans-serif;font-weight:700;white-space:nowrap;flex-shrink:0">⏳ অপেক্ষায়</span>
         </div>`;
       }).join('');
+    }
+    // pending field map rebuild — login/refresh এ কাজ করবে
+    _pendingFieldMap = {};
+    if (!q.empty) {
+      q.docs.forEach(d => {
+        const r = d.data();
+        if (r.field && r.newValue !== undefined && r.requestType !== 'addCourse' && r.requestType !== 'editCourse') {
+          _pendingFieldMap[r.field] = r.newValue;
+        }
+      });
+      // pending map set হলে fields re-render করো
+      if (Object.keys(_pendingFieldMap).length > 0) {
+        renderFields('personalFields', _lastPersonalDef || []);
+        renderFields('militaryFields', _lastMilitaryDef || []);
+        renderFields('familyFields',   _lastFamilyDef   || []);
+      }
     }
   } catch(e) { console.warn('checkPendingStatus:', e.message); }
 }
@@ -6239,13 +6262,10 @@ function _pensionCountdown(dateStr) {
 }
 
 /* ══════════════════════════════════════════
-   (২) UNIVERSAL ONE-TIME FIELD EDIT LOCK
-   Member প্রতিটি editable field একবারই নিজে
-   edit করতে পারবে। Admin সবসময় edit করতে পারবে।
-   Flag: members/{docId}/_selfEdited_<key> = true
+   FIELD EDIT — lock সরানো হয়েছে
+   Member যেকোনো ফিল্ড যতবার খুশি সংশোধন করতে পারবে
+   (Admin approval লাগবে)
 ══════════════════════════════════════════ */
-
-// Member যে fields edit করতে পারে — সবই one-time lock এর আওতায়
 const MEMBER_EDITABLE_FIELDS = [
   'dob','bl','gn_bn','nid','mb','nm','wa','em','ad','di_bn','ed_bn',
   'r_bn','tr_bn','co_bn','niyog','ma_bn','sp','sd','wd',
@@ -6253,21 +6273,10 @@ const MEMBER_EDITABLE_FIELDS = [
 ];
 
 function isFieldLocked(key) {
-  // Admin সবসময় edit করতে পারে
-  if (userRole === 'admin' || userRole === 'superadmin') return false;
-  // Member-editable field না হলে lock প্রযোজ্য নয়
-  if (!MEMBER_EDITABLE_FIELDS.includes(key)) return false;
-  // Firestore এ _selfEdited_ flag থাকলে locked
-  return !!currentMemberData['_selfEdited_' + key];
+  return false; // lock সরানো — সবসময় edit করা যাবে
 }
 
-// openEdit — lock check সহ
 function openEdit(key, label, type = 'text', optsStr = '') {
-  if (isFieldLocked(key)) {
-    showToast('⛔ এই তথ্য আপনি একবারই পরিবর্তন করতে পেরেছিলেন। Admin এর সাথে যোগাযোগ করুন।', 'error');
-    return;
-  }
-
   // পদবী — promotion special flow
   if (type === 'promotion') {
     openPromotionEdit();
@@ -6289,11 +6298,7 @@ function openEdit(key, label, type = 'text', optsStr = '') {
     input = `<input type="text" class="form-input" id="editInput" value="${val}" placeholder="${label} লিখুন">`;
   }
 
-  const lockNote = MEMBER_EDITABLE_FIELDS.includes(key) && userRole === 'member'
-    ? `<div style="background:rgba(210,153,34,0.1);border:1px solid rgba(210,153,34,0.3);border-radius:8px;padding:8px 12px;margin-top:8px;font-size:0.78rem;color:var(--warn)">
-        ⚠️ এই তথ্য আপনি <strong>একবারই</strong> পরিবর্তন করতে পারবেন। সংরক্ষণের পরে আর পরিবর্তন করা যাবে না। Admin এর সাহায্য নিতে হবে।
-       </div>`
-    : `<div style="font-size:0.78rem;color:var(--text2);margin-top:8px">ℹ️ এই পরিবর্তন Admin এর অনুমোদনের পরে কার্যকর হবে।</div>`;
+  const lockNote = `<div style="font-size:0.78rem;color:var(--text2);margin-top:8px">ℹ️ এই পরিবর্তন Admin এর অনুমোদনের পরে কার্যকর হবে।</div>`;
 
   document.getElementById('modalBody').innerHTML = `
     <div class="form-group">
@@ -6305,17 +6310,8 @@ function openEdit(key, label, type = 'text', optsStr = '') {
   document.getElementById('editModal').classList.add('open');
 }
 
-// saveModal এর পরে lock flag সেট করার hook — saveModal function এর ভেতরে inject করা হবে editRequests submit এর পরে
 function _markFieldSelfEdited(key) {
-  if (userRole === 'admin' || userRole === 'superadmin') return;
-  if (!MEMBER_EDITABLE_FIELDS.includes(key)) return;
-  const docId = currentMemberData.id || String(currentMemberData.no || '').replace(/[^A-Z0-9]/gi, '');
-  if (!docId) return;
-  db.collection('members').doc(docId).set(
-    { ['_selfEdited_' + key]: true, updatedAt: firebase.firestore.FieldValue.serverTimestamp() },
-    { merge: true }
-  ).catch(e => console.warn('Lock flag set error:', e));
-  currentMemberData['_selfEdited_' + key] = true;
+  // lock সরানো হয়েছে — কিছু করার নেই
 }
 
 /* ══════════════════════════════════════════
