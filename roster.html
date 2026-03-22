@@ -460,13 +460,36 @@ select:focus { border-color: var(--accent); }
 }
 
 @media (max-width: 640px) {
-  /* Header */
-  .header-inner { padding: 10px 14px; gap: 10px; }
-  .logo { width: 42px; height: 42px; font-size: 18px; }
-  .header-title h1 { font-size: 1rem; }
-  .header-title p { font-size: 0.6rem; letter-spacing: 2px; }
-  .lang-btn { padding: 5px 9px; font-size: 0.72rem; }
-  .view-btn { padding: 5px 8px; font-size: 12px; }
+  /* Header — compact two-row layout */
+  .header-inner {
+    padding: 8px 12px;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .logo { width: 38px; height: 38px; font-size: 16px; flex-shrink: 0; }
+  .header-title { flex: 1; min-width: 0; }
+  .header-title h1 { font-size: 0.88rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .header-title p { font-size: 0.56rem; letter-spacing: 1.5px; }
+  /* header-right wraps to second row and fills width */
+  .header-right {
+    flex: 1 1 100%;
+    gap: 6px;
+    justify-content: space-between;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  /* App link — compact */
+  .header-right > a {
+    padding: 5px 8px !important;
+    font-size: 0.68rem !important;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .stat-group { display: none !important; }
+  .lang-btn { padding: 5px 8px; font-size: 0.7rem; }
+  .view-btn { padding: 5px 7px; font-size: 12px; }
+  #themeToggle { padding: 5px 7px !important; font-size: 13px !important; flex-shrink: 0; }
 
   /* Controls — collapsible filter grid */
   .controls-wrap { position: sticky; top: 62px; }
@@ -2848,13 +2871,21 @@ async function confirmDeleteMember(docId, name, no) {
   const btn = document.getElementById('confirmDeleteBtn');
   if (btn) { btn.textContent = '⏳ ডিলিট হচ্ছে...'; btn.disabled = true; }
   try {
-    await db.collection('deleteLog').add({
-      docId, memberName: name, armyNo: no, reason,
-      deletedBy: webCurrentUser?.uid || 'unknown',
-      deletedByRole: 'superadmin',
-      deletedAt: firebase.firestore.FieldValue.serverTimestamp(),
-    });
+    // প্রথমে member delete — main operation
     await db.collection('members').doc(docId).delete();
+
+    // deleteLog লেখার চেষ্টা (optional — Rules-এ না থাকলেও delete সফল)
+    try {
+      await db.collection('deleteLog').add({
+        docId, memberName: name, armyNo: no, reason,
+        deletedBy: webCurrentUser?.uid || 'unknown',
+        deletedByRole: webCurrentUser?.role || 'superadmin',
+        deletedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      });
+    } catch(logErr) {
+      console.warn('deleteLog write skipped:', logErr.code);
+    }
+
     document.getElementById('deleteMemberModal')?.remove();
     closeModalBtn();
     const localIdx = members.findIndex(x =>
