@@ -200,13 +200,19 @@ body {
   color: var(--text);
   font-family: 'Noto Serif Bengali', serif;
   min-height: 100vh;
-  overflow-x: hidden;
+  overflow: hidden;      /* body scroll বন্ধ — scroll শুধু .content এ */
   transition: background var(--transition), color var(--transition);
 }
 
 /* ══ SCREENS ══ */
 .screen { display: none; min-height: 100vh; }
-.screen.active { display: flex; flex-direction: column; }
+.screen.active {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;        /* dynamic viewport height — mobile browser bar বাদ দিয়ে */
+  height: 100vh;         /* fallback */
+  overflow: hidden;      /* scroll শুধু .content এ হবে, body তে না */
+}
 
 /* ══ LOGIN SCREEN ══ */
 #loginScreen {
@@ -215,8 +221,9 @@ body {
   justify-content: center;
   padding: 20px;
   position: relative;
-  overflow: hidden;
-  min-height: 100vh;
+  overflow-y: auto;      /* login box ছোট স্ক্রিনে scroll করতে পারবে */
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
 }
 #loginScreen::before {
   content: '';
@@ -399,8 +406,10 @@ select.form-input { cursor: pointer; }
 /* Content Area */
 .content {
   flex: 1;
+  min-height: 0;         /* flex child এর overflow কাজ করতে এটা লাগে */
   padding: 14px 14px calc(76px + env(safe-area-inset-bottom));
   overflow-y: auto;
+  overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: contain;
 }
