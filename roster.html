@@ -4,7 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>৪ ইঞ্জিনিয়ার ব্যাটালিয়ন</title>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Bengali:wght@400;600;700&family=Cormorant+Garamond:wght@400;600;700&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+<!-- Fonts — non-blocking -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Noto+Serif+Bengali:wght@400;600;700&family=Cormorant+Garamond:wght@400;600;700&family=Rajdhani:wght@400;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+Bengali:wght@400;600;700&family=Cormorant+Garamond:wght@400;600;700&family=Rajdhani:wght@400;600;700&display=swap"></noscript>
 
 <!-- Firebase — রিয়েলটাইম ডেটা -->
 <script>self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;</script>
@@ -85,7 +89,6 @@ body {
 .header-inner {
   max-width: 1440px; margin: 0 auto;
   display: flex; align-items: center; gap: 14px; padding: 11px 20px;
-  flex-wrap: wrap;
 }
 .logo {
   width: 52px; height: 52px; border-radius: 50%; flex-shrink: 0;
@@ -108,7 +111,7 @@ body {
   font-size: 0.72rem; color: rgba(255,255,255,0.45);
   letter-spacing: 3px; text-transform: uppercase; margin-top: 2px;
 }
-.header-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.header-right { display: flex; align-items: center; gap: 10px; }
 .stat-group { display: flex; gap: 10px; }
 .stat-box {
   text-align: center;
@@ -457,45 +460,13 @@ select:focus { border-color: var(--accent); }
 }
 
 @media (max-width: 640px) {
-  /* Header — বাটনগুলো নিচে নামবে */
-  .header-inner {
-    padding: 10px 14px; gap: 8px;
-    flex-wrap: wrap;
-  }
-  .logo { width: 40px; height: 40px; font-size: 18px; flex-shrink: 0; }
-  .header-title { flex: 1; min-width: 0; }
-  .header-title h1 { font-size: 0.95rem; }
-  .header-title p { font-size: 0.58rem; letter-spacing: 2px; }
-
-  /* header-right — লোগো+টাইটেলের নিচে পূর্ণ প্রস্থে */
-  .header-right {
-    width: 100%;
-    justify-content: space-between;
-    gap: 8px;
-    padding-top: 4px;
-    border-top: 1px solid rgba(200,169,74,0.15);
-  }
-
-  /* অ্যাপ লিঙ্ক বাটন */
-  .header-right a {
-    font-size: 0.72rem !important;
-    padding: 5px 10px !important;
-  }
-
-  /* stat boxes */
-  .stat-box { padding: 4px 8px; }
-  .stat-box .num { font-size: 1.1rem; }
-  .stat-box .lbl { font-size: 0.5rem; }
-
-  /* view ও lang বাটন */
+  /* Header */
+  .header-inner { padding: 10px 14px; gap: 10px; }
+  .logo { width: 42px; height: 42px; font-size: 18px; }
+  .header-title h1 { font-size: 1rem; }
+  .header-title p { font-size: 0.6rem; letter-spacing: 2px; }
   .lang-btn { padding: 5px 9px; font-size: 0.72rem; }
   .view-btn { padding: 5px 8px; font-size: 12px; }
-
-  /* theme বাটন */
-  #themeToggle { padding: 5px 8px !important; font-size: 13px !important; }
-
-  /* controls sticky top ঠিক করো */
-  .controls-wrap { position: sticky; top: auto; }
 
   /* Controls — collapsible filter grid */
   .controls-wrap { position: sticky; top: 62px; }
@@ -617,7 +588,7 @@ select:focus { border-color: var(--accent); }
       <p>Bangladesh Army · Engineer Corps</p>
     </div>
     <div class="header-right">
-  <a href="4engr-app.html" style="display:flex;align-items:center;gap:6px;padding:6px 12px;background:rgba(200,169,74,0.15);border:1px solid rgba(200,169,74,0.35);border-radius:8px;color:#c8a94a;font-family:'Rajdhani',sans-serif;font-size:0.75rem;font-weight:700;letter-spacing:1px;text-decoration:none;transition:all 0.2s" onmouseover="this.style.background='rgba(200,169,74,0.25)'" onmouseout="this.style.background='rgba(200,169,74,0.15)'">
+  <a href="index.html" style="display:flex;align-items:center;gap:6px;padding:6px 12px;background:rgba(200,169,74,0.15);border:1px solid rgba(200,169,74,0.35);border-radius:8px;color:#c8a94a;font-family:'Rajdhani',sans-serif;font-size:0.75rem;font-weight:700;letter-spacing:1px;text-decoration:none;transition:all 0.2s" onmouseover="this.style.background='rgba(200,169,74,0.25)'" onmouseout="this.style.background='rgba(200,169,74,0.15)'">
     📱 অ্যাপ
   </a>
       <div class="stat-group">
@@ -906,6 +877,13 @@ function setView(v){
 
 /* ─── FILTER & SEARCH ─── */
 let _searchDebounceTimer = null;
+let _filterDebounceTimer = null;
+
+/* filter dropdown change এ debounce (100ms) */
+function debounceFilter() {
+  clearTimeout(_filterDebounceTimer);
+  _filterDebounceTimer = setTimeout(applyFilters, 100);
+}
 
 function applyFilters(){
   if(!MEMBERS || !MEMBERS.length) return;
@@ -976,7 +954,16 @@ function resetFilters(){
 }
 
 /* ─── RENDER CARDS ─── */
+let _renderScheduled = false;
 function renderCards(){
+  if (_renderScheduled) return;
+  _renderScheduled = true;
+  requestAnimationFrame(() => {
+    _renderScheduled = false;
+    _doRenderCards();
+  });
+}
+function _doRenderCards(){
   const con=document.getElementById('memberContainer');
   const start=(page-1)*PER_PAGE;
   const slice=filtered.slice(start,start+PER_PAGE);
@@ -990,11 +977,11 @@ function renderCards(){
   document.getElementById('showingText').innerHTML=
     `<span>${filtered.length}</span> ${L('জন —','members —')} ${start+1}–${Math.min(start+PER_PAGE,filtered.length)} ${L('দেখানো','shown')}`;
 
-  if(view==='grid'){
-    con.innerHTML=slice.map((m,i)=>renderCard(m,start+i)).join('');
-  } else {
-    con.innerHTML=slice.map((m,i)=>renderListRow(m,start+i)).join('');
-  }
+  /* DocumentFragment — single DOM reflow */
+  const html = view==='grid'
+    ? slice.map((m,i)=>renderCard(m,start+i)).join('')
+    : slice.map((m,i)=>renderListRow(m,start+i)).join('');
+  con.innerHTML = html;
 }
 
 function isBlankMember(m){
@@ -1408,7 +1395,6 @@ function injectAdminBar() {
 }
 
 function openAddMemberModal() {
-  if (webUserRole !== 'admin' && webUserRole !== 'superadmin') { _showAdminToast('⛔ অনুমতি নেই', 'error'); return; }
   const modal = document.createElement('div');
   modal.id = 'addMemberModal';
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9998;display:flex;align-items:flex-end;justify-content:center;padding:0';
@@ -1472,7 +1458,6 @@ function openAddMemberModal() {
 }
 
 async function submitAddMember() {
-  if (webUserRole !== 'admin' && webUserRole !== 'superadmin') { _showAdminToast('⛔ অনুমতি নেই', 'error'); return; }
   const no  = (document.getElementById('wm_no')?.value  || '').trim().toUpperCase();
   const dob = (document.getElementById('wm_dob')?.value || '').trim();
   const res = document.getElementById('addMemberWebResult');
@@ -1655,7 +1640,6 @@ async function startPendingListener() {
 
 /* ── ওয়েবসাইট থেকে বিজ্ঞপ্তি পাঠানো ── */
 async function webSendAnnouncement() {
-  if (webUserRole === 'subadmin') { _showAdminToast('⛔ Sub Admin এর এই কাজ করার অনুমতি নেই', 'error'); return; }
   const title = prompt('বিজ্ঞপ্তির শিরোনাম:');
   if (!title) return;
   const body = prompt('বিজ্ঞপ্তির বিস্তারিত:');
@@ -1743,7 +1727,6 @@ async function openWebPendingModal() {
 }
 
 async function webApprove(docId, btn) {
-  if (webUserRole !== 'admin' && webUserRole !== 'superadmin') { _showAdminToast('⛔ অনুমতি নেই', 'error'); return; }
   btn.textContent = '⏳'; btn.disabled = true;
   try {
     const doc = await db.collection('editRequests').doc(docId).get();
@@ -1858,7 +1841,6 @@ async function webApprove(docId, btn) {
 }
 
 async function webReject(docId, btn) {
-  if (webUserRole !== 'admin' && webUserRole !== 'superadmin') { _showAdminToast('⛔ অনুমতি নেই', 'error'); return; }
   if (!confirm('এই অনুরোধটি প্রত্যাখ্যান করবেন?')) return;
   btn.textContent = '⏳'; btn.disabled = true;
   try {
@@ -2343,7 +2325,6 @@ function openAdminProfile() {
 }
 
 async function saveAdminProfile(docId) {
-  if (webUserRole === 'subadmin') { _showAdminToast('⛔ Sub Admin এর এই কাজ করার অনুমতি নেই', 'error'); return; }
   const g   = id => document.getElementById('apf_' + id)?.value.trim() || '';
   const res = document.getElementById('apfResult');
   const showRes = (msg, ok) => {
@@ -2804,7 +2785,6 @@ async function loadRosterLeave(docId) {
    SUPERADMIN — DELETE MEMBER
 ══════════════════════════════════════════ */
 function openDeleteMemberModal(m) {
-  if (webUserRole !== 'superadmin') { _showAdminToast('⛔ শুধুমাত্র Super Admin পারবেন', 'error'); return; }
   const docId = (m._id || String(m.no || '')).replace(/[^A-Z0-9]/gi, '');
   const name  = m.bn || m.en || 'এই সদস্য';
   const no    = m.no || '—';
@@ -2931,7 +2911,6 @@ const CLEARABLE_FIELDS = [
 ];
 
 function openFieldClearModal(m) {
-  if (webUserRole !== 'superadmin') { _showAdminToast('⛔ শুধুমাত্র Super Admin পারবেন', 'error'); return; }
   if (!m) { alert('সদস্য তথ্য পাওয়া যায়নি'); return; }
   const docId = m._id || String(m.no || '').replace(/[^A-Z0-9]/gi, '');
   const name  = m.bn || m.en || 'সদস্য';
@@ -3107,11 +3086,11 @@ document.getElementById('searchInput').addEventListener('input', debounceSearch)
 document.getElementById('searchInput').addEventListener('keydown', e => {
   if (e.key === 'Enter') { clearTimeout(_searchDebounceTimer); applyFilters(); }
 });
-document.getElementById('companyFilter').addEventListener('change', applyFilters);
-document.getElementById('rankFilter').addEventListener('change', applyFilters);
-document.getElementById('bloodFilter').addEventListener('change', applyFilters);
-document.getElementById('districtFilter').addEventListener('change', applyFilters);
-document.getElementById('tradeFilter').addEventListener('change', applyFilters);
+document.getElementById('companyFilter').addEventListener('change', debounceFilter);
+document.getElementById('rankFilter').addEventListener('change', debounceFilter);
+document.getElementById('bloodFilter').addEventListener('change', debounceFilter);
+document.getElementById('districtFilter').addEventListener('change', debounceFilter);
+document.getElementById('tradeFilter').addEventListener('change', debounceFilter);
 
 // Firebase থেকে ডেটা লোড করো
 loadMembersFromFirebase();
@@ -3197,18 +3176,9 @@ function listAvatarHtml(m) {
     return `<div class="list-avatar" style="cursor: ${m.ph ? 'pointer' : 'default'};">${img}${!m.ph ? `<span>${ini}</span>` : ''}</div>`;
 }
 
-// বাকি সব ফাংশন এবং মূল স্ক্রিপ্ট ঠিক আগের মতোই থাকবে। 
-// আপনার ফাইলের শেষের দিকে মূল স্ক্রিপ্টের শুরুটা খুঁজে বের করতে হবে (যেখানে MEMBERS অ্যারে আছে) এবং 
-// avatarHtml এবং listAvatarHtml এর আগের সংস্করণগুলোকে এই নতুন সংস্করণ দিয়ে প্রতিস্থাপন করতে হবে। 
-// কিন্তু আপনি যদি পুরো ফাইলটি রিপ্লেস করতে চান, তাহলে নিচের পুরো স্ক্রিপ্ট অংশটি কপি করে ফাইলের </body> ট্যাগের আগে বসিয়ে দিন।
-// নিচের পুরো স্ক্রিপ্ট অংশটি মূল ফাইলের শেষের দিকের স্ক্রিপ্টকে প্রতিস্থাপন করবে। এটি শুরু হবে MEMBERS অ্যারে দিয়ে এবং শেষ হবে।
-
-// ---------------------------------------------------------------------
-// আপনার ফাইলের শেষের দিকের পুরো স্ক্রিপ্ট অংশ এখানে বসবে, যার মধ্যে MEMBERS অ্যারে, 
-// সমস্ত ফাংশন এবং init কোড থাকবে। আমি শুধু avatarHtml এবং listAvatarHtml আপডেট করেছি।
-// ---------------------------------------------------------------------
 
 </script>
 </div><!-- /webMainContent -->
+
 </body>
 </html>
