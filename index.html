@@ -6865,32 +6865,49 @@ function toggleTheme() {
 const TRANSLATIONS = {
   // Navigation
   'প্রোফাইল': 'Profile', 'কোর্স': 'Courses', 'বিজ্ঞপ্তি': 'Notifications',
-  'Admin': 'Admin', 'সেটিংস': 'Settings',
-  // Profile labels
+  'Admin': 'Admin', 'সেটিংস': 'Settings', 'ছুটি': 'Leave', 'অপেক্ষমান': 'Pending',
+  // Profile card headers
   'ব্যক্তিগত তথ্য': 'Personal Info', 'সামরিক তথ্য': 'Military Info',
-  'পারিবারিক তথ্য': 'Family Info', 'বাংলা নাম': 'Bengali Name',
-  'ইংরেজি নাম': 'English Name', 'জন্ম তারিখ': 'Date of Birth',
-  'রক্তের গ্রুপ': 'Blood Group', 'NID নম্বর': 'NID Number',
-  'মোবাইল': 'Mobile', 'স্থায়ী ঠিকানা': 'Permanent Address',
-  'শিক্ষা': 'Education', 'সেনা নম্বর': 'Army No.',
-  'পদবী': 'Rank', 'ট্রেড': 'Trade', 'কোম্পানী': 'Company',
-  'ভর্তির তারিখ': 'Enlistment Date', 'বৈবাহিক অবস্থা': 'Marital Status',
-  'স্ত্রীর নাম': 'Spouse Name', 'স্ত্রীর জন্ম': 'Spouse DOB',
-  'বিবাহের তারিখ': 'Marriage Date', 'জরুরি যোগাযোগ': 'Emergency Contact',
+  'পারিবারিক তথ্য': 'Family Info', 'পদোন্নতির ইতিহাস': 'Promotion History',
+  'অনুমোদনের অপেক্ষায়': 'Pending Approval',
+  // Personal fields
+  'বাংলা নাম': 'Bengali Name', 'ইংরেজি নাম': 'English Name',
+  'জন্ম তারিখ': 'Date of Birth', 'রক্তের গ্রুপ': 'Blood Group',
+  'লিঙ্গ': 'Gender', 'NID নম্বর': 'NID Number', 'NID মোবাইল': 'NID Mobile',
+  'মোবাইল': 'Mobile', 'হোয়াটসঅ্যাপ': 'WhatsApp',
+  'জরুরি যোগাযোগ': 'Emergency Contact', 'স্থায়ী ঠিকানা': 'Permanent Address',
+  'জেলা': 'District', 'শিক্ষাগত যোগ্যতা': 'Education',
+  // Military fields
+  'সেনা নম্বর': 'Army No.', 'পদবী': 'Rank', 'ট্রেড': 'Trade',
+  'কোম্পানী': 'Company', 'নিয়োগ': 'Appointment',
+  'ভর্তির তারিখ': 'Enlistment Date', 'শপথের তারিখ': 'Oath Date',
+  'প্রমোশনের তারিখ': 'Promotion Date', 'AI ১/২০১৩ বর্ধিত': 'AI 1/2013 Extended',
+  'বাসস্থান অবস্থান': 'Residence Location', 'বাসস্থান মেয়াদ': 'Residence Period',
+  'সুপারিশ': 'Recommendation', 'পূর্বের ইউনিট': 'Previous Unit',
+  'লাইসেন্স': 'License', 'সাজা': 'Punishment', 'পেনশন তারিখ': 'Pension Date',
+  // Family fields
+  'বৈবাহিক অবস্থা': 'Marital Status', 'স্ত্রীর নাম': 'Spouse Name',
+  'স্ত্রীর জন্ম': 'Spouse DOB', 'বিবাহের তারিখ': 'Marriage Date',
   'সন্তান ১ নাম': 'Child 1 Name', 'সন্তান ১ জন্ম': 'Child 1 DOB',
   'সন্তান ২ নাম': 'Child 2 Name', 'সন্তান ২ জন্ম': 'Child 2 DOB',
-  'হোয়াটসঅ্যাপ': 'WhatsApp', 'নিয়োগ': 'Appointment',
+  'সন্তান ৩ নাম': 'Child 3 Name', 'সন্তান ৩ জন্ম': 'Child 3 DOB',
+  'সন্তান ৪ নাম': 'Child 4 Name', 'সন্তান ৪ জন্ম': 'Child 4 DOB',
+  'সন্তান ৫ নাম': 'Child 5 Name', 'সন্তান ৫ জন্ম': 'Child 5 DOB',
   // Course
   'কোর্স ও ক্যাডার': 'Courses & Cadre', 'ফলাফল চূড়ান্ত': 'Result Finalized',
-  'ফলাফল নির্বাচন করুন:': 'Select Result:',
-  'অর্জিত অবস্থান:': 'Position Achieved:', 'সংরক্ষণ': 'Save',
-  // Buttons
+  'ফলাফল নির্বাচন করুন:': 'Select Result:', 'অর্জিত অবস্থান:': 'Position Achieved:',
+  'কোনো কোর্স যোগ করা হয়নি': 'No courses added yet',
+  // Buttons & actions
   'লগইন করুন': 'Login', 'নিবন্ধন করুন': 'Register',
-  'সংরক্ষণ করুন': 'Save', 'বাতিল': 'Cancel',
+  'সংরক্ষণ করুন': 'Save', 'বাতিল': 'Cancel', 'সংরক্ষণ': 'Save',
   'ছবি পরিবর্তন': 'Change Photo', 'লগআউট': 'Logout',
-  // Status
-  'Super Admin': 'Super Admin', 'সৈনিক': 'Sainik',
-  'লোড হচ্ছে...': 'Loading...', 'আপডেট হচ্ছে...': 'Updating...',
+  'সম্পাদনা': 'Edit',
+  // Status / roles
+  'Super Admin': 'Super Admin', 'সৈনিক': 'Sainik', 'সেনিক': 'Sainik',
+  'লোড হচ্ছে...': 'Loading...',
+  // Leave page
+  'ছুটির তথ্য': 'Leave Info', 'ছুটির তালিকা': 'Leave List',
+  'ছুটি নেই': 'No Leave Records',
   // Admin panel
   'সদস্য তথ্য সংশোধন': 'Member Edit', 'অনুমোদন অপেক্ষমাণ': 'Pending Approval',
   'মোট সদস্য': 'Total Members', 'আজকের এডিট': "Today's Edits",
@@ -6899,8 +6916,16 @@ const TRANSLATIONS = {
   'পাসওয়ার্ড রিসেট': 'Password Reset', 'Create Admin': 'Create Admin',
   // Settings
   'পাসওয়ার্ড পরিবর্তন': 'Change Password',
-  'হোম স্ক্রিনে ইন্সটল করুন': 'Install on Home Screen',
-  'ইন্সটল': 'Install',
+  'ডার্ক মোড': 'Dark Mode', 'লাইট মোড': 'Light Mode',
+  'বর্তমানে ডার্ক মোড চালু আছে': 'Dark mode is active',
+  'বর্তমানে লাইট মোড চালু আছে': 'Light mode is active',
+  'হোম স্ক্রিনে ইন্সটল করুন': 'Install on Home Screen', 'ইন্সটল': 'Install',
+  // Marital status values
+  'অবিবাহিত': 'Unmarried', 'বিবাহিত': 'Married',
+  'বিধবা/বিপত্নীক': 'Widowed', 'তালাকপ্রাপ্ত': 'Divorced',
+  // Notifications
+  'কোনো বিজ্ঞপ্তি নেই': 'No notifications',
+  'অনুমোদিত': 'Approved', 'অপেক্ষায়': 'Pending', 'বাতিল': 'Rejected',
 };
 
 function t(bn) {
@@ -6913,61 +6938,86 @@ function toggleAppLang() {
   localStorage.setItem('4engr_lang', appLang);
   const btn = document.getElementById('langToggleBtn');
   if (btn) btn.textContent = appLang === 'bn' ? 'EN' : 'বাং';
+
+  // পুরো UI re-render করো
+  if (currentMemberData) {
+    renderProfile();           // প্রোফাইল — সব field ভাষা অনুযায়ী
+    renderCourses();           // কোর্স নাম ও ফলাফল
+    loadPendingCoursesAndRender(); // pending কোর্স
+  }
+
+  // Static labels translate করো
   applyLangToUI();
 }
 
 function applyLangToUI() {
+  const isBn = appLang !== 'en';
+
   // Nav labels
   const navMap = {
-    'nav-profile': [t('প্রোফাইল'), '👤'],
-    'nav-courses': [t('কোর্স'), '📚'],
-    'nav-notifications': [t('বিজ্ঞপ্তি'), '🔔'],
-    'nav-admin': ['Admin', '🛡️'],
-    'nav-pending': [appLang==='en'?'Pending':'অপেক্ষমান', '⏳'],
-    'nav-settings': [t('সেটিংস'), '⚙️'],
+    'nav-profile':       [isBn ? 'প্রোফাইল'  : 'Profile',       '👤'],
+    'nav-courses':       [isBn ? 'কোর্স'      : 'Courses',       '📚'],
+    'nav-leave':         [isBn ? 'ছুটি'       : 'Leave',         '🏖️'],
+    'nav-notifications': [isBn ? 'বিজ্ঞপ্তি' : 'Notifications', '🔔'],
+    'nav-admin':         ['Admin',                                 '🛡️'],
+    'nav-pending':       [isBn ? 'অপেক্ষমান' : 'Pending',        '⏳'],
+    'nav-settings':      [isBn ? 'সেটিংস'    : 'Settings',       '⚙️'],
   };
   Object.entries(navMap).forEach(([id, [label, icon]]) => {
     const el = document.getElementById(id);
-    if (el) el.innerHTML = '<span class="nav-icon">' + icon + '</span>' + label;
+    if (!el) return;
+    // badge span আলাদাভাবে সংরক্ষণ করো
+    const badge = el.querySelector('#pendingNavBadge');
+    el.innerHTML = '<span class="nav-icon">' + icon + '</span>' + label;
+    if (badge) el.appendChild(badge);
   });
 
   // Topbar role
   const roleEl = document.getElementById('topbarRole');
   if (roleEl && currentMemberData) {
-    const displayRole = (userRole === 'superadmin' || userRole === 'admin')
-      ? t(roleEl.textContent)
-      : (appLang === 'en' ? (currentMemberData.r_en || currentMemberData.r_bn) : (currentMemberData.r_bn || currentMemberData.r_en));
-    roleEl.textContent = displayRole;
+    if (userRole === 'superadmin' || userRole === 'admin') {
+      roleEl.textContent = isBn ? 'সুপার অ্যাডমিন' : 'Super Admin';
+    } else {
+      roleEl.textContent = isBn
+        ? (currentMemberData.r_bn || currentMemberData.r_en || '')
+        : (currentMemberData.r_en || currentMemberData.r_bn || '');
+    }
   }
 
-  // Card headers
+  // Profile ও course re-render (data ভাষা অনুযায়ী বদলাবে)
+  // toggleAppLang থেকে ইতিমধ্যে renderProfile() call হয়েছে
+  // এখানে শুধু static text translate করো
+
+  // Card headers — TRANSLATIONS ব্যবহার করো
   document.querySelectorAll('.card-header-title').forEach(el => {
-    el.textContent = t(el.textContent.trim());
+    const txt = el.textContent.trim();
+    el.textContent = isBn
+      ? (Object.keys(TRANSLATIONS).find(k => TRANSLATIONS[k] === txt) || txt)
+      : (TRANSLATIONS[txt] || txt);
   });
 
   // Field labels
   document.querySelectorAll('.field-label').forEach(el => {
-    el.textContent = t(el.textContent.trim());
+    const txt = el.textContent.trim();
+    el.textContent = isBn
+      ? (Object.keys(TRANSLATIONS).find(k => TRANSLATIONS[k] === txt) || txt)
+      : (TRANSLATIONS[txt] || txt);
   });
 
-  // Nav items labels in bottom bar
-  document.querySelectorAll('.nav-item').forEach(el => {
-    const lastText = [...el.childNodes].find(n => n.nodeType === 3);
-    if (lastText) lastText.textContent = t(lastText.textContent.trim()) || lastText.textContent;
-  });
-
-  // Profile name (show en or bn based on lang)
+  // Profile name
   if (currentMemberData) {
+    const name = isBn
+      ? (currentMemberData.bn || currentMemberData.en || '—')
+      : (currentMemberData.en || currentMemberData.bn || '—');
     const nameEl = document.getElementById('profileName');
-    const topbarNameEl = document.getElementById('topbarName');
-    if (nameEl) {
-      const name = appLang === 'en'
-        ? (currentMemberData.en || currentMemberData.bn || '—')
-        : (currentMemberData.bn || currentMemberData.en || '—');
-      nameEl.textContent = name;
-      if (topbarNameEl) topbarNameEl.textContent = name;
-    }
+    const topEl  = document.getElementById('topbarName');
+    if (nameEl) nameEl.textContent = name;
+    if (topEl)  topEl.textContent  = name;
   }
+
+  // Lang button label
+  const btn = document.getElementById('langToggleBtn');
+  if (btn) btn.textContent = isBn ? 'EN' : 'বাং';
 }
 
 /* ══════════════════════════════════════════
