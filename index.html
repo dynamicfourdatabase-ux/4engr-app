@@ -2958,6 +2958,9 @@ function stopPendingListener() {
 }
 
 function setupAuthListener() {
+  // Firebase Auth persistence — LOCAL (default) মানে reload এ session থাকবে
+  auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(() => {});
+
   auth.onAuthStateChanged(async user => {
     // Registration চলাকালীন বা anonymous user — skip
     if (_isRegistering) return;
@@ -2972,9 +2975,12 @@ function setupAuthListener() {
 
       await loadMemberData(user.uid);
       hideLoading();
-      showScreen('app');
+      // ── loadMemberData নিজেই showScreen call করে (app বা setup)
+      // তাই এখানে আর showScreen call করা হচ্ছে না
     } else {
       currentUser = null;
+      currentMemberData = null;
+      userRole = 'member';
       showScreen('login');
     }
   });
@@ -3144,6 +3150,7 @@ async function loadMemberData(uid) {
       if (familyCard) familyCard.style.display = 'none';
       const rosterCard = document.getElementById('rosterLinkCard');
       if (rosterCard) rosterCard.style.display = 'flex';
+      showScreen('app');
       return;
     }
 
@@ -3186,8 +3193,14 @@ async function loadMemberData(uid) {
     if (memberData) {
       currentMemberData = { id: memberId, armyNo, no: armyNo, ...memberData };
       renderProfile();
-      // নতুন user (bn/r_bn নেই) — Setup Screen দেখাও
-      checkFirstSetup();
+      // নতুন user (bn নেই) — Setup Screen দেখাও, নইলে app দেখাও
+      const isNew = !memberData.bn && !memberData.en;
+      if (isNew) {
+        showScreen('setup');
+        updateSetupProgress(1);
+      } else {
+        showScreen('app');
+      }
       startPendingListener(memberId);
       return;
     }
