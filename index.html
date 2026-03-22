@@ -3484,7 +3484,7 @@ function renderProfile() {
     { key: 'promo_date', label: t('প্রমোশনের তারিখ'),       editable: true },
     { key: 'ai_bn',      label: t('AI ১/২০১৩ বর্ধিত'),      editable: true },
     { key: 'res_bn',     label: t('বাসস্থান অবস্থান'),       editable: true },
-    { key: 'rt',         label: t('বাসস্থান মেয়াদ'),         editable: true },
+    { key: 'rt',         label: t('বাসস্থান মেয়াদ'),         editable: true, type: 'residence' },
     { key: 'rec',        label: t('সুপারিশ'),               editable: true },
     { key: 'pu',         label: t('পূর্বের ইউনিট'),         editable: true, type: 'textarea' },
     { key: 'li',         label: t('লাইসেন্স'),              editable: true },
@@ -3501,7 +3501,7 @@ function renderProfile() {
     { key: 'promo_date', label: t('প্রমোশনের তারিখ'),        editable: true },
     { key: 'ai_bn',      label: t('AI ১/২০১৩ বর্ধিত'),       editable: true },
     { key: 'res_bn',     label: t('বাসস্থান অবস্থান'),        editable: true },
-    { key: 'rt',         label: t('বাসস্থান মেয়াদ'),          editable: true },
+    { key: 'rt',         label: t('বাসস্থান মেয়াদ'),          editable: true, type: 'residence' },
     { key: 'rec',        label: t('সুপারিশ'),                editable: true },
     { key: 'pu',         label: t('পূর্বের ইউনিট'),          editable: true,  type: 'textarea' },
     { key: 'li',         label: t('লাইসেন্স'),               editable: true,  type: 'select', opts: VEHICLES },
@@ -3624,6 +3624,9 @@ function renderFields(containerId, fields) {
       if (f.key === 'pd') {
         // পেনশন — countdown
         sub = _pensionCountdown(raw);
+      } else if (f.key === 'rt') {
+        // বাসস্থান মেয়াদ — দুটো date parse করো
+        sub = _residencePeriodInfo(raw);
       } else if (DATE_FIELDS.has(f.key)) {
         sub = _dateAgeStr(raw, DATE_PAST_FIELDS.has(f.key) ? 'আগে' : 'পরে');
       }
@@ -3672,6 +3675,53 @@ async function saveModal() {
   const btn = document.getElementById('modalSaveBtn');
   btn.textContent = 'সংরক্ষণ হচ্ছে...';
   btn.disabled = true;
+
+  // ── বাসস্থান মেয়াদ save ──
+  if (currentEditField.key === '_residence') {
+    const startVal = document.getElementById('rt_start')?.value.trim();
+    const endVal   = document.getElementById('rt_end')?.value.trim();
+    if (!startVal) {
+      showToast('দখলের তারিখ দিন', 'error');
+      btn.textContent = 'সংরক্ষণ করুন'; btn.disabled = false; return;
+    }
+    const rtStr = endVal ? `${startVal} হতে ${endVal}` : startVal;
+    const docId = currentMemberData.id || String(currentMemberData.no || currentMemberData.armyNo || '').replace(/[^A-Z0-9]/gi, '');
+    const oldVal = currentMemberData.rt || '';
+    const isFirstTime = !oldVal || oldVal.trim() === '';
+    const isAdmin = userRole === 'admin' || userRole === 'superadmin';
+
+    if (isAdmin || isFirstTime) {
+      try {
+        const ref = db.collection('members').doc(docId);
+        const snap = await ref.get();
+        const update = { rt: rtStr, updatedAt: firebase.firestore.FieldValue.serverTimestamp(), updatedBy: currentUser.uid };
+        if (snap.exists) { await ref.update(update); } else { await ref.set({ ...update, no: currentMemberData.no }, { merge: true }); }
+        currentMemberData.rt = rtStr;
+        const el = document.getElementById('fv-rt');
+        if (el) el.innerHTML = rtStr;
+        closeModal();
+        renderProfile();
+        showToast('✅ বাসস্থান মেয়াদ সংরক্ষণ হয়েছে', 'success');
+      } catch(e) { showToast('সংরক্ষণ ব্যর্থ: ' + (e.code || e.message), 'error'); }
+    } else {
+      try {
+        await db.collection('editRequests').add({
+          memberId: docId, memberNo: currentMemberData.no || currentMemberData.armyNo,
+          memberName: currentMemberData.bn || currentMemberData.en || '',
+          memberCompany: currentMemberData.co_bn || '',
+          field: 'rt', fieldLabel: 'বাসস্থান মেয়াদ',
+          oldValue: oldVal, newValue: rtStr,
+          requestedBy: currentUser.uid, status: 'pending',
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+        _pendingFieldMap['rt'] = rtStr;
+        closeModal();
+        showToast('⏳ আবেদন জমা হয়েছে — Admin অনুমোদনের অপেক্ষায়', 'success');
+        checkPendingStatus();
+      } catch(e) { showToast('আবেদন ব্যর্থ: ' + (e.code || e.message), 'error'); }
+    }
+    btn.textContent = 'সংরক্ষণ করুন'; btn.disabled = false; return;
+  }
 
   // ── স্থায়ী ঠিকানা cascade save ──
   if (currentEditField.key === '_address') {
@@ -8003,6 +8053,90 @@ function _pensionCountdown(dateStr) {
   return '⏳ বাকি ' + _diffStr(diff, '', 'আরও বাকি');
 }
 
+/* ══ বাসস্থান মেয়াদ — দখলের তারিখ ও খালি করার তারিখ ══ */
+function _residencePeriodInfo(rtStr) {
+  if (!rtStr || rtStr === '—') return '';
+
+  // parse করো — "DD-MM-YYYY হতে DD-MM-YYYY" বা "DD/MM/YYYY হতে DD/MM/YYYY"
+  // বিভিন্ন separator handle করো
+  const normalized = rtStr.replace(/থেকে|to|—|-(?=\s*\d{2}[\/\-])/gi, 'হতে');
+  const parts = normalized.split(/হতে/i).map(s => s.trim()).filter(Boolean);
+
+  if (parts.length < 2) {
+    // শুধু একটা date — যাবৎ কতদিন আছেন দেখাও
+    const d = _parsePromoDate(parts[0]);
+    if (!d) return '';
+    const now = new Date();
+    const diff = _dateDiff(d, now);
+    if (!diff) return '';
+    return `<span style="color:var(--info);font-size:0.72rem">📅 দখলের পর: ${_diffStr(diff, 'যাবৎ', '')}</span>`;
+  }
+
+  const startDate = _parsePromoDate(parts[0]);
+  const endDate   = _parsePromoDate(parts[1]);
+  const now       = new Date();
+
+  if (!startDate || !endDate) return '';
+
+  // মোট মেয়াদ (start → end)
+  const totalDiff  = _dateDiff(startDate, endDate);
+  const totalStr   = totalDiff ? _diffStr(totalDiff, '', '') : '';
+
+  // দখলের পর কতদিন (start → now)
+  const sinceDiff  = _dateDiff(startDate, now);
+  const sinceStr   = sinceDiff && sinceDiff.future === false ? _diffStr(sinceDiff, 'যাবৎ বসবাসরত', '') : '';
+
+  // মেয়াদ শেষ হতে কতদিন বাকি (now → end)
+  const remainDiff = _dateDiff(now, endDate);
+  let remainStr = '';
+  let statusColor = 'var(--success)';
+  let statusIcon  = '⏳';
+
+  if (!remainDiff) {
+    remainStr = 'আজই মেয়াদ শেষ';
+    statusColor = 'var(--danger)';
+    statusIcon = '🔴';
+  } else if (!remainDiff.future) {
+    // মেয়াদ শেষ হয়ে গেছে
+    const expiredDiff = _dateDiff(endDate, now);
+    remainStr = _diffStr(expiredDiff, 'আগে মেয়াদ শেষ হয়েছে', '');
+    statusColor = 'var(--danger)';
+    statusIcon = '🔴';
+  } else {
+    remainStr = _diffStr(remainDiff, '', 'বাকি');
+    // ৩ মাসের কম হলে warn color
+    const daysLeft = (remainDiff.years * 365) + (remainDiff.months * 30) + remainDiff.days;
+    if (daysLeft <= 90) { statusColor = 'var(--warn)'; statusIcon = '⚠️'; }
+    else { statusColor = 'var(--success)'; statusIcon = '✅'; }
+  }
+
+  let html = '';
+
+  // মোট মেয়াদ
+  if (totalStr) {
+    html += `<span style="display:inline-flex;align-items:center;gap:4px;font-size:0.7rem;color:var(--text2);margin-top:4px;display:block">
+      <span style="color:var(--gold)">📐</span> মোট মেয়াদ: <strong style="color:var(--text)">${totalStr}</strong>
+    </span>`;
+  }
+
+  // দখলের পর কতদিন
+  if (sinceStr) {
+    html += `<span style="font-size:0.7rem;color:var(--text2);margin-top:2px;display:block">
+      <span style="color:var(--info)">🏠</span> দখল নেওয়ার পর: <strong style="color:var(--info)">${sinceStr}</strong>
+    </span>`;
+  }
+
+  // মেয়াদ শেষের countdown
+  if (remainStr) {
+    html += `<span style="font-size:0.72rem;color:${statusColor};margin-top:4px;display:flex;align-items:center;gap:4px;font-weight:600">
+      ${statusIcon} মেয়াদ শেষ: ${remainStr}
+    </span>`;
+  }
+
+  return html;
+}
+
+
 /* ══════════════════════════════════════════
    FIELD EDIT — lock সরানো হয়েছে
    Member যেকোনো ফিল্ড যতবার খুশি সংশোধন করতে পারবে
@@ -8021,6 +8155,7 @@ function isFieldLocked(key) {
 
 function openEdit(key, label, type = 'text', optsStr = '') {
   if (type === 'promotion') { openPromotionEdit(); return; }
+  if (type === 'residence' || key === 'rt') { openResidenceEdit(); return; }
 
   // স্থায়ী ঠিকানা — cascade address modal
   if (key === 'ad' || key === 'di_bn') { openAddressEdit(); return; }
@@ -8060,6 +8195,102 @@ function openEdit(key, label, type = 'text', optsStr = '') {
 /* ══════════════════════════════════════════
    CASCADE ADDRESS EDIT MODAL
 ══════════════════════════════════════════ */
+/* ══════════════════════════════════════════
+   RESIDENCE PERIOD EDIT MODAL
+══════════════════════════════════════════ */
+function openResidenceEdit() {
+  const m = currentMemberData;
+  const rtVal = m.rt || '';
+  const isAdmin = userRole === 'admin' || userRole === 'superadmin';
+
+  // বিদ্যমান value parse করো
+  let startVal = '', endVal = '';
+  if (rtVal) {
+    const parts = rtVal.split(/হতে|থেকে|to/i).map(s => s.trim());
+    if (parts.length >= 2) {
+      startVal = parts[0].replace(/[^\d\-\/]/g, '').trim();
+      endVal   = parts[1].replace(/[^\d\-\/]/g, '').trim();
+    } else {
+      startVal = rtVal.trim();
+    }
+  }
+
+  const oldVal = rtVal;
+  const isFirstTime = !oldVal || oldVal.trim() === '';
+  const lockNote = isAdmin ? '' : isFirstTime
+    ? `<div style="font-size:0.78rem;color:rgba(63,185,80,0.9);margin-top:8px;background:rgba(63,185,80,0.08);border:1px solid rgba(63,185,80,0.25);border-radius:7px;padding:7px 10px">✅ প্রথমবার এন্ট্রি — সরাসরি সংরক্ষণ হবে।</div>`
+    : `<div style="font-size:0.78rem;color:var(--warn);margin-top:8px;background:rgba(210,153,34,0.08);border:1px solid rgba(210,153,34,0.25);border-radius:7px;padding:7px 10px">⏳ পরিবর্তন Admin অনুমোদনের পরে কার্যকর হবে।</div>`;
+
+  currentEditField = { key: '_residence', label: 'বাসস্থান মেয়াদ' };
+  document.getElementById('modalTitle').textContent = '🏠 বাসস্থান মেয়াদ';
+  document.getElementById('modalBody').innerHTML = `
+    <div style="background:rgba(200,169,74,0.06);border:1px solid rgba(200,169,74,0.2);border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:0.8rem;color:var(--text2);line-height:1.7">
+      📅 প্রথম তারিখ = <strong style="color:var(--text)">দখলের তারিখ</strong> &nbsp;|&nbsp; দ্বিতীয় তারিখ = <strong style="color:var(--text)">খালি করার তারিখ</strong>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+      <div class="form-group">
+        <label class="form-label">🏠 দখলের তারিখ</label>
+        <input type="text" class="form-input" id="rt_start"
+          value="${startVal}" placeholder="DD-MM-YYYY"
+          oninput="updateResidencePreview()">
+      </div>
+      <div class="form-group">
+        <label class="form-label">🚪 খালি করার তারিখ</label>
+        <input type="text" class="form-input" id="rt_end"
+          value="${endVal}" placeholder="DD-MM-YYYY"
+          oninput="updateResidencePreview()">
+      </div>
+    </div>
+    <div id="rt_preview" style="background:var(--bg3);border-radius:8px;padding:10px 13px;font-size:0.8rem;line-height:2;display:${startVal ? 'block' : 'none'}">
+      ${startVal ? _buildResidencePreview(startVal, endVal) : ''}
+    </div>
+    ${lockNote}
+  `;
+  document.getElementById('editModal').classList.add('open');
+}
+
+function _buildResidencePreview(startStr, endStr) {
+  const s = _parsePromoDate(startStr.replace(/-/g, '/').replace(/(\d{2})\/(\d{2})\/(\d{4})/, '$3-$2-$1'));
+  const e = endStr ? _parsePromoDate(endStr.replace(/-/g, '/').replace(/(\d{2})\/(\d{2})\/(\d{4})/, '$3-$2-$1')) : null;
+  const now = new Date();
+  let html = '';
+
+  if (s && e) {
+    const total = _dateDiff(s, e);
+    if (total) html += `<div>📐 মোট মেয়াদ: <strong>${_diffStr(total, '', '')}</strong></div>`;
+    const since = _dateDiff(s, now);
+    if (since && !since.future) html += `<div>🏠 দখলের পর: <strong style="color:var(--info)">${_diffStr(since, 'যাবৎ', '')}</strong></div>`;
+    const remain = _dateDiff(now, e);
+    if (remain) {
+      if (!remain.future) {
+        const exp = _dateDiff(e, now);
+        html += `<div style="color:var(--danger)">🔴 মেয়াদ শেষ: ${_diffStr(exp, 'আগে', '')}</div>`;
+      } else {
+        const days = (remain.years*365)+(remain.months*30)+remain.days;
+        const col = days <= 90 ? 'var(--warn)' : 'var(--success)';
+        html += `<div style="color:${col}">⏳ বাকি: <strong>${_diffStr(remain, '', '')}</strong></div>`;
+      }
+    }
+  } else if (s) {
+    const since = _dateDiff(s, now);
+    if (since && !since.future) html += `<div>🏠 দখলের পর: <strong>${_diffStr(since, 'যাবৎ', '')}</strong></div>`;
+  }
+  return html || '<div style="color:var(--text3)">তারিখ সঠিক ফরম্যাটে দিন (DD-MM-YYYY)</div>';
+}
+
+function updateResidencePreview() {
+  const s = document.getElementById('rt_start')?.value.trim();
+  const e = document.getElementById('rt_end')?.value.trim();
+  const prev = document.getElementById('rt_preview');
+  if (!prev) return;
+  if (s) {
+    prev.style.display = 'block';
+    prev.innerHTML = _buildResidencePreview(s, e);
+  } else {
+    prev.style.display = 'none';
+  }
+}
+
 function openAddressEdit() {
   const m      = currentMemberData;
   const oldDiv = m.division || '';
