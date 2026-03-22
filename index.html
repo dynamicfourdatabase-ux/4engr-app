@@ -2450,8 +2450,26 @@ const DATE_PAST_FIELDS = new Set(['dob','jd','od','promo_date','sd','wd','c1d','
 function renderFields(containerId, fields) {
   const m = currentMemberData;
   const isMember = userRole === 'member';
+
+  // কোর্সের সুপারিশ (courseResults.rec_0, rec_1...) একসাথে জোড়া দিয়ে rec field এ দেখাবো
+  const courseRecs = [];
+  if (m.courseResults) {
+    const crBnArr = (m.cr_bn || '').split(',').map(s => s.trim()).filter(Boolean);
+    Object.keys(m.courseResults).forEach(k => {
+      if (k.startsWith('rec_')) {
+        const idx = parseInt(k.replace('rec_', ''));
+        const courseName = crBnArr[idx] || ('কোর্স ' + (idx + 1));
+        const recText = m.courseResults[k];
+        if (recText) courseRecs.push(`${courseName}: ${recText}`);
+      }
+    });
+  }
+  // m.rec override — courseResults এর rec গুলো join করে virtual 'rec' তৈরি
+  const computedRec = courseRecs.length ? courseRecs.join(' | ') : (m.rec || '');
+
   const html = fields.map(f => {
-    const raw = m[f.key];
+    // rec field — courseResults থেকে computed value ব্যবহার করো
+    const raw = f.key === 'rec' ? computedRec : m[f.key];
     const val = raw || '—';
     let editBtn = '';
     if (f.editable) {
