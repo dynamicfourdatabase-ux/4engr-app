@@ -1065,19 +1065,11 @@ select.form-input { cursor: pointer; }
 
     <!-- ── PAGE: Profile ── -->
     <div class="page active" id="page-profile">
-      <!-- Status — শুধু সাধারণ সদস্যের জন্য -->
-      <div class="status-bar info" id="profileStatus" style="display:none">
-        ⏳ আপনার সর্বশেষ এডিট অনুমোদনের অপেক্ষায় আছে
-      </div>
-      <!-- Pending Requests Card -->
-      <div class="card" id="pendingRequestsCard" style="display:none">
-        <div class="card-header">
-          <span class="card-header-icon">⏳</span>
-          <span class="card-header-title">অনুমোদনের অপেক্ষায়</span>
-          <span id="pendingRequestsBadge" style="margin-left:auto;background:rgba(210,153,34,0.2);border:1px solid rgba(210,153,34,0.4);color:var(--warn);border-radius:20px;padding:1px 10px;font-family:'Rajdhani',sans-serif;font-size:0.7rem;font-weight:700"></span>
-        </div>
-        <div class="card-body" id="pendingRequestsList"></div>
-      </div>
+      <!-- profileStatus ও pendingRequestsCard সরানো — শুধু অপেক্ষমান পেজে দেখাবে -->
+      <div id="profileStatus" style="display:none"></div>
+      <div id="pendingRequestsCard" style="display:none"></div>
+      <div id="pendingRequestsBadge" style="display:none"></div>
+      <div id="pendingRequestsList" style="display:none"></div>
 
       <!-- Photo + Name -->
       <div class="card">
@@ -3040,35 +3032,25 @@ async function checkPendingStatus() {
     String(currentMemberData.no || currentMemberData.armyNo || '').replace(/[^A-Z0-9]/gi, '');
   if (!docId) return;
 
-  const bar   = document.getElementById('profileStatus');
-  const card  = document.getElementById('pendingRequestsCard');
-  const list  = document.getElementById('pendingRequestsList');
-  const badge = document.getElementById('pendingRequestsBadge');
-
   try {
-    // memberId বা requestedBy যেকোনো একটায় match করো
+    // pending docs load করো
     let docs = [];
     try {
       const q1 = await db.collection('editRequests')
         .where('memberId', '==', docId)
         .where('status', '==', 'pending').get();
       docs = q1.docs;
-    } catch(e1) {
-      console.warn('pending query 1:', e1.message);
-    }
-    // memberId দিয়ে না পেলে requestedBy দিয়ে try
+    } catch(e1) { console.warn('pending q1:', e1.message); }
     if (!docs.length) {
       try {
         const q2 = await db.collection('editRequests')
           .where('requestedBy', '==', currentUser.uid)
           .where('status', '==', 'pending').get();
         docs = q2.docs;
-      } catch(e2) {
-        console.warn('pending query 2:', e2.message);
-      }
+      } catch(e2) { console.warn('pending q2:', e2.message); }
     }
 
-    // ── pending map সবসময় rebuild করো ──
+    // pending field map rebuild — field row এ pending badge দেখাবে
     _pendingFieldMap = {};
     docs.forEach(d => {
       const r = d.data();
@@ -3077,65 +3059,14 @@ async function checkPendingStatus() {
         _pendingFieldMap[r.field] = r.newValue;
       }
     });
-
-    // ── fields re-render (pending badge দেখাবে) ──
     if (_lastPersonalDef.length) renderFields('personalFields', _lastPersonalDef);
     if (_lastMilitaryDef.length) renderFields('militaryFields', _lastMilitaryDef);
     if (_lastFamilyDef.length)   renderFields('familyFields',   _lastFamilyDef);
 
-    if (!docs.length) {
-      if (bar)  bar.style.display = 'none';
-      if (card) card.style.display = 'none';
-      // pending নেই — nav সরিয়ে দাও
-      _updatePendingNav(0);
-      return;
-    }
-
-    // ── status bar + card ──
-    if (bar) {
-      bar.style.display = 'flex';
-      bar.textContent = `⏳ ${docs.length}টি এডিট অনুমোদনের অপেক্ষায়`;
-    }
-    if (card)  card.style.display = 'block';
-    if (badge) badge.textContent  = docs.length + 'টি';
-    // pending আছে — nav দেখাও
+    // nav badge update (profile page এ কোনো card নেই)
     _updatePendingNav(docs.length);
 
-    // ── pending list render ──
-    if (list) {
-      const FIELD_LABELS = {
-        bn:'বাংলা নাম', en:'ইংরেজি নাম', dob:'জন্ম তারিখ', bl:'রক্তের গ্রুপ',
-        mb:'মোবাইল', wa:'হোয়াটসঅ্যাপ', em:'জরুরি যোগাযোগ', ad:'ঠিকানা',
-        r_bn:'পদবী', tr_bn:'ট্রেড', co_bn:'কোম্পানী', niyog:'নিয়োগ',
-        ma_bn:'বৈবাহিক অবস্থা', sp:'স্ত্রীর নাম', sd:'স্ত্রীর জন্ম', wd:'বিবাহের তারিখ',
-        cr_bn:'কোর্স/ক্যাডার', dc_bn:'ডিভিশন কোর্স', di_bn:'জেলা', ed_bn:'শিক্ষা',
-        jd:'ভর্তির তারিখ', od:'শপথের তারিখ', res_bn:'বাসস্থান অবস্থান',
-        rt:'বাসস্থান মেয়াদ', pu:'পূর্বের ইউনিট', pn:'সাজা',
-      };
-      list.innerHTML = docs.map(d => {
-        const r = d.data();
-        const dt = r.createdAt?.toDate ? r.createdAt.toDate().toLocaleDateString('bn-BD') : '';
-        const fieldName = r.fieldLabel || FIELD_LABELS[r.field] || r.field || 'তথ্য';
-        let dispVal = r.newValue || '';
-        if (r.requestType === 'addCourse' && r.courseExtra) {
-          dispVal = r.courseExtra.nameBn || r.courseExtra.nameEn || dispVal.split(',').pop().trim();
-        } else if (dispVal.length > 40) {
-          dispVal = dispVal.substring(0, 40) + '...';
-        }
-        return `<div style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.04);display:flex;align-items:flex-start;gap:10px">`
-          + `<div style="width:8px;height:8px;border-radius:50%;background:var(--warn);margin-top:5px;flex-shrink:0"></div>`
-          + `<div style="flex:1;min-width:0">`
-          + `<div style="font-size:0.85rem;color:var(--text);font-weight:600">${fieldName}</div>`
-          + `<div style="font-size:0.78rem;color:var(--text2);margin-top:3px">নতুন মান: <span style="color:var(--gold);font-weight:600">${dispVal}</span></div>`
-          + (dt ? `<div style="font-size:0.68rem;color:var(--text3);margin-top:2px">${dt}</div>` : '')
-          + `</div>`
-          + `<span style="font-size:0.65rem;background:rgba(210,153,34,0.15);border:1px solid rgba(210,153,34,0.3);color:var(--warn);border-radius:10px;padding:2px 8px;font-family:'Rajdhani',sans-serif;font-weight:700;white-space:nowrap;flex-shrink:0">⏳ অপেক্ষায়</span>`
-          + `</div>`;
-      }).join('');
-    }
-  } catch(e) {
-    console.warn('checkPendingStatus error:', e.message);
-  }
+  } catch(e) { console.warn('checkPendingStatus error:', e.message); }
 }
 
 /* ══════════════════════════════════════════
