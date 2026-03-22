@@ -2470,7 +2470,9 @@ function renderFields(containerId, fields) {
   const html = fields.map(f => {
     // rec field — courseResults থেকে computed value ব্যবহার করো
     const raw = f.key === 'rec' ? computedRec : m[f.key];
-    const val = raw || '—';
+    // EN mode এ field value ও translate করো (যেমন বিবাহিত → Married)
+    const rawDisplay = raw ? (appLang === 'en' ? (TRANSLATIONS[raw] || raw) : raw) : null;
+    const val = rawDisplay || '—';
     let editBtn = '';
     if (f.editable) {
       if (f.type === 'promotion') {
