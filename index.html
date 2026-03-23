@@ -3764,7 +3764,7 @@ async function saveModal() {
       try {
         await db.collection('editRequests').add({
           memberId: docId, memberNo: currentMemberData.no || currentMemberData.armyNo,
-          memberName: currentMemberData.bn || currentMemberData.en || '',
+          memberName: currentMemberData.bn || currentMemberData.en || currentMemberData.armyNo || '',
           memberCompany: currentMemberData.co_bn || '',
           field: 'rt', fieldLabel: 'বাসস্থান মেয়াদ',
           oldValue: oldVal, newValue: rtStr,
@@ -3829,7 +3829,7 @@ async function saveModal() {
         await db.collection('editRequests').add({
           memberId: docId,
           memberNo: currentMemberData.no || currentMemberData.armyNo,
-          memberName: currentMemberData.bn || currentMemberData.en || '',
+          memberName: currentMemberData.bn || currentMemberData.en || currentMemberData.armyNo || '',
           memberCompany: currentMemberData.co_bn || '',
           field: 'ad',
           fieldLabel: 'স্থায়ী ঠিকানা',
@@ -3878,7 +3878,7 @@ async function saveModal() {
         await db.collection('editRequests').add({
           memberId: docId,
           memberNo: currentMemberData.no || currentMemberData.armyNo,
-          memberName: currentMemberData.bn || currentMemberData.en || '',
+          memberName: currentMemberData.bn || currentMemberData.en || currentMemberData.armyNo || '',
           memberCompany: currentMemberData.co_bn || '',
           field: 'r_bn',
           fieldLabel: 'পদোন্নতি: পদবী পরিবর্তন',
@@ -3928,7 +3928,7 @@ async function saveModal() {
         await db.collection('editRequests').add({
           memberId: docId,
           memberNo: currentMemberData.no || currentMemberData.armyNo,
-          memberName: currentMemberData.bn || currentMemberData.en || '',
+          memberName: currentMemberData.bn || currentMemberData.en || currentMemberData.armyNo || '',
           memberCompany: currentMemberData.co_bn || '',
           field: `c${idx}n`,
           fieldLabel: `সন্তান ${idx} যোগ: ${cName}`,
@@ -4044,8 +4044,8 @@ async function saveModal() {
         const oldCourseName = (currentMemberData.cr_bn || '').split(',').map(s=>s.trim()).filter(Boolean)[idx] || '';
         await db.collection('editRequests').add({
           memberId: docId,
-          memberNo: currentMemberData.no,
-          memberName: currentMemberData.bn || currentMemberData.en,
+          memberNo: currentMemberData.no || currentMemberData.armyNo || '',
+          memberName: currentMemberData.bn || currentMemberData.en || currentMemberData.armyNo || '',
           memberCompany: currentMemberData.co_bn || '',
           field: 'cr_bn',
           fieldLabel: 'কোর্স সম্পাদনা: ' + (bnName || enName),
@@ -4116,8 +4116,8 @@ async function saveModal() {
       try {
         await db.collection('editRequests').add({
           memberId: docId,
-          memberNo: currentMemberData.no,
-          memberName: currentMemberData.bn || currentMemberData.en,
+          memberNo: currentMemberData.no || currentMemberData.armyNo || '',
+          memberName: currentMemberData.bn || currentMemberData.en || currentMemberData.armyNo || '',
           memberCompany: currentMemberData.co_bn || '',
           field: 'cr_bn',
           fieldLabel: 'নতুন কোর্স/ক্যাডার: ' + displayBn,
@@ -4125,7 +4125,7 @@ async function saveModal() {
           newValue: updatedBn,
           oldValueEn: existingEn,
           newValueEn: updatedEn,
-          courseExtra: { nameBn: displayBn, nameEn: displayEn, result: resVal, position: posRaw, recommendation: recVal },
+          courseExtra: { nameBn: displayBn || '', nameEn: displayEn || '', result: resVal || '', position: posRaw || 0, recommendation: recVal || '' },
           requestType: 'addCourse',
           requestedBy: currentUser.uid,
           status: 'pending',
@@ -4254,7 +4254,7 @@ async function saveModal() {
     await db.collection('editRequests').add({
       memberId: docId,
       memberNo: currentMemberData.no || currentMemberData.armyNo,
-      memberName: currentMemberData.bn || currentMemberData.en || currentMemberData.armyNo,
+      memberName: currentMemberData.bn || currentMemberData.en || currentMemberData.armyNo || '',
       memberCompany: currentMemberData.co_bn || currentMemberData.co_en || '',
       field: currentEditField.key,
       fieldLabel: currentEditField.label,
@@ -4611,7 +4611,7 @@ async function setCourseResult(idx, grade, btn) {
     await db.collection('editRequests').add({
       memberId: docId,
       memberNo: currentMemberData.no || currentMemberData.armyNo,
-      memberName: currentMemberData.bn || currentMemberData.en,
+      memberName: currentMemberData.bn || currentMemberData.en || currentMemberData.armyNo || '',
       memberCompany: currentMemberData.co_bn || '',
       field: 'courseResults.' + resultKey,
       fieldLabel: 'কোর্স ফলাফল: ' + courseName,
@@ -4660,7 +4660,7 @@ async function adminResetResult(idx) {
     await db.collection('adminLogs').add({
       action: 'reset_course_result',
       memberId: docId,
-      memberName: currentMemberData.bn || currentMemberData.en,
+      memberName: currentMemberData.bn || currentMemberData.en || currentMemberData.armyNo || '',
       courseIdx: idx,
       adminId: currentUser.uid,
       adminRole: userRole,
@@ -4691,7 +4691,7 @@ async function adminResetPosition(idx) {
     await db.collection('adminLogs').add({
       action: 'reset_course_position',
       memberId: docId,
-      memberName: currentMemberData.bn || currentMemberData.en,
+      memberName: currentMemberData.bn || currentMemberData.en || currentMemberData.armyNo || '',
       courseIdx: idx,
       adminId: currentUser.uid,
       adminRole: userRole,
@@ -4759,7 +4759,7 @@ async function savePosition(idx) {
     await db.collection('editRequests').add({
       memberId: docId,
       memberNo: currentMemberData.no || currentMemberData.armyNo,
-      memberName: currentMemberData.bn || currentMemberData.en,
+      memberName: currentMemberData.bn || currentMemberData.en || currentMemberData.armyNo || '',
       memberCompany: currentMemberData.co_bn || '',
       field: 'courseResults.pos_' + idx,
       fieldLabel: 'কোর্স অবস্থান: ' + courseName,
