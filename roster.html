@@ -477,13 +477,13 @@ select:focus { border-color: var(--accent); }
 .admin-bar {
   background: linear-gradient(90deg, rgba(200,169,74,0.08), rgba(200,169,74,0.04));
   border-bottom: 1px solid rgba(200,169,74,0.18);
-  padding: 8px 20px;
+  padding: 6px 20px;
   position: sticky; top: 128px; z-index: 89;
   backdrop-filter: blur(8px);
 }
 .admin-bar-inner {
   max-width: 1440px; margin: 0 auto;
-  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
 }
 .admin-bar-id {
   font-family: 'Rajdhani', sans-serif; font-size: 0.75rem;
@@ -492,7 +492,7 @@ select:focus { border-color: var(--accent); }
 }
 .admin-bar-id strong { color: #fff; font-weight: 700; }
 .admin-bar-btns {
-  margin-left: auto; display: flex; gap: 7px; align-items: center; flex-wrap: wrap;
+  margin-left: auto; display: flex; gap: 6px; align-items: center; flex-wrap: wrap;
 }
 .ab-btn {
   display: inline-flex; align-items: center; gap: 5px;
@@ -597,11 +597,12 @@ select:focus { border-color: var(--accent); }
   .tab-content { padding: 14px 14px; }
   .dg { grid-template-columns: 1fr 1fr; gap: 8px; }
 
-  /* Admin bar */
-  .admin-bar-inner { flex-wrap: wrap; gap: 8px; }
-  .admin-bar-btns { flex-wrap: wrap; gap: 6px; }
+  /* Admin bar — compact on mobile */
+  .admin-bar { padding: 5px 12px; }
+  .admin-bar-inner { gap: 6px; }
+  .admin-bar-btns { flex-wrap: wrap; gap: 5px; }
   .admin-bar-btns button,
-  .admin-bar-btns a { flex: 1 1 calc(50% - 3px); justify-content: center; }
+  .admin-bar-btns a { flex: 1 1 calc(50% - 3px); justify-content: center; font-size: 0.68rem; padding: 5px 8px; }
 }
 
 @media (max-width: 380px) {
@@ -708,7 +709,7 @@ select:focus { border-color: var(--accent); }
             <div class="hd-user-name" id="hdUserName">—</div>
             <div class="hd-user-role" id="hdUserRole"></div>
           </div>
-          <button class="hd-item" onclick="openAdminProfile();closeHeaderDropdown();">
+          <button class="hd-item" id="hdProfileBtn" onclick="openAdminProfile();closeHeaderDropdown();">
             👤 <span>আমার প্রোফাইল</span>
           </button>
           <div class="hd-divider"></div>
@@ -1519,6 +1520,10 @@ function injectHeaderAvatar() {
   }
 
   wrap.style.display = 'block';
+
+  // subadmin-এর জন্য প্রোফাইল button লুকাও
+  const profileBtn = document.getElementById('hdProfileBtn');
+  if (profileBtn) profileBtn.style.display = webUserRole === 'subadmin' ? 'none' : 'flex';
 }
 
 function getInitials(name) {
@@ -1571,8 +1576,6 @@ function injectAdminBar() {
         ${webUserRole === 'superadmin' ? `<button class="ab-btn ab-btn-blue" onclick="openUserManagementModal()">👥 ইউজার ম্যানেজমেন্ট</button>` : ''}
         ${webUserRole !== 'subadmin' ? `<button class="ab-btn ab-btn-gold" onclick="webSendAnnouncement()">📣 বিজ্ঞপ্তি</button>` : ''}
         ${webUserRole !== 'subadmin' ? `<button class="ab-btn ab-btn-blue" onclick="openPasswordReset()">🔑 পাসওয়ার্ড রিসেট</button>` : ''}
-        ${webUserRole !== 'subadmin' ? `<button class="ab-btn ab-btn-slate" onclick="openAdminProfile()">👤 আমার প্রোফাইল</button>` : ''}
-        <button class="ab-btn ab-btn-red"  onclick="webLogout()">🚪 লগআউট</button>
       </div>
     </div>`;
   // controls-wrap এর পরে insert করো — sticky order: header → controls → adminBar
