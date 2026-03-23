@@ -2920,11 +2920,15 @@ function showLoginAfterRegister(armyNo) {
 ══════════════════════════════════════════ */
 let _pendingListener = null;
 let _rejectedListener = null;
+let _listenerStartTime = null; // session শুরুর সময় — পুরনো events skip করতে
 
 function startPendingListener(docId) {
   if (_pendingListener) { _pendingListener(); _pendingListener = null; }
   if (_rejectedListener) { _rejectedListener(); _rejectedListener = null; }
   if (!docId) return;
+
+  // এই session এ listener চালু হওয়ার সময় রেকর্ড করো
+  _listenerStartTime = new Date();
 
   // ── Approved listener ──
   _pendingListener = db.collection('editRequests')
@@ -2937,7 +2941,11 @@ function startPendingListener(docId) {
       snap.docChanges().forEach(change => {
         if (change.type !== 'added') return;
         const r = change.doc.data();
-        if (r._notifiedUser) return;
+
+        // পুরনো approved (session শুরুর আগের) — skip করো
+        // _notifiedUser এর উপর নির্ভর না করে timestamp দিয়ে ফিল্টার করো
+        const approvedAt = r.approvedAt?.toDate?.() || null;
+        if (approvedAt && _listenerStartTime && approvedAt < _listenerStartTime) return;
 
         const fieldName = r.fieldLabel || r.field || 'তথ্য';
 
@@ -2972,9 +2980,6 @@ function startPendingListener(docId) {
           if (document.getElementById('page-courses')?.classList.contains('active')) loadPendingCoursesAndRender();
           if (document.getElementById('page-pending')?.classList.contains('active')) loadPendingPage();
         }, 500);
-
-        db.collection('editRequests').doc(change.doc.id)
-          .update({ _notifiedUser: true }).catch(() => {});
       });
     }, err => console.warn('Approved listener error:', err.message));
 
@@ -2989,7 +2994,10 @@ function startPendingListener(docId) {
       snap.docChanges().forEach(change => {
         if (change.type !== 'added') return;
         const r = change.doc.data();
-        if (r._notifiedUserRejected) return;
+
+        // পুরনো rejected — timestamp দিয়ে skip করো
+        const rejectedAt = r.rejectedAt?.toDate?.() || null;
+        if (rejectedAt && _listenerStartTime && rejectedAt < _listenerStartTime) return;
 
         const fieldName = r.fieldLabel || r.field || 'তথ্য';
         showToast(`❌ বাতিল: "${fieldName}" পরিবর্তনের অনুরোধ বাতিল হয়েছে।`, 'error');
@@ -3001,9 +3009,6 @@ function startPendingListener(docId) {
           checkPendingStatus();
           if (document.getElementById('page-pending')?.classList.contains('active')) loadPendingPage();
         }, 400);
-
-        db.collection('editRequests').doc(change.doc.id)
-          .update({ _notifiedUserRejected: true }).catch(() => {});
       });
     }, err => console.warn('Rejected listener error:', err.message));
 }
@@ -3441,6 +3446,9 @@ async function loadMemberData(uid) {
       } catch(_) {}
 
       renderProfile();
+      // Realtime listener চালু করো — নতুন user এর জন্যও approve/reject সাথেসাথে দেখাবে
+      startPendingListener(armyNoClean);
+      _startMemberDataWatcher(armyNoClean);
       // Setup Screen দেখাও — ইউজার নিজে তথ্য পূরণ করবে
       showScreen('setup');
       updateSetupProgress(1);

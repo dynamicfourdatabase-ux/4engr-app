@@ -1067,6 +1067,10 @@ function goPage(p){
 const PROMO_BN=['সৈনিক → ল্যান্স কর্পোরাল','ল্যান্স কর্পোরাল → কর্পোরাল','কর্পোরাল → সার্জেন্ট','সার্জেন্ট → ওয়ারেন্ট অফিসার','ওয়াঃ অফিঃ → সিনিঃ ওয়াঃ অফিঃ'];
 const PROMO_EN=['Sainik → Lance Cpl','Lance Cpl → Corporal','Corporal → Sergeant','Sergeant → Warrant Off.','WO → Senior WO'];
 
+// বর্তমানে কোন member-এর modal open আছে তা track করো
+let _currentOpenModalMemberId = null;
+let _currentOpenModalMemberIdx = null;
+
 function showModal(idx){
   const m=filtered[idx];
   if(!m)return;
@@ -1076,6 +1080,10 @@ function showModal(idx){
     openRosterEditModal(m);
     return;
   }
+
+  // বর্তমানে open modal এর member ID track করো
+  _currentOpenModalMemberId = m._id || String(m.no||'').replace(/[^A-Z0-9]/gi,'');
+  _currentOpenModalMemberIdx = idx;
 
   const rank=R(m,'r'); const trade=R(m,'tr'); const co=R(m,'co'); const dist=R(m,'di');
   const edu=lang==='bn'?m.ed_bn:m.ed_en;
@@ -1814,6 +1822,14 @@ async function webApprove(docId, btn) {
     btn.closest('div[style*=border-radius]').remove();
     loadWebPendingCount();
     _showAdminToast('✅ অনুমোদন সম্পন্ন হয়েছে', 'success');
+
+    // যদি এই member-এর detail modal এখন open থাকে — fresh data দিয়ে refresh করো
+    if (_currentOpenModalMemberId && _currentOpenModalMemberId === memberDocId && _currentOpenModalMemberIdx !== null) {
+      setTimeout(() => {
+        const updatedIdx = filtered.findIndex(m => m._id === memberDocId || String(m.no||'').replace(/[^A-Z0-9]/gi,'') === memberDocId);
+        if (updatedIdx !== -1) showModal(updatedIdx);
+      }, 300);
+    }
   } catch(e) {
     btn.textContent = '✓ অনুমোদন'; btn.disabled = false;
     _showAdminToast('❌ ব্যর্থ: ' + (e.message||e.code), 'error');
@@ -3031,6 +3047,9 @@ function closeModalBtn() {
   document.body.style.overflow = '';
   const box = document.getElementById('rosterLeaveBody');
   if (box) box.innerHTML = lang==='bn'?'ছুটি ট্যাবে ক্লিক করুন...':'Click Leave tab to load...';
+  // modal বন্ধ হলে tracking reset করো
+  _currentOpenModalMemberId = null;
+  _currentOpenModalMemberIdx = null;
 }
 
 /* ══════════════════════════════════════════
