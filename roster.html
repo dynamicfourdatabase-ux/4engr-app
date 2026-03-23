@@ -1686,6 +1686,8 @@ document.addEventListener('click', function(e) {
 ══════════════════════════════════════════ */
 function _showConfirmDialog(title, msg, okLabel, cancelLabel, onOk) {
   document.getElementById('_confirmDialog')?.remove();
+  // callback global এ রাখো — HTML attribute এ function serialize করা যায় না
+  window._confirmDialogCb = onOk;
   const d = document.createElement('div');
   d.id = '_confirmDialog';
   d.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
@@ -1694,7 +1696,7 @@ function _showConfirmDialog(title, msg, okLabel, cancelLabel, onOk) {
       <div style="font-family:'Rajdhani',sans-serif;font-size:1.1rem;font-weight:700;color:#c8a94a;margin-bottom:10px">${title}</div>
       <div style="font-family:'Noto Serif Bengali',serif;font-size:0.88rem;color:rgba(255,255,255,0.65);margin-bottom:20px;line-height:1.6">${msg}</div>
       <div style="display:flex;gap:10px">
-        <button onclick="document.getElementById('_confirmDialog').remove();(${onOk.toString()})()"
+        <button id="_confirmOkBtn"
           style="flex:1;padding:12px;background:linear-gradient(135deg,#c04040,#8a2020);border:none;border-radius:10px;color:#fff;font-family:'Rajdhani',sans-serif;font-size:0.88rem;font-weight:700;cursor:pointer">${okLabel}</button>
         <button onclick="document.getElementById('_confirmDialog').remove()"
           style="flex:1;padding:12px;background:transparent;border:1px solid rgba(255,255,255,0.15);border-radius:10px;color:rgba(255,255,255,0.55);font-family:'Rajdhani',sans-serif;font-size:0.88rem;cursor:pointer">${cancelLabel}</button>
@@ -1702,6 +1704,11 @@ function _showConfirmDialog(title, msg, okLabel, cancelLabel, onOk) {
     </div>`;
   document.body.appendChild(d);
   d.addEventListener('click', e => { if (e.target === d) d.remove(); });
+  // OK button এ event listener — scope সমস্যা নেই
+  document.getElementById('_confirmOkBtn').addEventListener('click', () => {
+    d.remove();
+    if (typeof window._confirmDialogCb === 'function') window._confirmDialogCb();
+  });
 }
 
 /* ── Admin: সেনা নম্বর দিয়ে কোম্পানি/শাখা চেক ── */
@@ -1962,7 +1969,7 @@ async function webApprove(docId, btn) {
       const crOldArr = (r.oldValue||'').split(',').map(s=>s.trim()).filter(Boolean);
       const newIdx = crOldArr.length;
       const ex = r.courseExtra;
-      if (r.newValueEn) updateData['cr_en'] = r.newValueEn;
+      updateData['cr_en'] = r.newValueEn || r.newValue || '';
       if (ex.result)    updateData['courseResults.course_' + newIdx] = ex.result;
       if (ex.position && ex.position > 0) updateData['courseResults.pos_' + newIdx] = ex.position;
       if (ex.recommendation) updateData['courseResults.rec_' + newIdx] = ex.recommendation;
@@ -1970,10 +1977,19 @@ async function webApprove(docId, btn) {
     // কোর্স সম্পাদনা
     if (r.requestType === 'editCourse' && r.courseEditExtra) {
       const ex = r.courseEditExtra;
-      if (r.newValueEn) updateData['cr_en'] = r.newValueEn;
-      if (ex.result)    updateData['courseResults.course_' + ex.idx] = ex.result;
-      if (ex.position && ex.position > 0) updateData['courseResults.pos_' + ex.idx] = ex.position;
-      if (ex.recommendation) updateData['courseResults.rec_' + ex.idx] = ex.recommendation;
+      updateData['cr_en'] = r.newValueEn || '';
+      if (ex.result)
+        updateData['courseResults.course_' + ex.idx] = ex.result;
+      else
+        updateData['courseResults.course_' + ex.idx] = firebase.firestore.FieldValue.delete();
+      if (ex.position && ex.position > 0)
+        updateData['courseResults.pos_' + ex.idx] = ex.position;
+      else
+        updateData['courseResults.pos_' + ex.idx] = firebase.firestore.FieldValue.delete();
+      if (ex.recommendation)
+        updateData['courseResults.rec_' + ex.idx] = ex.recommendation;
+      else
+        updateData['courseResults.rec_' + ex.idx] = firebase.firestore.FieldValue.delete();
     }
 
     batch.update(memberRef, updateData);
@@ -2005,7 +2021,24 @@ async function webApprove(docId, btn) {
     // MEMBERS array তে local আপডেট
     if (MEMBERS_LOADED) {
       const idx = MEMBERS.findIndex(m => m._id === memberDocId || m.no === r.memberNo);
-      if (idx !== -1) { Object.assign(MEMBERS[idx], updateData); applyFilters(); }
+      if (idx !== -1) {
+        const member = MEMBERS[idx];
+        // dot-notation keys (courseResults.x) সঠিকভাবে nested object এ set করো
+        Object.entries(updateData).forEach(([k, v]) => {
+          if (k.startsWith('courseResults.')) {
+            const subKey = k.replace('courseResults.', '');
+            if (!member.courseResults) member.courseResults = {};
+            if (v && v.constructor?.name === 'FieldValueImpl') {
+              delete member.courseResults[subKey]; // FieldValue.delete()
+            } else {
+              member.courseResults[subKey] = v;
+            }
+          } else if (k !== 'updatedAt') {
+            member[k] = v;
+          }
+        });
+        applyFilters();
+      }
     }
 
     btn.closest('div[style*=border-radius]').remove();
@@ -2848,6 +2881,15 @@ async function loadMembersFromFirebase() {
             MEMBERS[idx] = data;
             filtered = [...MEMBERS];
             applyFilters();
+            // Modal open থাকলে এবং এই member এর modal হলে refresh করো
+            if (
+              _currentOpenModalMemberId &&
+              (_currentOpenModalMemberId === change.doc.id ||
+               _currentOpenModalMemberId === String(data.no||'').replace(/[^A-Z0-9]/gi,''))
+            ) {
+              const refreshIdx = filtered.findIndex(m => m._id === change.doc.id || m.no === data.no);
+              if (refreshIdx !== -1) showModal(refreshIdx);
+            }
           }
         } else if (change.type === 'added') {
           const exists = MEMBERS.some(m => m._id === change.doc.id);

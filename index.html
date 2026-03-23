@@ -2973,10 +2973,8 @@ function startPendingListener(docId) {
           // addCourse — cr_bn, cr_en এবং courseResults আপডেট
           if (r.requestType === 'addCourse' && r.courseExtra) {
             const ex = r.courseExtra;
-            // cr_bn আপডেট (newValue = নতুন পুরো cr_bn string)
             if (r.newValue !== undefined) currentMemberData.cr_bn = r.newValue;
             if (r.newValueEn) currentMemberData.cr_en = r.newValueEn;
-            // courseResults — নতুন কোর্সের index বের করো
             const crOldArr = (r.oldValue || '').split(',').map(s => s.trim()).filter(Boolean);
             const newIdx = crOldArr.length;
             if (ex.result)   currentMemberData.courseResults['course_' + newIdx] = ex.result;
@@ -2990,9 +2988,9 @@ function startPendingListener(docId) {
             if (r.newValue !== undefined) currentMemberData.cr_bn = r.newValue;
             if (r.newValueEn) currentMemberData.cr_en = r.newValueEn;
             const idx = ex.idx;
-            if (ex.result)   currentMemberData.courseResults['course_' + idx] = ex.result;
+            if (ex.result !== undefined) currentMemberData.courseResults['course_' + idx] = ex.result;
             if (ex.position && ex.position > 0) currentMemberData.courseResults['pos_' + idx] = ex.position;
-            if (ex.recommendation) currentMemberData.courseResults['rec_' + idx] = ex.recommendation;
+            if (ex.recommendation !== undefined) currentMemberData.courseResults['rec_' + idx] = ex.recommendation;
           }
 
           // courseResult — ফলাফল আপডেট
@@ -3010,6 +3008,31 @@ function startPendingListener(docId) {
 
         showToast(`✅ অনুমোদিত: ${fieldName}`, 'success');
         if (r.field) delete _pendingFieldMap[r.field];
+
+        // কোর্স-সম্পর্কিত approval হলে Firebase থেকে fresh data নিয়ে render করো
+        const isCourseApproval = ['addCourse','editCourse','courseResult','coursePosition'].includes(r.requestType);
+        if (isCourseApproval && currentMemberData) {
+          const _docId = currentMemberData.id || String(currentMemberData.no || '').replace(/[^A-Z0-9]/gi,'');
+          if (_docId) {
+            db.collection('members').doc(_docId).get().then(freshSnap => {
+              if (freshSnap.exists) {
+                const freshData = freshSnap.data();
+                // পুরো currentMemberData আপডেট করো (id বাদে)
+                Object.entries(freshData).forEach(([k, v]) => { currentMemberData[k] = v; });
+              }
+              renderProfile();
+              checkPendingStatus();
+              loadPendingCoursesAndRender();
+              if (document.getElementById('page-pending')?.classList.contains('active')) loadPendingPage();
+            }).catch(() => {
+              // Firebase fail হলে local data দিয়ে render করো
+              renderProfile();
+              checkPendingStatus();
+              loadPendingCoursesAndRender();
+            });
+            return; // নিচের setTimeout skip
+          }
+        }
 
         setTimeout(() => {
           renderProfile();
@@ -3065,20 +3088,19 @@ function _startMemberDataWatcher(docId) {
     .onSnapshot(snap => {
       if (!snap.exists || !currentMemberData) return;
       const fresh = snap.data();
-      // কোনো field পরিবর্তন হয়েছে কিনা চেক করো
       let changed = false;
       const skip = new Set(['updatedAt','updatedBy','createdAt']);
+
       Object.entries(fresh).forEach(([k, v]) => {
         if (skip.has(k)) return;
-        // courseResults — nested object, deep merge করো
-        if (k === 'courseResults' && v && typeof v === 'object') {
-          if (!currentMemberData.courseResults) currentMemberData.courseResults = {};
-          Object.entries(v).forEach(([rk, rv]) => {
-            if (currentMemberData.courseResults[rk] !== rv) {
-              currentMemberData.courseResults[rk] = rv;
-              changed = true;
-            }
-          });
+        // courseResults — full replace (merge নয়), যাতে deleted entries পরিষ্কার হয়
+        if (k === 'courseResults') {
+          const oldStr = JSON.stringify(currentMemberData.courseResults || {});
+          const newStr = JSON.stringify(v || {});
+          if (oldStr !== newStr) {
+            currentMemberData.courseResults = v ? { ...v } : {};
+            changed = true;
+          }
           return;
         }
         if (JSON.stringify(currentMemberData[k]) !== JSON.stringify(v)) {
@@ -3086,11 +3108,19 @@ function _startMemberDataWatcher(docId) {
           changed = true;
         }
       });
+
+      // Firebase document থেকে removed fields handle করো
+      Object.keys(currentMemberData).forEach(k => {
+        if (skip.has(k) || k === 'id' || k === 'courseResults') return;
+        if (fresh[k] === undefined && currentMemberData[k] !== undefined) {
+          delete currentMemberData[k];
+          changed = true;
+        }
+      });
+
       if (changed) {
         renderProfile();
-        // pending page open থাকলে refresh করো
         if (document.getElementById('page-pending')?.classList.contains('active')) loadPendingPage();
-        // কোর্স পেজ open থাকলে fresh render করো
         if (document.getElementById('page-courses')?.classList.contains('active')) loadPendingCoursesAndRender();
       }
     }, err => console.warn('Member watcher error:', err.message));
@@ -7739,8 +7769,10 @@ async function approveEdit(docId, silent = false) {
         const crOldArr = (r.oldValue || '').split(',').map(s => s.trim()).filter(Boolean);
         const newIdx   = crOldArr.length;
         const ex = r.courseExtra;
-        if (r.newValueEn) updateData['cr_en'] = r.newValueEn;
+        // cr_en সবসময় update করো
+        updateData['cr_en'] = r.newValueEn || r.newValue || '';
         if (ex.result)   updateData['courseResults.course_' + newIdx] = ex.result;
+        else             delete updateData['courseResults.course_' + newIdx]; // no-op for new, just clean
         if (ex.position && ex.position > 0) updateData['courseResults.pos_' + newIdx] = ex.position;
         if (ex.recommendation) updateData['courseResults.rec_' + newIdx] = ex.recommendation;
       }
@@ -7749,12 +7781,21 @@ async function approveEdit(docId, silent = false) {
       if (r.requestType === 'editCourse' && r.courseEditExtra) {
         const ex  = r.courseEditExtra;
         const idx = ex.idx;
-        // cr_bn ও cr_en update (newValue/newValueEn থেকে)
-        if (r.newValueEn) updateData['cr_en'] = r.newValueEn;
-        // courseResults update
-        if (ex.result)                      updateData['courseResults.course_' + idx] = ex.result;
-        if (ex.position && ex.position > 0) updateData['courseResults.pos_'    + idx] = ex.position;
-        if (ex.recommendation)              updateData['courseResults.rec_'    + idx] = ex.recommendation;
+        // cr_en সবসময় update করো
+        updateData['cr_en'] = r.newValueEn || '';
+        // courseResults — empty হলে FieldValue.delete() দিয়ে মুছে দাও
+        if (ex.result)
+          updateData['courseResults.course_' + idx] = ex.result;
+        else
+          updateData['courseResults.course_' + idx] = firebase.firestore.FieldValue.delete();
+        if (ex.position && ex.position > 0)
+          updateData['courseResults.pos_' + idx] = ex.position;
+        else
+          updateData['courseResults.pos_' + idx] = firebase.firestore.FieldValue.delete();
+        if (ex.recommendation)
+          updateData['courseResults.rec_' + idx] = ex.recommendation;
+        else
+          updateData['courseResults.rec_' + idx] = firebase.firestore.FieldValue.delete();
         // field ইতিমধ্যে cr_bn set করেছে (updateData[r.field] = r.newValue)
       }
 
