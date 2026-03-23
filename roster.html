@@ -455,62 +455,130 @@ select:focus { border-color: var(--accent); }
   .dg { grid-template-columns: 1fr 1fr; gap: 8px; }
 }
 
+/* ═══════ MOBILE USER BUTTON ═══════ */
+.mobile-user-btn {
+  display: none;
+  width: 36px; height: 36px; border-radius: 50%;
+  background: linear-gradient(135deg,#c8a94a,#7a5a10);
+  border: 2px solid rgba(200,169,74,0.5);
+  cursor: pointer; align-items: center; justify-content: center;
+  font-size: 16px; flex-shrink: 0; position: relative;
+  box-shadow: 0 0 10px rgba(200,169,74,0.25);
+  transition: box-shadow 0.2s;
+}
+.mobile-user-btn:hover { box-shadow: 0 0 18px rgba(200,169,74,0.5); }
+
+/* ═══════ MOBILE MORE BUTTON ═══════ */
+.mobile-more-btn {
+  display: none;
+  width: 32px; height: 32px; border-radius: 8px;
+  background: rgba(200,169,74,0.1);
+  border: 1px solid rgba(200,169,74,0.25);
+  cursor: pointer; align-items: center; justify-content: center;
+  font-size: 18px; font-weight: 700; flex-shrink: 0; position: relative;
+  color: rgba(255,255,255,0.7); transition: background 0.2s;
+  letter-spacing: -2px; line-height: 1;
+}
+.mobile-more-btn:hover { background: rgba(200,169,74,0.2); }
+
+/* ═══════ DROPDOWN SHARED ═══════ */
+.mobile-user-dropdown,
+.mobile-more-dropdown {
+  position: absolute; top: calc(100% + 10px); right: 0;
+  background: #1a1410; border: 1px solid rgba(200,169,74,0.3);
+  border-radius: 14px; padding: 6px; min-width: 200px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+  z-index: 9990; display: none; flex-direction: column; gap: 2px;
+  animation: dropIn 0.18s ease;
+}
+@keyframes dropIn {
+  from { opacity:0; transform:translateY(-8px) scale(0.97); }
+  to   { opacity:1; transform:translateY(0)    scale(1); }
+}
+.mobile-user-dropdown.open,
+.mobile-more-dropdown.open { display: flex; }
+
+.mud-header {
+  padding: 10px 12px 8px;
+  font-family:'Rajdhani',sans-serif; font-size:0.7rem;
+  letter-spacing:1px; text-transform:uppercase;
+  border-bottom:1px solid rgba(200,169,74,0.15); margin-bottom:3px;
+}
+.mud-item, .mmd-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 12px; border-radius: 9px; cursor: pointer;
+  font-family:'Rajdhani',sans-serif; font-size:0.85rem; font-weight:700;
+  letter-spacing:0.3px; color: rgba(255,255,255,0.85);
+  transition: background 0.15s; text-decoration:none;
+  border: none; background: transparent; width: 100%; text-align:left;
+}
+.mud-item:hover, .mmd-item:hover {
+  background: rgba(200,169,74,0.12); color:#c8a94a;
+}
+.mud-item.danger { color: #e05555; }
+.mud-item.danger:hover { background: rgba(224,85,85,0.12); color: #e05555; }
+.mud-divider { height:1px; background:rgba(200,169,74,0.12); margin:3px 0; }
+
 @media (max-width: 640px) {
   /* Header */
-  .header-inner { padding: 10px 14px; gap: 10px; }
-  .logo { width: 42px; height: 42px; font-size: 18px; }
-  .header-title h1 { font-size: 1rem; }
-  .header-title p { font-size: 0.6rem; letter-spacing: 2px; }
-  .lang-btn { padding: 5px 9px; font-size: 0.72rem; }
-  .view-btn { padding: 5px 8px; font-size: 12px; }
+  .header-inner { padding: 9px 12px; gap: 8px; }
+  .logo { width: 36px; height: 36px; font-size: 15px; }
+  .header-title h1 { font-size: 0.9rem; }
+  .header-title p { font-size: 0.56rem; letter-spacing: 1.5px; }
 
-  /* Controls — collapsible filter grid */
-  .controls-wrap { position: sticky; top: 62px; }
-  .controls { padding: 10px 12px; gap: 7px; }
+  /* Hide desktop items on mobile */
+  .stat-group   { display: none !important; }
+  .lang-switch  { display: none !important; }
+  .view-switch  { display: none !important; }
+  #themeToggle  { display: none !important; }
+  .header-right > a { display: none !important; }
+
+  /* Show mobile buttons */
+  .mobile-more-btn { display: flex; }
+  .mobile-user-btn { display: flex; }
+
+  /* Controls */
+  .controls-wrap { position: sticky; top: 58px; }
+  .controls { padding: 9px 12px; gap: 6px; }
   .search-wrap { flex: 1 1 100%; }
-  .search-wrap input { font-size: 0.9rem; padding: 10px 14px 10px 36px; }
+  .search-wrap input { font-size: 0.88rem; padding: 9px 12px 9px 34px; }
   select {
     flex: 1 1 calc(50% - 4px);
-    font-size: 0.8rem;
-    padding: 9px 8px;
-    min-width: 0;
+    font-size: 0.78rem; padding: 8px 7px; min-width: 0;
   }
   .btn-reset {
-    flex: 1 1 100%;
-    text-align: center;
-    padding: 9px;
-    font-size: 0.8rem;
+    flex: 1 1 100%; text-align: center;
+    padding: 9px; font-size: 0.8rem;
   }
-  .results-bar { padding: 5px 12px 6px; font-size: 0.76rem; }
+  .results-bar { padding: 4px 12px 5px; font-size: 0.74rem; }
 
   /* Cards */
-  .main-area { padding: 10px 10px 40px; }
-  .grid-view { grid-template-columns: 1fr; gap: 10px; }
-  .card-body { grid-template-columns: 1fr 1fr; gap: 6px; }
+  .main-area { padding: 8px 8px 40px; }
+  .grid-view { grid-template-columns: 1fr; gap: 8px; }
+  .card-body { grid-template-columns: 1fr 1fr; gap: 5px; }
 
-  /* Modal */
+  /* Member modal — bottom sheet */
   .overlay { padding: 0; align-items: flex-end; }
-  .modal { border-radius: 18px 18px 0 0; max-height: 92vh; overflow-y: auto; }
-  .modal-header { padding: 16px 16px 14px; }
-  .modal-photo { width: 66px; height: 66px; }
-  .modal-title h2 { font-size: 1.05rem; }
-  .modal-tabs .tab-btn { font-size: 0.64rem; padding: 9px 4px; letter-spacing: 1px; }
-  .tab-content { padding: 14px 14px; }
-  .dg { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .modal {
+    border-radius: 20px 20px 0 0;
+    max-height: 93vh; overflow-y: auto;
+    box-shadow: 0 -8px 40px rgba(0,0,0,0.5);
+  }
+  .modal-header { padding: 16px 14px 12px; }
+  .modal-photo { width: 62px; height: 62px; }
+  .modal-title h2 { font-size: 1rem; }
+  .modal-tabs .tab-btn { font-size: 0.62rem; padding: 8px 4px; letter-spacing: 0.8px; }
+  .tab-content { padding: 12px; }
+  .dg { grid-template-columns: 1fr 1fr; gap: 7px; }
 
-  /* Admin bar */
-  .admin-bar-inner { flex-wrap: wrap; gap: 8px; }
-  .admin-bar-btns { flex-wrap: wrap; gap: 6px; }
-  .admin-bar-btns button,
-  .admin-bar-btns a { flex: 1 1 calc(50% - 3px); justify-content: center; }
+  /* Admin bar — compact on mobile */
+  .admin-bar { display: none; }
 }
 
 @media (max-width: 380px) {
-  .header-title h1 { font-size: 0.88rem; }
+  .header-title h1 { font-size: 0.82rem; }
   .grid-view { grid-template-columns: 1fr; }
-  select { font-size: 0.74rem; }
-  .admin-bar-btns button,
-  .admin-bar-btns a { flex: 1 1 100%; }
+  select { font-size: 0.72rem; }
 }
 </style>
 </head>
@@ -592,14 +660,41 @@ select:focus { border-color: var(--accent); }
         <div class="stat-box"><span class="num" id="filteredCount">0</span><span class="lbl" id="lShown">দেখানো</span></div>
       </div>
       <div class="view-switch">
-        <button class="view-btn active" id="vGrid" onclick="setView('grid')" title="Grid View">⊞</button>
-        <button class="view-btn" id="vList" onclick="setView('list')" title="List View">☰</button>
+        <button class="view-btn" id="vGrid" onclick="setView('grid')" title="Grid View">⊞</button>
+        <button class="view-btn active" id="vList" onclick="setView('list')" title="List View">☰</button>
       </div>
       <button id="themeToggle" onclick="toggleTheme()" title="থিম পরিবর্তন" style="background:rgba(200,169,74,0.12);border:1px solid rgba(200,169,74,0.3);border-radius:7px;padding:6px 10px;cursor:pointer;font-size:15px;line-height:1;transition:all 0.2s;">☀️</button>
       <div class="lang-switch">
         <button class="lang-btn active" onclick="setLang('bn')">বাং</button>
         <button class="lang-btn" onclick="setLang('en')">ENG</button>
       </div>
+
+      <!-- ══ MOBILE: 3-dot menu ══ -->
+      <div class="mobile-more-btn" id="mobileMoreBtn" onclick="toggleMobileMore()">
+        ···
+        <div class="mobile-more-dropdown" id="mobileMoreDropdown">
+          <a class="mmd-item" href="4engr-app.html">📱 <span>অ্যাপ</span></a>
+          <div class="mud-divider"></div>
+          <button class="mmd-item" onclick="setView('grid');closeMobileMore()">⊞ <span>গ্রিড ভিউ</span></button>
+          <button class="mmd-item" onclick="setView('list');closeMobileMore()">☰ <span>লিস্ট ভিউ</span></button>
+          <div class="mud-divider"></div>
+          <button class="mmd-item" onclick="toggleTheme();closeMobileMore()">🌓 <span>থিম পরিবর্তন</span></button>
+          <div class="mud-divider"></div>
+          <button class="mmd-item" onclick="setLang('bn');closeMobileMore()">🇧🇩 <span>বাংলা</span></button>
+          <button class="mmd-item" onclick="setLang('en');closeMobileMore()">🇬🇧 <span>English</span></button>
+        </div>
+      </div>
+
+      <!-- ══ MOBILE: User button ══ -->
+      <div class="mobile-user-btn" id="mobileUserBtn" onclick="toggleMobileUser()">
+        👤
+        <div class="mobile-user-dropdown" id="mobileUserDropdown">
+          <div class="mud-header" id="mobileUserInfo" style="color:rgba(200,169,74,0.7)">লগইন করুন</div>
+          <button class="mud-item" onclick="openMobileProfile()">👤 <span>আমার প্রোফাইল</span></button>
+          <button class="mud-item danger" id="mobileLogoutBtn" onclick="webLogout()" style="display:none">🚪 <span>লগআউট</span></button>
+        </div>
+      </div>
+
     </div>
   </div>
 </div>
@@ -631,7 +726,7 @@ select:focus { border-color: var(--accent); }
     <div id="lhBlood">রক্তের গ্রুপ</div><div id="lhDist">জেলা</div><div id="lhComp">কোম্পানী</div>
     <div id="lhNo">#</div>
   </div>
-  <div id="memberContainer" class="grid-view"></div>
+  <div id="memberContainer" class="list-view"></div>
 </div>
 <div class="pagination" id="pagination"></div>
 
@@ -665,7 +760,7 @@ function toggleTheme(){
 
 /* ─── State ─── */
 let lang = 'bn';
-let view = 'grid';
+let view = 'list';
 const PER_PAGE = 100;
 let filtered = [...MEMBERS];
 let page = 1;
@@ -1345,7 +1440,6 @@ function injectAdminBar() {
   const name = webAdminData?.name || webAdminData?.armyNo || '—';
   const roleLabel = webUserRole === 'superadmin' ? 'Super Admin' : (webUserRole === 'subadmin' ? 'Sub Admin' : 'Admin');
   const roleColor = webUserRole === 'superadmin' ? '#c8a94a' : (webUserRole === 'subadmin' ? '#388bfd' : '#3fb950');
-  // Admin হলে কোম্পানি দেখাও
   const coLabel = (webUserRole === 'admin' && webAdminData?.co_bn)
     ? ` · <span style="color:#3fb950;font-size:0.75rem">${webAdminData.co_bn}</span>` : '';
 
@@ -1368,18 +1462,49 @@ function injectAdminBar() {
         ${webUserRole !== 'subadmin' ? `<button class="ab-btn ab-btn-gold" onclick="webSendAnnouncement()">📣 বিজ্ঞপ্তি</button>` : ''}
         ${webUserRole !== 'subadmin' ? `<button class="ab-btn ab-btn-blue" onclick="openPasswordReset()">🔑 পাসওয়ার্ড রিসেট</button>` : ''}
         ${webUserRole !== 'subadmin' ? `<button class="ab-btn ab-btn-slate" onclick="openAdminProfile()">👤 আমার প্রোফাইল</button>` : ''}
-        <button class="ab-btn ab-btn-red"  onclick="webLogout()">🚪 লগআউট</button>
+        <button class="ab-btn ab-btn-red" onclick="webLogout()">🚪 লগআউট</button>
       </div>
     </div>`;
   const header = document.querySelector('.header');
   if (header) header.after(bar);
-  // adjust controls sticky offset after admin bar is added
   requestAnimationFrame(() => {
     const hh = document.querySelector('.header')?.offsetHeight || 76;
     const abh = bar.offsetHeight || 44;
     const cw = document.querySelector('.controls-wrap');
     if (cw) cw.style.top = (hh + abh) + 'px';
   });
+
+  // ── Mobile user button আপডেট ──
+  const mobileUserInfo = document.getElementById('mobileUserInfo');
+  if (mobileUserInfo) {
+    mobileUserInfo.innerHTML = `<span style="color:${roleColor}">${roleLabel}</span>: ${name}`;
+  }
+  const mobileLogoutBtn = document.getElementById('mobileLogoutBtn');
+  if (mobileLogoutBtn) mobileLogoutBtn.style.display = 'flex';
+
+  // Mobile user dropdown এ role-based buttons যোগ করো
+  const ud = document.getElementById('mobileUserDropdown');
+  const logoutBtn = document.getElementById('mobileLogoutBtn');
+  if (ud && logoutBtn) {
+    const extraBtns = [];
+    if (webUserRole !== 'subadmin') {
+      extraBtns.push(`<button class="mud-item" onclick="openWebPendingModal();closeMobileUser()">⏳ পেন্ডিং (<span id="mobilePendingCount">0</span>)</button>`);
+      extraBtns.push(`<button class="mud-item" onclick="webSendAnnouncement();closeMobileUser()">📣 বিজ্ঞপ্তি</button>`);
+      extraBtns.push(`<button class="mud-item" onclick="openPasswordReset();closeMobileUser()">🔑 পাসওয়ার্ড রিসেট</button>`);
+    }
+    if (webUserRole === 'admin') {
+      extraBtns.push(`<button class="mud-item" onclick="openArmyNoLookup();closeMobileUser()">🔍 সেনা নম্বর চেক</button>`);
+    }
+    if (webUserRole === 'superadmin') {
+      extraBtns.push(`<button class="mud-item" onclick="openUserManagementModal();closeMobileUser()">👥 ইউজার ম্যানেজমেন্ট</button>`);
+    }
+    if (extraBtns.length) {
+      const div = document.createElement('div');
+      div.className = 'mud-divider';
+      div.innerHTML = extraBtns.join('');
+      ud.insertBefore(div, logoutBtn);
+    }
+  }
 }
 
 function openAddMemberModal() {
@@ -1513,10 +1638,70 @@ async function submitAddMember() {
 }
 
 function webLogout() {
-  if (confirm('লগআউট করবেন?')) {
-    auth.signOut();
-    location.reload();
-  }
+  _showConfirmDialog(
+    '🚪 লগআউট',
+    'আপনি কি লগআউট করতে চান?',
+    'লগআউট', 'বাতিল',
+    () => { auth.signOut(); location.reload(); }
+  );
+}
+
+/* ══════════════════════════════════════════
+   MOBILE MENU FUNCTIONS
+══════════════════════════════════════════ */
+function toggleMobileUser() {
+  const ud = document.getElementById('mobileUserDropdown');
+  const md = document.getElementById('mobileMoreDropdown');
+  if (!ud) return;
+  if (md) md.classList.remove('open');
+  ud.classList.toggle('open');
+}
+function closeMobileUser() {
+  document.getElementById('mobileUserDropdown')?.classList.remove('open');
+}
+function toggleMobileMore() {
+  const md = document.getElementById('mobileMoreDropdown');
+  const ud = document.getElementById('mobileUserDropdown');
+  if (!md) return;
+  if (ud) ud.classList.remove('open');
+  md.classList.toggle('open');
+}
+function closeMobileMore() {
+  document.getElementById('mobileMoreDropdown')?.classList.remove('open');
+}
+function openMobileProfile() {
+  closeMobileUser();
+  if (webCurrentUser) openAdminProfile();
+}
+// Close dropdowns when tapping outside
+document.addEventListener('click', function(e) {
+  const ub = document.getElementById('mobileUserBtn');
+  const mb = document.getElementById('mobileMoreBtn');
+  if (ub && !ub.contains(e.target)) closeMobileUser();
+  if (mb && !mb.contains(e.target)) closeMobileMore();
+});
+
+/* ══════════════════════════════════════════
+   CUSTOM CONFIRM DIALOG (replaces browser confirm)
+══════════════════════════════════════════ */
+function _showConfirmDialog(title, msg, okLabel, cancelLabel, onOk) {
+  document.getElementById('_confirmDialog')?.remove();
+  const d = document.createElement('div');
+  d.id = '_confirmDialog';
+  d.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
+  d.innerHTML = `
+    <div style="background:#1a1714;border:1px solid rgba(200,169,74,0.25);border-radius:18px;width:100%;max-width:340px;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,0.6)">
+      <div style="font-family:'Rajdhani',sans-serif;font-size:1.1rem;font-weight:700;color:#c8a94a;margin-bottom:10px">${title}</div>
+      <div style="font-family:'Noto Serif Bengali',serif;font-size:0.88rem;color:rgba(255,255,255,0.65);margin-bottom:20px;line-height:1.6">${msg}</div>
+      <div style="display:flex;gap:10px">
+        <button onclick="document.getElementById('_confirmDialog').remove();(${onOk.toString()})()"
+          style="flex:1;padding:12px;background:linear-gradient(135deg,#c04040,#8a2020);border:none;border-radius:10px;color:#fff;font-family:'Rajdhani',sans-serif;font-size:0.88rem;font-weight:700;cursor:pointer">${okLabel}</button>
+        <button onclick="document.getElementById('_confirmDialog').remove()"
+          style="flex:1;padding:12px;background:transparent;border:1px solid rgba(255,255,255,0.15);border-radius:10px;color:rgba(255,255,255,0.55);font-family:'Rajdhani',sans-serif;font-size:0.88rem;cursor:pointer">${cancelLabel}</button>
+      </div>
+    </div>`;
+  document.body.appendChild(d);
+  d.addEventListener('click', e => { if (e.target === d) d.remove(); });
 }
 
 /* ── Admin: সেনা নম্বর দিয়ে কোম্পানি/শাখা চেক ── */
@@ -1621,6 +1806,10 @@ async function startPendingListener() {
           badge.style.animation = 'webPulse 0.4s ease';
           setTimeout(() => badge.style.animation = '', 400);
         }
+      // sync mobile pending count
+      const mpc = document.getElementById('mobilePendingCount');
+      if (mpc) mpc.textContent = snap.size;
+      }
       }
     });
   } catch(e) { console.log('Pending listener error:', e); }
@@ -1641,8 +1830,8 @@ async function webSendAnnouncement() {
       active: true,
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
     });
-    alert('✅ বিজ্ঞপ্তি পাঠানো হয়েছে!');
-  } catch(e) { alert('ব্যর্থ: ' + e.message); }
+    _showAdminToast('✅ বিজ্ঞপ্তি পাঠানো হয়েছে!', 'success');
+  } catch(e) { _showAdminToast('❌ ব্যর্থ: ' + e.message, 'error'); }
 }
 
 async function openWebPendingModal() {
@@ -2853,15 +3042,15 @@ async function confirmDeleteMember(docId, name, no) {
     await db.collection('members').doc(docId).delete();
     document.getElementById('deleteMemberModal')?.remove();
     closeModalBtn();
-    const localIdx = members.findIndex(x =>
+    const localIdx = MEMBERS.findIndex(x =>
       (x._id || String(x.no || '').replace(/[^A-Z0-9]/gi, '')) === docId
     );
-    if (localIdx !== -1) members.splice(localIdx, 1);
+    if (localIdx !== -1) MEMBERS.splice(localIdx, 1);
     applyFilters();
     _showAdminToast('✅ ' + name + ' সফলভাবে ডিলিট হয়েছে', 'success');
   } catch(e) {
     if (btn) { btn.textContent = '🗑️ ডিলিট করুন'; btn.disabled = false; btn.style.opacity = '1'; }
-    alert('❌ ডিলিট ব্যর্থ: ' + (e.code || e.message));
+    _showAdminToast('❌ ডিলিট ব্যর্থ: ' + (e.code || e.message), 'error');
   }
 }
 
@@ -2907,7 +3096,7 @@ const CLEARABLE_FIELDS = [
 ];
 
 function openFieldClearModal(m) {
-  if (!m) { alert('সদস্য তথ্য পাওয়া যায়নি'); return; }
+  if (!m) { _showAdminToast('❌ সদস্য তথ্য পাওয়া যায়নি', 'error'); return; }
   const docId = m._id || String(m.no || '').replace(/[^A-Z0-9]/gi, '');
   const name  = m.bn || m.en || 'সদস্য';
   document.getElementById('fieldClearModal')?.remove();
@@ -3022,7 +3211,7 @@ async function confirmFieldClear(docId, name) {
     _showAdminToast('✅ '+keys.length+'টি ফিল্ড সফলভাবে মুছা হয়েছে','success');
   } catch(e) {
     if (btn) { btn.textContent='🗑️ নির্বাচিত ফিল্ড মুছুন'; btn.disabled=false; btn.style.opacity='1'; }
-    alert('❌ মুছা ব্যর্থ: '+(e.code||e.message));
+    _showAdminToast('❌ মুছা ব্যর্থ: '+(e.code||e.message), 'error');
   }
 }
 
