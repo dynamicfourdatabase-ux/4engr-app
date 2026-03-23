@@ -1489,6 +1489,13 @@ async function submitAddMember() {
 
     await db.collection('members').doc(docId).set(newMemberData);
 
+    // registrations collection এ লিখি — নিবন্ধন যাচাইয়ের জন্য (publicly readable)
+    await db.collection('registrations').doc(docId).set({
+      dob,
+      registered: false,
+      addedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+
     const coMsg = (webUserRole === 'admin' && webAdminData?.co_bn) ? `\nকোম্পানি: ${webAdminData.co_bn}` : '';
     showRes('✅ সদস্য যোগ সফল!\n\nসেনা নং: ' + no + '\nজন্ম তারিখ: ' + dob + coMsg + '\n\nসদস্য অ্যাপে গিয়ে নিবন্ধন করতে পারবেন।', true);
 
