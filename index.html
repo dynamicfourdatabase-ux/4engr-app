@@ -1329,6 +1329,24 @@ select.form-input { cursor: pointer; }
     <!-- ── PAGE: Leave + Training (প্রশিক্ষণ ও ছুটি) ── -->
     <div class="page" id="page-leave">
 
+      <!-- ══ ছুটি বিভাগ ══ -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-header-icon">🏖️</span>
+          <span class="card-header-title">ছুটির তথ্য</span>
+          <button class="field-edit-btn" style="margin-left:auto" onclick="openAddLeave()">+ নতুন ছুটি</button>
+        </div>
+        <div class="card-body" id="leaveList">
+          <div style="color:var(--text2);text-align:center;padding:20px;font-size:0.85rem">লোড হচ্ছে...</div>
+        </div>
+      </div>
+      <!-- মোট ছুটির যোগফল -->
+      <div class="card" id="leaveSummaryCard" style="display:none">
+        <div class="card-body">
+          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px" id="leaveSummary"></div>
+        </div>
+      </div>
+
       <!-- ══ প্রশিক্ষণ বিভাগ ══ -->
 
       <!-- IPFT -->
@@ -1415,23 +1433,6 @@ select.form-input { cursor: pointer; }
         </div>
       </div>
 
-      <!-- ══ ছুটি বিভাগ ══ -->
-      <div class="card">
-        <div class="card-header">
-          <span class="card-header-icon">🏖️</span>
-          <span class="card-header-title">ছুটির তথ্য</span>
-          <button class="field-edit-btn" style="margin-left:auto" onclick="openAddLeave()">+ নতুন ছুটি</button>
-        </div>
-        <div class="card-body" id="leaveList">
-          <div style="color:var(--text2);text-align:center;padding:20px;font-size:0.85rem">লোড হচ্ছে...</div>
-        </div>
-      </div>
-      <!-- মোট ছুটির যোগফল -->
-      <div class="card" id="leaveSummaryCard" style="display:none">
-        <div class="card-body">
-          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px" id="leaveSummary"></div>
-        </div>
-      </div>
     </div>
 
     <!-- ── PAGE: Pending (অপেক্ষমান) ── -->
@@ -1975,6 +1976,7 @@ select.form-input { cursor: pointer; }
    FIREBASE SETUP
 ══════════════════════════════════════════ */
 let db, auth, storage, fbApp;
+let FIREBASE_CONFIG = null;
 let currentUser = null;
 let currentMemberData = null;
 let currentEditField = null;
@@ -1993,14 +1995,30 @@ function getStoredConfig() {
 
 function initFirebase(config) {
   try {
+    if (typeof firebase === 'undefined') {
+      console.error('Firebase SDK লোড হয়নি (firebase undefined)');
+      return false;
+    }
+    if (!firebase.auth || !firebase.firestore || !firebase.storage) {
+      console.error('Firebase SDK সম্পূর্ণ নয় (সংশ্লিষ্ট মডিউল অনুপস্থিত)');
+      return false;
+    }
+
+    if (!config || !config.apiKey) {
+      console.error('Firebase কনফিগেশন অনুপস্থিত বা অনবৈধ:', config);
+      return false;
+    }
+
     if (firebase.apps.length === 0) {
       fbApp = firebase.initializeApp(config);
     } else {
       fbApp = firebase.app();
     }
+
     auth = firebase.auth();
     db = firebase.firestore();
     storage = firebase.storage();
+
     // App Check — debug mode (Monitoring এ আছে বলে block করছিল)
     try {
       const appCheck = firebase.appCheck();
@@ -2010,6 +2028,8 @@ function initFirebase(config) {
     } catch(acErr) {
       console.warn('App Check skip:', acErr.message);
     }
+
+    console.log('Firebase initialized:', { app: fbApp ? fbApp.name : null, auth: !!auth });
     return true;
   } catch(e) {
     console.error('Firebase init error:', e);
@@ -3302,6 +3322,15 @@ async function doLogin() {
   btn.disabled = true;
   showLoading('লগইন হচ্ছে...');
   try {
+    if (!auth) {
+      console.warn('Auth নতুন করে ইনিশিয়ালাইজ করা হচ্ছে (auth undefined)');
+      const initOk = initFirebase(FIREBASE_CONFIG);
+      if (!initOk || !auth) {
+        console.error('Firebase init ব্যর্থ: auth টাস্ক করা যাচ্ছে না', { initOk, auth, FIREBASE_CONFIG });
+        throw new Error('Firebase auth পাওয়া যাচ্ছে না');
+      }
+    }
+
     // সেনা নম্বর থেকে email তৈরি: SUPERADMIN → superadmin@4engr.bd
     const email = armyNo.replace(/[^A-Z0-9]/g, '').toLowerCase() + '@4engr.bd';
     console.log('লগইন চেষ্টা:', email);
@@ -3681,13 +3710,15 @@ function renderProfile() {
   const EDUCATIONS = ['প্রাথমিক (৫ম শ্রেণি)','জুনিয়র স্কুল সার্টিফিকেট (জেএসসি)','মাধ্যমিক (এসএসসি)','উচ্চ মাধ্যমিক (এইচএসসি)','ডিপ্লোমা','ডিগ্রী/অনার্স','মাস্টার্স','অন্যান্য'];
   const VEHICLES   = ['মোটর সাইকেল','জীপ','পিকআপ','৩টন লরী','বাস','মাইক্রো','পন্টুন','এ্যাম্বুলেন্স','ফুয়েল ট্যাংকার','ট্রাক ট্রান্সপোর্ট','ডাম্পার','এক্সকাভেটর','রোলার','ট্রাক লোডার','হুইল লোডার','মোটর গ্রেডার','ক্রেন','লাইটিং টাওয়ার','ডোজার','ফ্রক লিফটার','মিক্সার মেশিন','ফুয়েল ব্রাউজার','ওয়াটার ব্রাউজার','এয়ার কম্প্রেশার','হিটার বিটুমিন ডিস্ট্রিবিউটর','অ্যাসফল্ট পেভার মেশিন','কোস্টার','অন্যান্য'];
 
+  const mapOptsDisplay = (opts) => opts.map(v => appLang === 'en' ? t(v) : v);
+
   // Personal fields — keys match roster.html Firestore fields
   const personalDef = isAdminUser ? [
     { key: 'bn',    label: t('বাংলা নাম'),       editable: true },
     { key: 'en',    label: t('ইংরেজি নাম'),      editable: true },
     { key: 'dob',   label: t('জন্ম তারিখ'),      editable: true },
-    { key: 'bl',    label: t('রক্তের গ্রুপ'),    editable: true, type: 'select', opts: ['A+','A-','B+','B-','AB+','AB-','O+','O-'] },
-    { key: 'gn_bn', label: t('লিঙ্গ'),           editable: true, type: 'select', opts: ['পুরুষ','মহিলা'] },
+    { key: 'bl',    label: t('রক্তের গ্রুপ'),    editable: true, type: 'select', opts: ['A+','A-','B+','B-','AB+','AB-','O+','O-'].map(v => appLang==='en' ? t(v) : v) },
+    { key: 'gn_bn', label: t('লিঙ্গ'),           editable: true, type: 'select', opts: ['পুরুষ','মহিলা'].map(v => appLang==='en' ? t(v) : v) },
     { key: 'nid',   label: t('NID নম্বর'),        editable: true },
     { key: 'mb',    label: t('মোবাইল'),           editable: true },
     { key: 'nm',    label: t('NID মোবাইল'),       editable: true },
@@ -3700,8 +3731,8 @@ function renderProfile() {
     { key: 'bn',    label: t('বাংলা নাম'),        editable: true },
     { key: 'en',    label: t('ইংরেজি নাম'),       editable: true },
     { key: 'dob',   label: t('জন্ম তারিখ'),       editable: false },
-    { key: 'bl',    label: 'রক্তের গ্রুপ',        editable: true, type: 'select', opts: ['A+','A-','B+','B-','AB+','AB-','O+','O-'] },
-    { key: 'gn_bn', label: t('লিঙ্গ'),            editable: true, type: 'select', opts: ['পুরুষ','মহিলা'] },
+    { key: 'bl',    label: 'রক্তের গ্রুপ',        editable: true, type: 'select', opts: ['A+','A-','B+','B-','AB+','AB-','O+','O-'].map(v => appLang==='en' ? t(v) : v) },
+    { key: 'gn_bn', label: t('লিঙ্গ'),            editable: true, type: 'select', opts: ['পুরুষ','মহিলা'].map(v => appLang==='en' ? t(v) : v) },
     { key: 'nid',   label: t('NID নম্বর'),         editable: true },
     { key: 'mb',    label: t('মোবাইল'),            editable: true },
     { key: 'nm',    label: t('NID মোবাইল'),        editable: true },
@@ -3709,15 +3740,15 @@ function renderProfile() {
     { key: 'em',    label: t('জরুরি যোগাযোগ'),    editable: true },
     { key: 'ad',    label: t('স্থায়ী ঠিকানা'),    editable: true, type: 'address' },
     { key: 'di_bn', label: t('জেলা'),              editable: false },
-    { key: 'ed_bn', label: t('শিক্ষাগত যোগ্যতা'),  editable: true, type: 'select', opts: EDUCATIONS },
+    { key: 'ed_bn', label: t('শিক্ষাগত যোগ্যতা'),  editable: true, type: 'select', opts: mapOptsDisplay(EDUCATIONS) },
   ];  renderFields('personalFields', personalDef);
   _lastPersonalDef = personalDef;
 
   // Military fields — keys match roster.html
   const militaryDef = isAdminUser ? [
     { key: 'no',         label: t('সেনা নম্বর'),           editable: true },
-    { key: 'r_bn',       label: t('পদবী'),                  editable: true, type: 'select', opts: RANKS },
-    { key: 'tr_bn',      label: t('ট্রেড'),                 editable: true, type: 'select', opts: TRADES },
+    { key: 'r_bn',       label: t('পদবী'),              editable: true, type: 'select', opts: mapOptsDisplay(RANKS) },
+    { key: 'tr_bn',      label: t('ট্রেড'),             editable: true, type: 'select', opts: mapOptsDisplay(TRADES) },
     { key: 'co_bn',      label: t('কোম্পানী'),              editable: true },
     { key: 'niyog',      label: t('নিয়োগ'),                editable: true },
     { key: 'jd',         label: t('ভর্তির তারিখ'),          editable: true },
@@ -3754,16 +3785,16 @@ function renderProfile() {
 
   // Family fields — শুধু data আছে এমন সন্তান দেখাবে + add button
   const familyDef = [
-    { key: 'ma_bn', label: t('বৈবাহিক অবস্থা'), editable: true, type: 'select', opts: ['অবিবাহিত','বিবাহিত','বিধবা/বিপত্নীক','তালাকপ্রাপ্ত'] },
-    { key: 'sp',    label: 'স্ত্রী/স্বামীর নাম', editable: true },
-    { key: 'sd',    label: 'স্ত্রী/স্বামীর জন্ম', editable: true },
+    { key: 'ma_bn', label: t('বৈবাহিক অবস্থা'), editable: true, type: 'select', opts: ['অবিবাহিত','বিবাহিত','বিধবা/বিপত্নীক','তালাকপ্রাপ্ত'].map(v => appLang==='en' ? t(v) : v) },
+    { key: 'sp',    label: t('স্ত্রী/স্বামীর নাম'), editable: true },
+    { key: 'sd',    label: t('স্ত্রী/স্বামীর জন্ম'), editable: true },
     { key: 'wd',    label: t('বিবাহের তারিখ'),       editable: true },
   ];
   // শুধু data আছে এমন সন্তান যোগ করো
   for (let i = 1; i <= 9; i++) {
     if (m[`c${i}n`] || m[`c${i}d`]) {
-      familyDef.push({ key: `c${i}n`, label: `সন্তান ${i} নাম`, editable: true });
-      familyDef.push({ key: `c${i}d`, label: `সন্তান ${i} জন্ম`, editable: true });
+      familyDef.push({ key: `c${i}n`, label: t('সন্তান নাম') + ' ' + i, editable: true });
+      familyDef.push({ key: `c${i}d`, label: t('সন্তান জন্ম') + ' ' + i, editable: true });
     }
   }
   renderFields('familyFields', familyDef);
@@ -3823,6 +3854,12 @@ function renderFields(containerId, fields) {
   const computedRec = courseRecs.length ? courseRecs.join('<br>') : (m.rec || '');
 
   const html = fields.map(f => {
+    // Translate label if in English mode
+    let displayLabel = f.label;
+    if (appLang === 'en') {
+      displayLabel = translateValue(f.label);
+    }
+    
     // EN mode: _en counterpart use করো (r_bn→r_en, tr_bn→tr_en, etc.)
     const _EN_MAP = { r_bn:'r_en', tr_bn:'tr_en', co_bn:'co_en', di_bn:'di_en', ma_bn:'ma_en' };
     let raw;
@@ -3833,10 +3870,10 @@ function renderFields(containerId, fields) {
       const parts = [
         m.house    ? `🏠 ${m.house}` : '',
         m.village  ? `🏘️ ${m.village}` : '',
-        m.union    ? m.union : '',
-        m.upazila  ? m.upazila : '',
-        m.di_bn    ? m.di_bn : (m.di_en || ''),
-        m.division ? m.division : '',
+        m.union    ? (appLang === 'en' ? translateValue(m.union) : m.union) : '',
+        m.upazila  ? (appLang === 'en' ? translateValue(m.upazila) : m.upazila) : '',
+        m.di_bn    ? (appLang === 'en' ? translateValue(m.di_bn) : m.di_bn) : (appLang === 'en' ? translateValue(m.di_en) : m.di_en || ''),
+        m.division ? (appLang === 'en' ? translateValue(m.division) : m.division) : '',
       ].filter(Boolean);
       raw = parts.length ? parts.join(', ') : (m.ad || '');
     } else if (appLang === 'en' && _EN_MAP[f.key]) {
@@ -3844,7 +3881,13 @@ function renderFields(containerId, fields) {
     } else {
       raw = m[f.key];
     }
-    const rawDisplay = raw ? (appLang === 'en' ? (TRANSLATIONS[raw] || raw) : raw) : null;
+    
+    // Translate value if in English mode
+    let rawDisplay = raw;
+    if (appLang === 'en' && raw) {
+      rawDisplay = translateValue(String(raw));
+    }
+    
     const val = rawDisplay || '—';
     let editBtn = '';
     if (f.editable) {
@@ -3854,7 +3897,7 @@ function renderFields(containerId, fields) {
       } else if (f.type === 'address') {
         editBtn = `<button class="field-edit-btn" onclick="openAddressEdit()" title="ঠিকানা সম্পাদনা">✏️</button>`;
       } else {
-        editBtn = `<button class="field-edit-btn" onclick="openEdit('${f.key}','${f.label}','${f.type||'text'}','${(f.opts||[]).join(',')}')" title="${f.label} সম্পাদনা">✏️</button>`;
+        editBtn = `<button class="field-edit-btn" onclick="openEdit('${f.key}','${displayLabel}','${f.type||'text'}','${(f.opts||[]).join(',')}')" title="${displayLabel} সম্পাদনা">✏️</button>`;
       }
     }
     }
@@ -3892,7 +3935,7 @@ function renderFields(containerId, fields) {
     const isEmpty = !val || val === '—';
 
     return `<div class="field-row" style="${pendingBadge ? 'border-left:3px solid rgba(210,153,34,0.6);' : ''}">
-      <span class="field-label">${f.label}</span>
+      <span class="field-label">${displayLabel}</span>
       <div class="field-row-inner">
         <span class="field-value" id="fv-${f.key}"
           style="${isEmpty ? 'color:var(--text3);font-style:italic;font-weight:400' : ''}${f.key === 'rec' ? ';line-height:1.8' : ''}">
@@ -4634,6 +4677,69 @@ async function loadPendingPage() {
       (b.data().createdAt?.seconds || 0) - (a.data().createdAt?.seconds || 0)
     );
 
+    const formatPendingValue = (rawValue, requestType, extraData) => {
+      if (!rawValue && !extraData) return '—';
+      const objectFromValue = (value) => {
+        if (!value) return null;
+        if (typeof value === 'object') return value;
+        if (typeof value !== 'string') return null;
+
+        const text = value.trim();
+        if (!text) return null;
+        if ((text.startsWith('{') && text.endsWith('}')) || (text.startsWith('[') && text.endsWith(']'))) {
+          try { return JSON.parse(text); } catch (e) { return null; }
+        }
+        return null;
+      };
+
+      const data = extraData || objectFromValue(rawValue);
+      if (!data || typeof data !== 'object') {
+        return String(rawValue || '—').replace(/\s+/g, ' ').trim();
+      }
+
+      const parseValue = (key, val) => {
+        if (Array.isArray(val)) return val.join(', ');
+        if (val === null || val === undefined) return '';
+        if (typeof val === 'object') {
+          if (val.toDate instanceof Function) return val.toDate().toLocaleDateString('bn-BD');
+          if (val._delegate && val._delegate.toDate instanceof Function) return val._delegate.toDate().toLocaleDateString('bn-BD');
+          return JSON.stringify(val);
+        }
+        return String(val);
+      };
+
+      const fieldNames = {
+        type: 'ট্রেনিং',
+        from_date: 'শুরুর তারিখ',
+        to_date: 'শেষ তারিখ',
+        result: 'ফলাফল',
+        marks: 'মার্ক',
+        grade: 'গ্রেড',
+        count: 'সংখ্যা',
+        note: 'মন্তব্য',
+        leave_type: 'ছুটির ধরণ',
+        addedBy: 'দায়িত্বে',
+      };
+
+      const parts = [];
+      Object.keys(data).forEach(k => {
+        if (k === 'createdAt' || k === 'requestedBy' || k === 'status' || k === 'memberId') return;
+        const label = fieldNames[k] || (k.charAt(0).toUpperCase() + k.slice(1));
+        const pv = parseValue(k, data[k]);
+        if (pv) {
+          if (k === 'type' && requestType === 'addTraining') {
+            const cfg = TRAINING_CONFIG[pv] || null;
+            parts.push(`${label}: ${cfg?.label || pv}`);
+          } else {
+            parts.push(`${label}: ${pv}`);
+          }
+        }
+      });
+
+      if (parts.length) return parts.join(' | ');
+      return JSON.stringify(data);
+    };
+
     if (!docs.length) {
       box.innerHTML = `<div style="text-align:center;padding:50px 20px">
         <div style="font-size:3rem;margin-bottom:14px">✅</div>
@@ -4661,15 +4767,100 @@ async function loadPendingPage() {
 
       let dispVal = r.newValue || '—';
       let oldVal  = r.oldValue || '';
+
+      const toPlainText = (obj) => {
+        if (!obj) return '';
+        if (typeof obj === 'string') {
+          const trimmed = obj.trim();
+          if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+            try {
+              obj = JSON.parse(trimmed);
+            } catch (e) {
+              return obj;
+            }
+          } else {
+            return obj;
+          }
+        }
+        if (typeof obj !== 'object') return String(obj);
+
+        const parts = [];
+        if (obj.type) {
+          const typeLabel = TRAINING_CONFIG[obj.type]?.label || obj.type;
+          parts.push(`ট্রেইনিং: ${typeLabel} (${obj.type})`);
+        }
+        if (obj.from_date) {
+          const toDate = obj.to_date ? ` → ${obj.to_date}` : '';
+          parts.push(`তারিখ: ${obj.from_date}${toDate}`);
+        }
+        if (obj.result) parts.push(`ফলাফল: ${obj.result}`);
+        if (obj.marks !== undefined && obj.marks !== null) parts.push(`মার্কস: ${obj.marks}`);
+        if (obj.grade) parts.push(`গ্রেড: ${obj.grade}`);
+        if (obj.count !== undefined && obj.count !== null) parts.push(`গণনা: ${obj.count}`);
+        if (obj.note) parts.push(`মন্তব্য: ${obj.note}`);
+        if (Array.isArray(obj.fail_items) && obj.fail_items.length) parts.push(`ফেইল: ${obj.fail_items.join(', ')}`);
+        if (Array.isArray(obj.weapons) && obj.weapons.length) parts.push(`অস্ত্র: ${obj.weapons.join(', ')}`);
+
+        if (parts.length) return parts.join(' | ');
+
+        const skipKeys = new Set(['createdAt', 'requestedBy', 'status', 'memberId', '_delegate', 'addedBy']);
+        const restKeys = Object.keys(obj).filter(k => !skipKeys.has(k));
+        if (restKeys.length) {
+          return restKeys.map(k => {
+            const v = obj[k];
+            return `${k}: ${Array.isArray(v) ? v.join(', ') : (typeof v === 'object' ? JSON.stringify(v) : v)}`;
+          }).join(' | ');
+        }
+
+        return 'অনুমোদনের জন্য প্রদর্শনযোগ্য তথ্য';
+      };
+
+      const normalizePending = (raw) => {
+        if (!raw && raw !== 0) return '—';
+        if (typeof raw === 'object' && !Array.isArray(raw)) {
+          return formatPendingValue(raw, r.requestType, r.extraData);
+        }
+        if (typeof raw === 'string') {
+          const trimmed = raw.trim();
+          if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
+            const parsed = toPlainText(trimmed);
+            if (parsed) return parsed;
+          }
+          return trimmed;
+        }
+        return String(raw);
+      };
+
+      // 1) New value from explicit request type Hint
+      if (r.requestType === 'addTraining' || r.requestType === 'addCourse' || r.requestType === 'editCourse' || r.requestType === 'courseResult' || r.requestType === 'coursePosition') {
+        if (r.extraData) {
+          const formattedFn = formatPendingValue(r.extraData, r.requestType, r.extraData);
+          if (formattedFn) dispVal = formattedFn;
+        } else {
+          const resolved = normalizePending(r.newValue);
+          if (resolved) dispVal = resolved;
+        }
+      } else {
+        dispVal = normalizePending(dispVal);
+      }
+
+      // 2) Ensure course add/edit label remains preferred for course flows
       if (r.requestType === 'addCourse' && r.courseExtra) {
-        dispVal = r.courseExtra.nameBn || r.courseExtra.nameEn || dispVal.split(',').pop().trim();
+        dispVal = r.courseExtra.nameBn || r.courseExtra.nameEn || String(dispVal).split(',').pop().trim();
         oldVal  = '';
       } else if (r.requestType === 'editCourse' && r.courseEditExtra) {
-        dispVal = r.courseEditExtra.nameBn || dispVal.split(',').pop().trim();
-      } else if (dispVal.length > 50) {
-        dispVal = dispVal.substring(0, 50) + '...';
+        dispVal = r.courseEditExtra.nameBn || String(dispVal).split(',').pop().trim();
       }
-      if (oldVal.length > 50) oldVal = oldVal.substring(0, 50) + '...';
+
+      // 3) old value formatting
+      oldVal = normalizePending(oldVal);
+
+      if (String(dispVal).length > 120) {
+        dispVal = String(dispVal).substring(0, 120) + '...';
+      }
+      if (String(oldVal).length > 120) {
+        oldVal = String(oldVal).substring(0, 120) + '...';
+      }
 
       const badgeColor  = isEdit || isCourseResult ? 'var(--info)' : 'var(--warn)';
       const badgeBg     = isEdit || isCourseResult ? 'rgba(56,139,253,0.12)' : 'rgba(210,153,34,0.12)';
@@ -5333,6 +5524,10 @@ const BD_ARMY_WEAPONS = [
 ];
 
 const TRAINING_GRADES = ['পাস','ফেল','ভালো','খুব ভালো'];
+function getTrainingGradeDisplay(gr) { return appLang === 'en' ? t(gr) : gr; }
+function getTrainingGradeDisplay(grade) {
+  return appLang === 'en' ? t(grade) : grade;
+}
 
 async function loadAllTraining() {
   if (!currentMemberData) return;
@@ -5411,8 +5606,8 @@ function _buildTrainingForm(type) {
       <label class="form-label">ফলাফল *</label>
       <select class="form-input" id="trainResult" style="background:var(--dark3)" onchange="handleTrainResultChange('${type}')">
         <option value="">— নির্বাচন করুন —</option>
-        <option value="পাস">✅ পাস</option>
-        <option value="ফেল">❌ ফেল</option>
+        <option value="পাস">${appLang === 'en' ? 'Pass' : '✅ পাস'}</option>
+        <option value="ফেল">${appLang === 'en' ? 'Fail' : '❌ ফেল'}</option>
       </select>
     </div>`;
   const markField = `
@@ -5425,7 +5620,7 @@ function _buildTrainingForm(type) {
       <label class="form-label">মান</label>
       <select class="form-input" id="trainGrade" style="background:var(--dark3)">
         <option value="">— নির্বাচন করুন —</option>
-        ${opts.map(g=>`<option value="${g}">${g}</option>`).join('')}
+        ${opts.map(g=>`<option value="${g}">${getTrainingGradeDisplay(g)}</option>`).join('')}
       </select>
     </div>`;
   const failSection = `
@@ -5487,6 +5682,7 @@ function openAddTraining(type) {
 function handleTrainResultChange(type) {
   const val = document.getElementById('trainResult')?.value;
   const sec = document.getElementById('failItemsSection');
+  // Storage value is always Bengali (ফেল)
   if (sec) sec.style.display = val === 'ফেল' ? 'block' : 'none';
 }
 
@@ -5504,6 +5700,10 @@ async function deleteTraining(trainingDocId, type) {
    LEAVE (ছুটি) PAGE
 ══════════════════════════════════════════ */
 const LEAVE_TYPES = ['সাময়িক ছুটি', 'সুযোগী ছুটি', 'চিত্তবিনোদন ছুটি', 'সাপ্তাহিক ছুটি'];
+function getLeaveTypeDisplay(lt) { return appLang === 'en' ? t(lt) : lt; }
+function getLeaveTypeDisplay(leaveType) {
+  return appLang === 'en' ? t(leaveType) : leaveType;
+}
 
 async function loadLeave() {
   const box = document.getElementById('leaveList');
@@ -5620,7 +5820,7 @@ function openAddLeave() {
     <div class="form-group">
       <label class="form-label">ছুটির প্রকার *</label>
       <select class="form-input" id="leaveType" style="background:var(--dark3)">
-        ${LEAVE_TYPES.map(lt => `<option value="${lt}">${lt}</option>`).join('')}
+        ${LEAVE_TYPES.map(lt => `<option value="${lt}">${getLeaveTypeDisplay(lt)}</option>`).join('')}
       </select>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
@@ -5667,7 +5867,7 @@ async function editLeave(leaveId) {
     <div class="form-group">
       <label class="form-label">ছুটির প্রকার</label>
       <select class="form-input" id="leaveType" style="background:var(--dark3)">
-        ${LEAVE_TYPES.map(lt => `<option value="${lt}" ${lv.leave_type===lt?'selected':''}>${lt}</option>`).join('')}
+        ${LEAVE_TYPES.map(lt => `<option value="${lt}" ${lv.leave_type===lt?'selected':''}>${getLeaveTypeDisplay(lt)}</option>`).join('')}
       </select>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
@@ -7094,9 +7294,9 @@ function renderAdminFields() {
   ];
   const militaryFields = [
     { key: 'no',         label: t('সেনা নম্বর') },
-    { key: 'r_bn',       label: t('পদবী'),              type: 'select', opts: ['লেঃ কর্নেল','মেজর','ক্যাপ্টেন','লেফটেন্যান্ট','মাস্টাঃ ওয়াঃ অফিঃ','সিনিঃ ওয়াঃ অফিঃ','ওয়ারেন্ট অফিসার','সার্জেন্ট','কর্পোরাল','ল্যান্স কর্পোরাল','সৈনিক','এনসি (ই)'] },
+    { key: 'r_bn',       label: t('পদবী'),              type: 'select', opts: ['লেঃ কর্নেল','মেজর','ক্যাপ্টেন','লেফটেন্যান্ট','মাস্টাঃ ওয়াঃ অফিঃ','সিনিঃ ওয়াঃ অফিঃ','ওয়ারেন্ট অফিসার','সার্জেন্ট','কর্পোরাল','ল্যান্স কর্পোরাল','সৈনিক','এনসি (ই)'].map(v => appLang==='en' ? t(v) : v) },
     { key: 'r_en',       label: 'পদবী (ইংরেজি)' },
-    { key: 'tr_bn',      label: t('ট্রেড'),             type: 'select', opts: ['অফিসার','আরএমটি','আরসিটি','ইএন্ডবিআর','ইলেক্টিশিয়ান','এ/ই','এইসি','এনসি (ই)','এমএ','এসএমটি','ওইপি','ওবিএম','ওসিইউ','ওয়েল্ডার','করনিক','কার্পেন্টার','কুক (ইউ)','টিএসএ','টিবিভি','টিসিভি','টেইলার','ডিএমটি','ডিএসভি','ড্রাফটসম্যান','পিডি','পেইন্টার','বিটিএস','মেশন','মেশিনিষ্ট','সার্ভেয়ার'] },
+    { key: 'tr_bn',      label: t('ট্রেড'),             type: 'select', opts: ['অফিসার','আরএমটি','আরসিটি','ইএন্ডবিআর','ইলেক্টিশিয়ান','এ/ই','এইসি','এনসি (ই)','এমএ','এসএমটি','ওইপি','ওবিএম','ওসিইউ','ওয়েল্ডার','করনিক','কার্পেন্টার','কুক (ইউ)','টিএসএ','টিবিভি','টিসিভি','টেইলার','ডিএমটি','ডিএসভি','ড্রাফটসম্যান','পিডি','পেইন্টার','বিটিএস','মেশন','মেশিনিষ্ট','সার্ভেয়ার'].map(v => appLang==='en' ? t(v) : v) },
     { key: 'co_bn',      label: t('কোম্পানী') },
     { key: 'niyog',      label: t('নিয়োগ') },
     { key: 'jd',         label: t('ভর্তির তারিখ') },
@@ -7113,7 +7313,7 @@ function renderAdminFields() {
     { key: 'pn',         label: t('সাজা') },
   ];
   const familyFields = [
-    { key: 'ma_bn', label: t('বৈবাহিক অবস্থা'), type: 'select', opts: ['অবিবাহিত','বিবাহিত','বিধবা/বিপত্নীক','তালাকপ্রাপ্ত'] },
+    { key: 'ma_bn', label: t('বৈবাহিক অবস্থা'), type: 'select', opts: ['অবিবাহিত','বিবাহিত','বিধবা/বিপত্নীক','তালাকপ্রাপ্ত'].map(v => appLang==='en' ? t(v) : v) },
     { key: 'sp',    label: 'স্ত্রী/স্বামীর নাম' },
     { key: 'sd',    label: 'স্ত্রী/স্বামীর জন্ম তারিখ' },
     { key: 'wd',    label: t('বিবাহের তারিখ') },
@@ -9283,8 +9483,34 @@ function toggleTheme() {
   applyTheme(appTheme === 'dark' ? 'light' : 'dark');
 }
 
-// প্রথমে theme প্রয়োগ করো
-(function() { applyTheme(appTheme); })();
+function initLanguage() {
+  // page লোডে বর্তমান ভাষা প্রয়োগ
+  applyLangToUI();
+  const btn = document.getElementById('langToggleBtn');
+  if (btn) btn.textContent = appLang === 'bn' ? 'EN' : 'বাং';
+}
+
+function refreshPageLanguage() {
+  // reload active section যা দুই ভাষায় নির্ভর করে
+  const activePage = document.querySelector('.page.active')?.id;
+  if (activePage === 'page-leave') {
+    loadLeave();
+    loadAllTraining();
+  } else if (activePage === 'page-courses') {
+    renderCourses();
+    loadPendingCoursesAndRender();
+  } else if (activePage === 'page-pending') {
+    loadPendingPage();
+  } else if (activePage === 'page-admin') {
+    // ইচ্ছা করলে admin refresh
+  }
+  if (currentMemberData) {
+    renderProfile();
+  }
+  applyLangToUI();
+}
+
+// Theme/lang initialization is done after TRANSLATIONS and FIREBASE_CONFIG are set
 
 const TRANSLATIONS = {
   // Navigation
@@ -9310,13 +9536,9 @@ const TRANSLATIONS = {
   'সুপারিশ': 'Recommendation', 'পূর্বের ইউনিট': 'Previous Unit',
   'লাইসেন্স': 'License', 'সাজা': 'Punishment', 'পেনশন তারিখ': 'Pension Date',
   // Family fields
-  'বৈবাহিক অবস্থা': 'Marital Status', 'স্ত্রীর নাম': 'Spouse Name',
-  'স্ত্রীর জন্ম': 'Spouse DOB', 'বিবাহের তারিখ': 'Marriage Date',
-  'সন্তান ১ নাম': 'Child 1 Name', 'সন্তান ১ জন্ম': 'Child 1 DOB',
-  'সন্তান ২ নাম': 'Child 2 Name', 'সন্তান ২ জন্ম': 'Child 2 DOB',
-  'সন্তান ৩ নাম': 'Child 3 Name', 'সন্তান ৩ জন্ম': 'Child 3 DOB',
-  'সন্তান ৪ নাম': 'Child 4 Name', 'সন্তান ৪ জন্ম': 'Child 4 DOB',
-  'সন্তান ৫ নাম': 'Child 5 Name', 'সন্তান ৫ জন্ম': 'Child 5 DOB',
+  'বৈবাহিক অবস্থা': 'Marital Status', 'স্ত্রীর নাম': 'Spouse Name', 'স্ত্রী/স্বামীর নাম': 'Spouse Name',
+  'স্ত্রীর জন্ম': 'Spouse DOB', 'স্ত্রী/স্বামীর জন্ম': 'Spouse DOB', 'বিবাহের তারিখ': 'Marriage Date',
+  'সন্তান নাম': 'Child Name', 'সন্তান জন্ম': 'Child DOB',
   // Course
   'কোর্স ও ক্যাডার': 'Courses & Cadre', 'ফলাফল চূড়ান্ত': 'Result Finalized',
   'ফলাফল নির্বাচন করুন:': 'Select Result:', 'অর্জিত অবস্থান:': 'Position Achieved:',
@@ -9347,6 +9569,15 @@ const TRANSLATIONS = {
   // Marital status values
   'অবিবাহিত': 'Unmarried', 'বিবাহিত': 'Married',
   'বিধবা/বিপত্নীক': 'Widowed', 'তালাকপ্রাপ্ত': 'Divorced',
+  // Location values
+  'ঢাকা': 'Dhaka', 'চট্টগ্রাম': 'Chittagong', 'সিলেট': 'Sylhet', 'রাজশাহী': 'Rajshahi', 
+  'খুলনা': 'Khulna', 'বরিশাল': 'Barishal', 'রংপুর': 'Rangpur', 'ময়মনসিংহ': 'Mymensingh',
+  // Education values
+  'প্রাথমিক (৫ম শ্রেণি)': 'Primary (5th Grade)',
+  'জুনিয়র স্কুল সার্টিফিকেট (জেএসসি)': 'JSC',
+  'মাধ্যমিক (এসএসসি)': 'SSC', 'মাধ্যমিক (এসএসি)': 'SSC',
+  'উচ্চ মাধ্যমিক (এসএইচএস)': 'HSC', 'উচ্চ মাধ্যমিক (এসএসসি)': 'HSC',
+  'ডিপ্লোমা': 'Diploma', 'ডিগ্রী/অনার্স': 'Bachelor', 'মাস্টার্স': 'Masters', 'অন্যান্য': 'Others',
   // Notifications
   'কোনো বিজ্ঞপ্তি নেই': 'No notifications',
   'অনুমোদিত': 'Approved', 'অপেক্ষায়': 'Pending', 'বাতিল': 'Rejected',
@@ -9360,24 +9591,32 @@ function t(bn) {
   return bn;
 }
 
+function translateValue(val) {
+  // Try exact match first
+  if (TRANSLATIONS[val]) return TRANSLATIONS[val];
+  
+  // Try trimmed version
+  const trimmed = String(val).trim();
+  if (TRANSLATIONS[trimmed]) return TRANSLATIONS[trimmed];
+  
+  // If no match, return original
+  return val;
+}
+
 function toggleAppLang() {
   appLang = appLang === 'bn' ? 'en' : 'bn';
   localStorage.setItem('4engr_lang', appLang);
   const btn = document.getElementById('langToggleBtn');
   if (btn) btn.textContent = appLang === 'bn' ? 'EN' : 'বাং';
 
-  // পুরো UI re-render করো
-  if (currentMemberData) {
-    renderProfile();           // প্রোফাইল — সব field ভাষা অনুযায়ী
-    renderCourses();           // কোর্স নাম ও ফলাফল
-    loadPendingCoursesAndRender(); // pending কোর্স
-  }
-
-  // Static labels translate করো
-  applyLangToUI();
+  refreshPageLanguage();
 }
 
 function applyLangToUI() {
+  if (typeof TRANSLATIONS === 'undefined') {
+    console.warn('TRANSLATIONS not initialized yet; skipping applyLangToUI');
+    return;
+  }
   const isBn = appLang !== 'en';
 
   // Nav labels
@@ -9450,15 +9689,25 @@ function applyLangToUI() {
 /* ══════════════════════════════════════════
    FIREBASE HARDCODED CONFIG
 ══════════════════════════════════════════ */
-const FIREBASE_CONFIG = {
+FIREBASE_CONFIG = {
   apiKey: "AIzaSyBDmTEMzsCtItxkWJdQo9TDmeepkVvmAgk",
   authDomain: "dynamicfour-8bee5.firebaseapp.com",
   projectId: "dynamicfour-8bee5",
   storageBucket: "dynamicfour-8bee5.firebasestorage.app",
   messagingSenderId: "93285624246",
   appId: "1:93285624246:web:6b7f7da1cc26875cadf917",
-  measurementId: "G-9QN2QE8E9E"
+  measurementId: "G-9QN2QE8E"
 };
+
+// Theme and language initialization (after TRANSLATIONS is ready)
+(function() {
+  if (window.location.protocol === 'file:') {
+    console.warn('Local file protocol: service worker and manifest are not available. Use http://localhost.');
+    showToast('Local file protocol unsupported for full PWA; use http://localhost.', 'warn');
+  }
+  applyTheme(appTheme);
+  initLanguage();
+})();
 
 /* ══════════════════════════════════════════
    INIT
@@ -9487,7 +9736,14 @@ console.error = function(...args) {
 };
 
 (function init() {
-  if (initFirebase(FIREBASE_CONFIG)) {
+  const config = FIREBASE_CONFIG || getStoredConfig();
+  if (!config || !config.apiKey) {
+    console.error('Firebase config unavailable on init:', config);
+    showToast('Firebase কনফিগারেশন অনুপস্থিত। কোড চেক করুন।', 'error');
+    return;
+  }
+
+  if (initFirebase(config)) {
     showScreen('login');
     setupAuthListener();
   } else {
