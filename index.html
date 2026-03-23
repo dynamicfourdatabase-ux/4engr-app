@@ -831,24 +831,6 @@ select.form-input { cursor: pointer; }
 }
 .config-note strong { color: var(--gold); }
 
-
-/* Google Translate Widget */
-#google_translate_element .goog-te-gadget-simple {
-  background: rgba(200,169,74,0.12) !important;
-  border: 1px solid rgba(200,169,74,0.3) !important;
-  border-radius: 8px !important;
-  padding: 4px 8px !important;
-  font-family: 'Rajdhani', sans-serif !important;
-  font-size: 0.72rem !important;
-  font-weight: 700 !important;
-}
-#google_translate_element .goog-te-gadget-simple a {
-  color: var(--gold) !important;
-  text-decoration: none !important;
-}
-#google_translate_element .goog-te-gadget-simple img { display: none !important; }
-.goog-te-banner-frame { display: none !important; }
-body { top: 0 !important; }
 </style>
 </head>
 <body>
@@ -1236,7 +1218,10 @@ body { top: 0 !important; }
       <div class="topbar-role" id="topbarRole">সৈনিক</div>
     </div>
     <div class="topbar-btns">
-      <div id="google_translate_element" style="display:inline-block;vertical-align:middle;"></div>
+      <button id="langToggleBtn" onclick="toggleAppLang()" title="Switch Language"
+        style="background:rgba(200,169,74,0.12);border:1px solid rgba(200,169,74,0.3);border-radius:8px;padding:5px 10px;color:var(--gold);cursor:pointer;font-family:'Rajdhani',sans-serif;font-size:0.72rem;font-weight:700;letter-spacing:1px;transition:all 0.2s">
+        EN
+      </button>
       <button class="icon-btn" onclick="navTo('notifications')" title="বিজ্ঞপ্তি">
         🔔<span class="notif-dot" id="notifDot" style="display:none"></span>
       </button>
@@ -3805,7 +3790,12 @@ function renderProfile() {
   if (userRole !== 'admin' && userRole !== 'superadmin' && userRole !== 'subadmin') {
     checkPendingStatus();
   }
-  // (Google Translate ব্যবহার হচ্ছে)
+  // ভাষা প্রয়োগ করো
+  setTimeout(() => {
+    const btn = document.getElementById('langToggleBtn');
+    if (btn) btn.textContent = appLang === 'bn' ? 'EN' : 'বাং';
+    if (appLang === 'en') applyLangToUI();
+  }, 100);
 }
 
 // তারিখ field keys — এগুলোর পাশে বছর/মাস/দিন দেখাবে
@@ -3854,7 +3844,7 @@ function renderFields(containerId, fields) {
     } else {
       raw = m[f.key];
     }
-    const rawDisplay = raw || null;
+    const rawDisplay = raw ? (appLang === 'en' ? (TRANSLATIONS[raw] || raw) : raw) : null;
     const val = rawDisplay || '—';
     let editBtn = '';
     if (f.editable) {
@@ -4194,7 +4184,15 @@ async function saveModal() {
       closeModal();
       showToast('✅ ' + TRAINING_CONFIG[type].label + ' রেকর্ড যোগ হয়েছে', 'success');
       loadTrainingSection(docId, type);
-    } catch(e) { showToast('❌ ব্যর্থ: ' + e.message, 'error'); }
+    } catch(e) {
+      const isPermErr = e.code === 'permission-denied' || (e.message||'').toLowerCase().includes('permission');
+      const isAdminUser = userRole === 'admin' || userRole === 'superadmin';
+      if (isPermErr && !isAdminUser) {
+        showToast('⚠️ এই তথ্য যোগ করার অনুমতি নেই। Admin-এর সাথে যোগাযোগ করুন।', 'warn');
+      } else {
+        showToast('❌ ব্যর্থ: ' + e.message, 'error');
+      }
+    }
     btn.textContent = 'সংরক্ষণ করুন'; btn.disabled = false; return;
   }
 
@@ -4583,15 +4581,29 @@ async function loadPendingPage() {
   try {
     let docs = [];
     try {
+      // প্রথমে memberId দিয়ে try
       const q = await db.collection('editRequests')
         .where('memberId', '==', docId)
         .where('status', '==', 'pending').get();
       docs = q.docs;
     } catch(e1) {
-      const q = await db.collection('editRequests')
-        .where('requestedBy', '==', currentUser.uid)
-        .where('status', '==', 'pending').get();
-      docs = q.docs;
+      try {
+        // index নেই বা permission error — requestedBy দিয়ে try
+        const q = await db.collection('editRequests')
+          .where('requestedBy', '==', currentUser.uid)
+          .where('status', '==', 'pending').get();
+        docs = q.docs;
+      } catch(e2) {
+        try {
+          // সব filter ছাড়া শুধু uid দিয়ে try করো
+          const q = await db.collection('editRequests')
+            .where('requestedBy', '==', currentUser.uid).get();
+          docs = q.docs.filter(d => d.data().status === 'pending');
+        } catch(e3) {
+          console.warn('editRequests load failed:', e3.message);
+          docs = [];
+        }
+      }
     }
 
     // sort — নতুন আগে
@@ -4656,7 +4668,26 @@ async function loadPendingPage() {
     _updatePendingNav(docs.length);
 
   } catch(e) {
-    box.innerHTML = `<div style="color:var(--danger);padding:20px;font-size:0.82rem">লোড ব্যর্থ: ${e.message}</div>`;
+    const isIndex = (e.message || '').includes('index') || (e.message || '').includes('Index');
+    const isPerm  = e.code === 'permission-denied' || (e.message || '').toLowerCase().includes('permission');
+    let errMsg = '';
+    if (isIndex) {
+      const indexUrl = (e.message.match(/https?:\/\/[^\s]+/) || [''])[0];
+      errMsg = `<div style="color:var(--warn);padding:20px;font-size:0.82rem;line-height:1.8;text-align:center">
+        ⚙️ Firestore Index তৈরি করতে হবে।<br>
+        <span style="font-size:0.73rem;color:var(--text2)">Firebase Console → Firestore → Indexes</span>
+        ${indexUrl ? `<br><br><a href="${indexUrl}" target="_blank" style="color:var(--gold);font-size:0.78rem;font-family:'Rajdhani',sans-serif;font-weight:700">🔗 Index তৈরি করুন →</a>` : ''}
+        <br><br><button onclick="loadPendingPage()" style="background:linear-gradient(135deg,var(--gold),#9a7a20);border:none;border-radius:8px;padding:8px 18px;color:#0a0c10;font-family:'Rajdhani',sans-serif;font-weight:700;cursor:pointer;font-size:0.8rem">🔄 আবার চেষ্টা</button>
+      </div>`;
+    } else if (isPerm) {
+      errMsg = `<div style="color:var(--warn);padding:20px;font-size:0.82rem;line-height:1.8;text-align:center">
+        ⚠️ দেখার অনুমতি নেই।<br>
+        <span style="font-size:0.73rem;color:var(--text2)">Firebase Rules আপডেট করুন।</span>
+      </div>`;
+    } else {
+      errMsg = `<div style="color:var(--danger);padding:20px;font-size:0.82rem">লোড ব্যর্থ: ${e.message}</div>`;
+    }
+    box.innerHTML = errMsg;
   }
 }
 
@@ -5153,10 +5184,22 @@ async function loadPendingCoursesAndRender() {
         .where('status', '==', 'pending')
         .get();
     } catch(e1) {
-      snap = await db.collection('editRequests')
-        .where('requestedBy', '==', currentUser.uid)
-        .where('status', '==', 'pending')
-        .get();
+      try {
+        snap = await db.collection('editRequests')
+          .where('requestedBy', '==', currentUser.uid)
+          .where('status', '==', 'pending')
+          .get();
+      } catch(e2) {
+        try {
+          // Fallback: filter ছাড়া, client-side filter করো
+          const all = await db.collection('editRequests')
+            .where('requestedBy', '==', currentUser.uid).get();
+          // fake snap object
+          snap = { empty: all.empty, docs: all.docs.filter(d => d.data().status === 'pending') };
+        } catch(e3) {
+          snap = { empty: true, docs: [] };
+        }
+      }
     }
 
     if (snap.empty) return; // কোনো pending নেই
@@ -9189,10 +9232,10 @@ function showToast(msg, type='') {
   toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
 }
 
-/* appLang — Google Translate এখন ভাষা নিয়ন্ত্রণ করে */
-let appLang = 'bn';
-
-/* ══ THEME (Dark / Light) ══ */
+/* ══════════════════════════════════════════
+   LANGUAGE SYSTEM
+══════════════════════════════════════════ */
+let appLang = localStorage.getItem('4engr_lang') || 'bn';
 
 /* ══ THEME (Dark / Light) ══ */
 let appTheme = localStorage.getItem('4engr_theme') || 'dark';
@@ -9219,6 +9262,167 @@ function toggleTheme() {
 // প্রথমে theme প্রয়োগ করো
 (function() { applyTheme(appTheme); })();
 
+const TRANSLATIONS = {
+  // Navigation
+  'প্রোফাইল': 'Profile', 'কোর্স': 'Courses', 'বিজ্ঞপ্তি': 'Notifications',
+  'Admin': 'Admin', 'সেটিংস': 'Settings', 'ছুটি': 'Leave', 'অপেক্ষমান': 'Pending',
+  // Profile card headers
+  'ব্যক্তিগত তথ্য': 'Personal Info', 'সামরিক তথ্য': 'Military Info',
+  'পারিবারিক তথ্য': 'Family Info', 'পদোন্নতির ইতিহাস': 'Promotion History',
+  'অনুমোদনের অপেক্ষায়': 'Pending Approval',
+  // Personal fields
+  'বাংলা নাম': 'Bengali Name', 'ইংরেজি নাম': 'English Name',
+  'জন্ম তারিখ': 'Date of Birth', 'রক্তের গ্রুপ': 'Blood Group',
+  'লিঙ্গ': 'Gender', 'NID নম্বর': 'NID Number', 'NID মোবাইল': 'NID Mobile',
+  'মোবাইল': 'Mobile', 'হোয়াটসঅ্যাপ': 'WhatsApp',
+  'জরুরি যোগাযোগ': 'Emergency Contact', 'স্থায়ী ঠিকানা': 'Permanent Address',
+  'জেলা': 'District', 'শিক্ষাগত যোগ্যতা': 'Education',
+  // Military fields
+  'সেনা নম্বর': 'Army No.', 'পদবী': 'Rank', 'ট্রেড': 'Trade',
+  'কোম্পানী': 'Company', 'নিয়োগ': 'Appointment',
+  'ভর্তির তারিখ': 'Enlistment Date', 'শপথের তারিখ': 'Oath Date',
+  'প্রমোশনের তারিখ': 'Promotion Date', 'AI ১/২০১৩ বর্ধিত': 'AI 1/2013 Extended',
+  'বাসস্থান অবস্থান': 'Residence Location', 'বাসস্থান মেয়াদ': 'Residence Period',
+  'সুপারিশ': 'Recommendation', 'পূর্বের ইউনিট': 'Previous Unit',
+  'লাইসেন্স': 'License', 'সাজা': 'Punishment', 'পেনশন তারিখ': 'Pension Date',
+  // Family fields
+  'বৈবাহিক অবস্থা': 'Marital Status', 'স্ত্রীর নাম': 'Spouse Name',
+  'স্ত্রীর জন্ম': 'Spouse DOB', 'বিবাহের তারিখ': 'Marriage Date',
+  'সন্তান ১ নাম': 'Child 1 Name', 'সন্তান ১ জন্ম': 'Child 1 DOB',
+  'সন্তান ২ নাম': 'Child 2 Name', 'সন্তান ২ জন্ম': 'Child 2 DOB',
+  'সন্তান ৩ নাম': 'Child 3 Name', 'সন্তান ৩ জন্ম': 'Child 3 DOB',
+  'সন্তান ৪ নাম': 'Child 4 Name', 'সন্তান ৪ জন্ম': 'Child 4 DOB',
+  'সন্তান ৫ নাম': 'Child 5 Name', 'সন্তান ৫ জন্ম': 'Child 5 DOB',
+  // Course
+  'কোর্স ও ক্যাডার': 'Courses & Cadre', 'ফলাফল চূড়ান্ত': 'Result Finalized',
+  'ফলাফল নির্বাচন করুন:': 'Select Result:', 'অর্জিত অবস্থান:': 'Position Achieved:',
+  'কোনো কোর্স যোগ করা হয়নি': 'No courses added yet',
+  // Buttons & actions
+  'লগইন করুন': 'Login', 'নিবন্ধন করুন': 'Register',
+  'সংরক্ষণ করুন': 'Save', 'বাতিল': 'Cancel', 'সংরক্ষণ': 'Save',
+  'ছবি পরিবর্তন': 'Change Photo', 'লগআউট': 'Logout',
+  'সম্পাদনা': 'Edit',
+  // Status / roles
+  'Super Admin': 'Super Admin', 'সৈনিক': 'Sainik', 'সেনিক': 'Sainik',
+  'লোড হচ্ছে...': 'Loading...',
+  // Leave page
+  'ছুটির তথ্য': 'Leave Info', 'ছুটির তালিকা': 'Leave List',
+  'ছুটি নেই': 'No Leave Records',
+  // Admin panel
+  'সদস্য তথ্য সংশোধন': 'Member Edit', 'অনুমোদন অপেক্ষমাণ': 'Pending Approval',
+  'মোট সদস্য': 'Total Members', 'আজকের এডিট': "Today's Edits",
+  'ইউজার ম্যানেজমেন্ট': 'User Management',
+  'সৈনিক এডিট': 'Member Edit', 'Admins': 'Admins',
+  'পাসওয়ার্ড রিসেট': 'Password Reset', 'Create Admin': 'Create Admin',
+  // Settings
+  'পাসওয়ার্ড পরিবর্তন': 'Change Password',
+  'ডার্ক মোড': 'Dark Mode', 'লাইট মোড': 'Light Mode',
+  'বর্তমানে ডার্ক মোড চালু আছে': 'Dark mode is active',
+  'বর্তমানে লাইট মোড চালু আছে': 'Light mode is active',
+  'হোম স্ক্রিনে ইন্সটল করুন': 'Install on Home Screen', 'ইন্সটল': 'Install',
+  // Marital status values
+  'অবিবাহিত': 'Unmarried', 'বিবাহিত': 'Married',
+  'বিধবা/বিপত্নীক': 'Widowed', 'তালাকপ্রাপ্ত': 'Divorced',
+  // Notifications
+  'কোনো বিজ্ঞপ্তি নেই': 'No notifications',
+  'অনুমোদিত': 'Approved', 'অপেক্ষায়': 'Pending', 'বাতিল': 'Rejected',
+  'পুরুষ': 'Male',
+  'মহিলা': 'Female',
+  'অবস্থান তথ্য জানা যায় নি': 'Position unknown'
+};
+
+function t(bn) {
+  if (appLang === 'en') return TRANSLATIONS[bn] || bn;
+  return bn;
+}
+
+function toggleAppLang() {
+  appLang = appLang === 'bn' ? 'en' : 'bn';
+  localStorage.setItem('4engr_lang', appLang);
+  const btn = document.getElementById('langToggleBtn');
+  if (btn) btn.textContent = appLang === 'bn' ? 'EN' : 'বাং';
+
+  // পুরো UI re-render করো
+  if (currentMemberData) {
+    renderProfile();           // প্রোফাইল — সব field ভাষা অনুযায়ী
+    renderCourses();           // কোর্স নাম ও ফলাফল
+    loadPendingCoursesAndRender(); // pending কোর্স
+  }
+
+  // Static labels translate করো
+  applyLangToUI();
+}
+
+function applyLangToUI() {
+  const isBn = appLang !== 'en';
+
+  // Nav labels
+  const navMap = {
+    'nav-profile':       [isBn ? 'প্রোফাইল'  : 'Profile',       '👤'],
+    'nav-courses':       [isBn ? 'কোর্স'      : 'Courses',       '📚'],
+    'nav-leave':         [isBn ? 'ছুটি'       : 'Leave',         '🏖️'],
+    'nav-notifications': [isBn ? 'বিজ্ঞপ্তি' : 'Notifications', '🔔'],
+    'nav-admin':         ['Admin',                                 '🛡️'],
+    'nav-pending':       [isBn ? 'অপেক্ষমান' : 'Pending',        '⏳'],
+    'nav-settings':      [isBn ? 'সেটিংস'    : 'Settings',       '⚙️'],
+  };
+  Object.entries(navMap).forEach(([id, [label, icon]]) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    // badge span আলাদাভাবে সংরক্ষণ করো
+    const badge = el.querySelector('#pendingNavBadge');
+    el.innerHTML = '<span class="nav-icon">' + icon + '</span>' + label;
+    if (badge) el.appendChild(badge);
+  });
+
+  // Topbar role
+  const roleEl = document.getElementById('topbarRole');
+  if (roleEl && currentMemberData) {
+    if (userRole === 'superadmin' || userRole === 'admin') {
+      roleEl.textContent = isBn ? 'সুপার অ্যাডমিন' : 'Super Admin';
+    } else {
+      roleEl.textContent = isBn
+        ? (currentMemberData.r_bn || currentMemberData.r_en || '')
+        : (currentMemberData.r_en || currentMemberData.r_bn || '');
+    }
+  }
+
+  // Profile ও course re-render (data ভাষা অনুযায়ী বদলাবে)
+  // toggleAppLang থেকে ইতিমধ্যে renderProfile() call হয়েছে
+  // এখানে শুধু static text translate করো
+
+  // Card headers — TRANSLATIONS ব্যবহার করো
+  document.querySelectorAll('.card-header-title').forEach(el => {
+    const txt = el.textContent.trim();
+    el.textContent = isBn
+      ? (Object.keys(TRANSLATIONS).find(k => TRANSLATIONS[k] === txt) || txt)
+      : (TRANSLATIONS[txt] || txt);
+  });
+
+  // Field labels
+  document.querySelectorAll('.field-label').forEach(el => {
+    const txt = el.textContent.trim();
+    el.textContent = isBn
+      ? (Object.keys(TRANSLATIONS).find(k => TRANSLATIONS[k] === txt) || txt)
+      : (TRANSLATIONS[txt] || txt);
+  });
+
+  // Profile name
+  if (currentMemberData) {
+    const name = isBn
+      ? (currentMemberData.bn || currentMemberData.en || '—')
+      : (currentMemberData.en || currentMemberData.bn || '—');
+    const nameEl = document.getElementById('profileName');
+    const topEl  = document.getElementById('topbarName');
+    if (nameEl) nameEl.textContent = name;
+    if (topEl)  topEl.textContent  = name;
+  }
+
+  // Lang button label
+  const btn = document.getElementById('langToggleBtn');
+  if (btn) btn.textContent = isBn ? 'EN' : 'বাং';
+}
+
 /* ══════════════════════════════════════════
    FIREBASE HARDCODED CONFIG
 ══════════════════════════════════════════ */
@@ -9235,6 +9439,29 @@ const FIREBASE_CONFIG = {
 /* ══════════════════════════════════════════
    INIT
 ══════════════════════════════════════════ */
+// Firestore Index URL interceptor — auto-display index creation link
+const _origConsoleError = console.error;
+console.error = function(...args) {
+  _origConsoleError.apply(console, args);
+  const msg = args.join(' ');
+  if (msg.includes('firestore/indexes') && msg.includes('create_composite')) {
+    const urlMatch = msg.match(/https?:\/\/[^\s"]+/);
+    if (urlMatch) {
+      const url = urlMatch[0];
+      if (!document.getElementById('_indexToast')) {
+        const el = document.createElement('div');
+        el.id = '_indexToast';
+        el.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1c2333;border:1px solid rgba(200,169,74,0.5);border-radius:12px;padding:12px 18px;z-index:99999;max-width:90vw;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,0.5)';
+        el.innerHTML = '<div style="font-size:0.78rem;color:#e6e6e6;margin-bottom:8px">⚙️ Firestore Index তৈরি করতে হবে</div>' +
+          '<a href="' + url + '" target="_blank" style="font-size:0.75rem;color:#c8a94a;font-family:Rajdhani,sans-serif;font-weight:700;text-decoration:none">🔗 Index তৈরি করুন →</a>' +
+          '<button onclick="this.parentNode.remove()" style="display:block;width:100%;margin-top:8px;background:rgba(200,169,74,0.15);border:1px solid rgba(200,169,74,0.3);border-radius:6px;color:#c8a94a;font-family:Rajdhani,sans-serif;font-size:0.72rem;padding:4px;cursor:pointer">বন্ধ করুন</button>';
+        document.body.appendChild(el);
+        setTimeout(() => { if (el.parentNode) el.remove(); }, 30000);
+      }
+    }
+  }
+};
+
 (function init() {
   if (initFirebase(FIREBASE_CONFIG)) {
     showScreen('login');
@@ -9273,19 +9500,5 @@ function installPWA() {
   }
 }
 </script>
-
-<!-- Google Translate -->
-<script type="text/javascript">
-function googleTranslateElementInit() {
-  new google.translate.TranslateElement({
-    pageLanguage: 'bn',
-    includedLanguages: 'bn,en,ar,hi,ur,zh-CN,fr,de,es,ru,pt,ja,ko',
-    layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
-    autoDisplay: false
-  }, 'google_translate_element');
-}
-</script>
-<script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
-
 </body>
 </html>
