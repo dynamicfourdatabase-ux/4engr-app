@@ -112,6 +112,72 @@ body {
   letter-spacing: 3px; text-transform: uppercase; margin-top: 2px;
 }
 .header-right { display: flex; align-items: center; gap: 10px; }
+
+/* ═══ Header Profile Avatar & Dropdown ═══ */
+.header-avatar-wrap {
+  position: relative;
+}
+.header-avatar {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  border: 2px solid rgba(200,169,74,0.6);
+  cursor: pointer;
+  overflow: hidden;
+  background: rgba(200,169,74,0.15);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.85rem; font-weight: 700; color: #c8a94a;
+  font-family: 'Rajdhani', sans-serif;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  flex-shrink: 0;
+}
+.header-avatar:hover { border-color: #c8a94a; box-shadow: 0 0 8px rgba(200,169,74,0.4); }
+.header-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.header-dropdown {
+  display: none;
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 180px;
+  background: #1c2333;
+  border: 1px solid rgba(200,169,74,0.3);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  z-index: 9999;
+  overflow: hidden;
+  animation: dropDown 0.15s ease;
+}
+@keyframes dropDown {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.header-dropdown.show { display: block; }
+.hd-user-info {
+  padding: 12px 14px 8px;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+.hd-user-name {
+  font-family: 'Noto Serif Bengali', serif;
+  font-size: 0.8rem; font-weight: 700; color: #e6e6e6;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.hd-user-role {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.68rem; letter-spacing: 1px; text-transform: uppercase;
+  margin-top: 2px;
+}
+.hd-item {
+  display: flex; align-items: center; gap: 9px;
+  padding: 10px 14px;
+  cursor: pointer;
+  font-family: 'Noto Serif Bengali', serif;
+  font-size: 0.8rem; color: #c8c8c8;
+  transition: background 0.15s, color 0.15s;
+  border: none; background: none; width: 100%; text-align: left;
+}
+.hd-item:hover { background: rgba(255,255,255,0.07); color: #fff; }
+.hd-item.danger { color: #f85149; }
+.hd-item.danger:hover { background: rgba(248,81,73,0.1); color: #f85149; }
+.hd-divider { height: 1px; background: rgba(255,255,255,0.07); margin: 2px 0; }
 .stat-group { display: flex; gap: 10px; }
 .stat-box {
   text-align: center;
@@ -487,28 +553,34 @@ select:focus { border-color: var(--accent); }
     flex-shrink: 0;
   }
   .stat-group { display: none !important; }
+  .header-dropdown { right: 0; min-width: 160px; }
   .lang-btn { padding: 5px 8px; font-size: 0.7rem; }
   .view-btn { padding: 5px 7px; font-size: 12px; }
   #themeToggle { padding: 5px 7px !important; font-size: 13px !important; flex-shrink: 0; }
 
-  /* Controls — collapsible filter grid */
+  /* Controls — compact single row on mobile */
   .controls-wrap { position: sticky; /* top set by JS */ }
-  .controls { padding: 10px 12px; gap: 7px; }
+  .controls {
+    padding: 7px 10px;
+    gap: 5px;
+    flex-wrap: wrap;
+  }
   .search-wrap { flex: 1 1 100%; }
-  .search-wrap input { font-size: 0.9rem; padding: 10px 14px 10px 36px; }
+  .search-wrap input { font-size: 0.85rem; padding: 8px 12px 8px 34px; }
+  /* Filters — 2 per row on mobile */
   select {
-    flex: 1 1 calc(50% - 4px);
-    font-size: 0.8rem;
-    padding: 9px 8px;
+    flex: 1 1 calc(50% - 3px);
+    font-size: 0.75rem;
+    padding: 7px 6px;
     min-width: 0;
   }
   .btn-reset {
     flex: 1 1 100%;
     text-align: center;
-    padding: 9px;
-    font-size: 0.8rem;
+    padding: 7px;
+    font-size: 0.78rem;
   }
-  .results-bar { padding: 5px 12px 6px; font-size: 0.76rem; }
+  .results-bar { padding: 4px 10px 5px; font-size: 0.74rem; }
 
   /* Cards */
   .main-area { padding: 10px 10px 40px; }
@@ -619,13 +691,31 @@ select:focus { border-color: var(--accent); }
         <div class="stat-box"><span class="num" id="filteredCount">0</span><span class="lbl" id="lShown">দেখানো</span></div>
       </div>
       <div class="view-switch">
-        <button class="view-btn active" id="vGrid" onclick="setView('grid')" title="Grid View">⊞</button>
-        <button class="view-btn" id="vList" onclick="setView('list')" title="List View">☰</button>
+        <button class="view-btn" id="vGrid" onclick="setView('grid')" title="Grid View">⊞</button>
+        <button class="view-btn active" id="vList" onclick="setView('list')" title="List View">☰</button>
       </div>
       <button id="themeToggle" onclick="toggleTheme()" title="থিম পরিবর্তন" style="background:rgba(200,169,74,0.12);border:1px solid rgba(200,169,74,0.3);border-radius:7px;padding:6px 10px;cursor:pointer;font-size:15px;line-height:1;transition:all 0.2s;">☀️</button>
       <div class="lang-switch">
         <button class="lang-btn active" onclick="setLang('bn')">বাং</button>
         <button class="lang-btn" onclick="setLang('en')">ENG</button>
+      </div>
+
+      <!-- Profile Avatar + Dropdown -->
+      <div class="header-avatar-wrap" id="headerAvatarWrap" style="display:none;">
+        <div class="header-avatar" id="headerAvatar" onclick="toggleHeaderDropdown(event)" title="প্রোফাইল"></div>
+        <div class="header-dropdown" id="headerDropdown">
+          <div class="hd-user-info">
+            <div class="hd-user-name" id="hdUserName">—</div>
+            <div class="hd-user-role" id="hdUserRole"></div>
+          </div>
+          <button class="hd-item" onclick="openAdminProfile();closeHeaderDropdown();">
+            👤 <span>আমার প্রোফাইল</span>
+          </button>
+          <div class="hd-divider"></div>
+          <button class="hd-item danger" onclick="webLogout()">
+            🚪 <span>লগআউট</span>
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -652,13 +742,13 @@ select:focus { border-color: var(--accent); }
 </div>
 
 <div class="main-area">
-  <div id="listHeader" class="list-header" style="display:none;">
+  <div id="listHeader" class="list-header" style="display:grid;">
     <div></div>
     <div id="lhName">নাম</div><div id="lhRank">পদবী</div><div id="lhTrade">ট্রেড</div>
     <div id="lhBlood">রক্তের গ্রুপ</div><div id="lhDist">জেলা</div><div id="lhComp">কোম্পানী</div>
     <div id="lhNo">#</div>
   </div>
-  <div id="memberContainer" class="grid-view"></div>
+  <div id="memberContainer" class="list-view"></div>
 </div>
 <div class="pagination" id="pagination"></div>
 
@@ -692,7 +782,7 @@ function toggleTheme(){
 
 /* ─── State ─── */
 let lang = 'bn';
-let view = 'grid';
+let view = 'list';
 const PER_PAGE = 100;
 let filtered = [...MEMBERS];
 let page = 1;
@@ -1365,6 +1455,7 @@ async function webLogin() {
 
     // হেডারে Admin info যোগ করো
     injectAdminBar();
+    injectHeaderAvatar();
     // Sticky offset dynamically ঠিক করো
     requestAnimationFrame(_fixStickyOffsets);
     loadMembersFromFirebase();
@@ -1401,6 +1492,58 @@ function _fixStickyOffsets() {
 
 // window resize এ recalculate করো
 window.addEventListener('resize', _fixStickyOffsets);
+
+/* ══════════════════════════════════════
+   Header Profile Avatar Functions
+══════════════════════════════════════ */
+function injectHeaderAvatar() {
+  const wrap = document.getElementById('headerAvatarWrap');
+  const avatar = document.getElementById('headerAvatar');
+  const hdName = document.getElementById('hdUserName');
+  const hdRole = document.getElementById('hdUserRole');
+  if (!wrap || !avatar) return;
+
+  // নাম ও রোল সেট
+  const name = webAdminData?.name || webAdminData?.armyNo || '—';
+  const roleLabel = webUserRole === 'superadmin' ? 'Super Admin' : (webUserRole === 'subadmin' ? 'Sub Admin' : 'Admin');
+  const roleColor = webUserRole === 'superadmin' ? '#c8a94a' : (webUserRole === 'subadmin' ? '#388bfd' : '#3fb950');
+  if (hdName) hdName.textContent = name;
+  if (hdRole) { hdRole.textContent = roleLabel; hdRole.style.color = roleColor; }
+
+  // Photo URL অথবা initials
+  const photoURL = webCurrentUser?.photoURL;
+  if (photoURL) {
+    avatar.innerHTML = `<img src="${photoURL}" alt="avatar" onerror="this.parentElement.textContent='${getInitials(name)}'">`;
+  } else {
+    avatar.textContent = getInitials(name);
+  }
+
+  wrap.style.display = 'block';
+}
+
+function getInitials(name) {
+  if (!name || name === '—') return '?';
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+  return name[0].toUpperCase();
+}
+
+function toggleHeaderDropdown(e) {
+  e.stopPropagation();
+  const dd = document.getElementById('headerDropdown');
+  if (dd) dd.classList.toggle('show');
+}
+
+function closeHeaderDropdown() {
+  const dd = document.getElementById('headerDropdown');
+  if (dd) dd.classList.remove('show');
+}
+
+// Outside click এ dropdown বন্ধ করো
+document.addEventListener('click', function(e) {
+  const wrap = document.getElementById('headerAvatarWrap');
+  if (wrap && !wrap.contains(e.target)) closeHeaderDropdown();
+});
 
 function injectAdminBar() {
   const name = webAdminData?.name || webAdminData?.armyNo || '—';
