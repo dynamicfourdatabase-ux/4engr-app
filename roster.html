@@ -1813,11 +1813,10 @@ async function startPendingListener() {
           badge.style.animation = 'webPulse 0.4s ease';
           setTimeout(() => badge.style.animation = '', 400);
         }
+      }
       // sync mobile pending count
       const mpc = document.getElementById('mobilePendingCount');
       if (mpc) mpc.textContent = snap.size;
-      }
-      }
     });
   } catch(e) { console.log('Pending listener error:', e); }
 }
