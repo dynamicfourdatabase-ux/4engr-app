@@ -122,15 +122,7 @@ body {
   font-family: 'Rajdhani', sans-serif; font-size: 0.58rem;
   color: rgba(255,255,255,0.4); letter-spacing: 2px; text-transform: uppercase;
 }
-.lang-switch {
-  display: flex; border: 1px solid rgba(200,169,74,0.3); border-radius: 7px; overflow: hidden;
-}
-.lang-btn {
-  padding: 6px 12px; font-family: 'Rajdhani', sans-serif; font-size: 0.8rem;
-  font-weight: 700; letter-spacing: 1px; cursor: pointer; border: none;
-  background: transparent; color: rgba(255,255,255,0.45); transition: all 0.2s;
-}
-.lang-btn.active { background: #c8a94a; color: #0a0c10; }
+/* lang-switch removed - using Google Translate */
 .view-switch {
   display: flex; border: 1px solid rgba(200,169,74,0.3); border-radius: 7px; overflow: hidden;
 }
@@ -528,7 +520,7 @@ select:focus { border-color: var(--accent); }
 
   /* Hide desktop items on mobile */
   .stat-group   { display: none !important; }
-  .lang-switch  { display: none !important; }
+  /* lang-switch removed */
   .view-switch  { display: none !important; }
   #themeToggle  { display: none !important; }
   .header-right > a { display: none !important; }
@@ -580,6 +572,24 @@ select:focus { border-color: var(--accent); }
   .grid-view { grid-template-columns: 1fr; }
   select { font-size: 0.72rem; }
 }
+
+/* Google Translate Widget */
+#google_translate_element .goog-te-gadget-simple {
+  background: rgba(200,169,74,0.12) !important;
+  border: 1px solid rgba(200,169,74,0.3) !important;
+  border-radius: 7px !important;
+  padding: 4px 8px !important;
+  font-family: 'Rajdhani', sans-serif !important;
+  font-size: 0.8rem !important;
+  font-weight: 700 !important;
+}
+#google_translate_element .goog-te-gadget-simple a {
+  color: var(--accent) !important;
+  text-decoration: none !important;
+}
+#google_translate_element .goog-te-gadget-simple img { display: none !important; }
+.goog-te-banner-frame { display: none !important; }
+body { top: 0 !important; }
 </style>
 </head>
 <body>
@@ -664,10 +674,7 @@ select:focus { border-color: var(--accent); }
         <button class="view-btn active" id="vList" onclick="setView('list')" title="List View">☰</button>
       </div>
       <button id="themeToggle" onclick="toggleTheme()" title="থিম পরিবর্তন" style="background:rgba(200,169,74,0.12);border:1px solid rgba(200,169,74,0.3);border-radius:7px;padding:6px 10px;cursor:pointer;font-size:15px;line-height:1;transition:all 0.2s;">☀️</button>
-      <div class="lang-switch">
-        <button class="lang-btn active" onclick="setLang('bn')">বাং</button>
-        <button class="lang-btn" onclick="setLang('en')">ENG</button>
-      </div>
+      <div id="google_translate_element"></div>
 
       <!-- ══ MOBILE: 3-dot menu ══ -->
       <div class="mobile-more-btn" id="mobileMoreBtn" onclick="toggleMobileMore()">
@@ -680,8 +687,7 @@ select:focus { border-color: var(--accent); }
           <div class="mud-divider"></div>
           <button class="mmd-item" onclick="toggleTheme();closeMobileMore()">🌓 <span>থিম পরিবর্তন</span></button>
           <div class="mud-divider"></div>
-          <button class="mmd-item" onclick="setLang('bn');closeMobileMore()">🇧🇩 <span>বাংলা</span></button>
-          <button class="mmd-item" onclick="setLang('en');closeMobileMore()">🇬🇧 <span>English</span></button>
+          <div class="mmd-item" style="font-size:0.75rem;color:var(--text2)">🌐 Google Translate উপরে</div>
         </div>
       </div>
 
@@ -915,43 +921,6 @@ function buildFilters(){
     const o=document.createElement('option');
     o.value=b; o.textContent=b; bSel.appendChild(o);
   });
-}
-
-/* ─── LANG SWITCH ─── */
-function setLang(l){
-  lang=l;
-  document.querySelectorAll('.lang-btn').forEach(b=>b.classList.remove('active'));
-  document.querySelector(`.lang-btn[onclick="setLang('${l}')"]`).classList.add('active');
-
-  // Update filter placeholders & labels
-  document.getElementById('searchInput').placeholder = l==='bn'
-    ? 'নাম, সেনা নম্বর, ট্রেড, কোর্স, জেলা, NID...'
-    : 'Name, Army No, Trade, Course, District, NID...';
-
-  // Update select options text
-  ['companyFilter','rankFilter','districtFilter','tradeFilter'].forEach(id=>{
-    document.querySelectorAll(`#${id} option[data-bn]`).forEach(o=>{
-      o.textContent = l==='bn' ? o.dataset.bn : (o.dataset.en||o.dataset.bn);
-    });
-  });
-  document.querySelector('#companyFilter option[value=""]').textContent=l==='bn'?'সব কোম্পানী':'All Companies';
-  document.querySelector('#rankFilter option[value=""]').textContent=l==='bn'?'সব পদবী':'All Ranks';
-  document.querySelector('#bloodFilter option[value=""]').textContent=l==='bn'?'সব রক্তের গ্রুপ':'All Blood Groups';
-  document.querySelector('#districtFilter option[value=""]').textContent=l==='bn'?'সব জেলা':'All Districts';
-  document.querySelector('#tradeFilter option[value=""]').textContent=l==='bn'?'সব ট্রেড':'All Trades';
-  document.getElementById('lReset').textContent=l==='bn'?'রিসেট':'Reset';
-  document.getElementById('lTot').textContent=l==='bn'?'মোট':'Total';
-  document.getElementById('lShown').textContent=l==='bn'?'দেখানো':'Shown';
-  // List headers
-  document.getElementById('lhName').textContent=l==='bn'?'নাম':'Name';
-  document.getElementById('lhRank').textContent=l==='bn'?'পদবী':'Rank';
-  document.getElementById('lhTrade').textContent=l==='bn'?'ট্রেড':'Trade';
-  document.getElementById('lhBlood').textContent=l==='bn'?'রক্তের গ্রুপ':'Blood Group';
-  document.getElementById('lhDist').textContent=l==='bn'?'জেলা':'District';
-  document.getElementById('lhComp').textContent=l==='bn'?'কোম্পানী':'Company';
-  document.getElementById('lhNo').textContent='#';
-
-  renderCards(); renderPagination();
 }
 
 /* ─── VIEW SWITCH ─── */
@@ -3473,5 +3442,19 @@ function listAvatarHtml(m) {
 
 </script>
 </div><!-- /webMainContent -->
+
+<!-- Google Translate -->
+<script type="text/javascript">
+function googleTranslateElementInit() {
+  new google.translate.TranslateElement({
+    pageLanguage: 'bn',
+    includedLanguages: 'bn,en,ar,hi,ur,zh-CN,fr,de,es,ru,pt,ja,ko',
+    layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
+    autoDisplay: false
+  }, 'google_translate_element');
+}
+</script>
+<script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+
 </body>
 </html>
