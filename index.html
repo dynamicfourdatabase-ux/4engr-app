@@ -2771,19 +2771,18 @@ async function doRegister() {
   let member  = null;
 
   try {
-    // ── ধাপ ১: registrations collection থেকে যাচাই ──
-    // registrations collection publicly readable — auth ছাড়াই পড়া যায়
-    // anonymous sign-in দরকার নেই, permission-denied হবে না
+    // ── ধাপ ১: members collection থেকে সদস্য যাচাই ──
+    // members collection এ memberId = armyNo, তাই auth ছাড়াও পড়া যায়
     try {
-      const regSnap = await db.collection('registrations').doc(docId).get();
-      if (regSnap.exists) {
-        member = regSnap.data();
+      const snap = await db.collection('members').doc(docId).get();
+      if (snap.exists) {
+        member = snap.data();
       } else {
-        // padded docId দিয়েও try করো (যেমন 12345 → 012345)
+        // padded docId দিয়ে try করো (যেমন 12345 → 012345)
         const padded = docId.padStart(6, '0');
         if (padded !== docId) {
-          const regSnap2 = await db.collection('registrations').doc(padded).get();
-          if (regSnap2.exists) member = regSnap2.data();
+          const snap2 = await db.collection('members').doc(padded).get();
+          if (snap2.exists) member = snap2.data();
         }
       }
     } catch(readErr) {
