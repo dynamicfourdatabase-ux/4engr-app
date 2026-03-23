@@ -1326,8 +1326,96 @@ select.form-input { cursor: pointer; }
       </div>
     </div>
 
-    <!-- ── PAGE: Leave (ছুটি) ── -->
+    <!-- ── PAGE: Leave + Training (প্রশিক্ষণ ও ছুটি) ── -->
     <div class="page" id="page-leave">
+
+      <!-- ══ প্রশিক্ষণ বিভাগ ══ -->
+
+      <!-- IPFT -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-header-icon">🏃</span>
+          <span class="card-header-title">আইপিএফটি (IPFT)</span>
+          <button class="field-edit-btn" style="margin-left:auto" onclick="openAddTraining('ipft')">+ যোগ করুন</button>
+        </div>
+        <div class="card-body" id="ipftList">
+          <div style="color:var(--text2);text-align:center;padding:16px;font-size:0.82rem">লোড হচ্ছে...</div>
+        </div>
+      </div>
+
+      <!-- RET -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-header-icon">🎯</span>
+          <span class="card-header-title">আরইটি (RET)</span>
+          <button class="field-edit-btn" style="margin-left:auto" onclick="openAddTraining('ret')">+ যোগ করুন</button>
+        </div>
+        <div class="card-body" id="retList">
+          <div style="color:var(--text2);text-align:center;padding:16px;font-size:0.82rem">লোড হচ্ছে...</div>
+        </div>
+      </div>
+
+      <!-- Speed March -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-header-icon">👟</span>
+          <span class="card-header-title">স্পীড মার্চ</span>
+          <button class="field-edit-btn" style="margin-left:auto" onclick="openAddTraining('speed_march')">+ যোগ করুন</button>
+        </div>
+        <div class="card-body" id="speed_marchList">
+          <div style="color:var(--text2);text-align:center;padding:16px;font-size:0.82rem">লোড হচ্ছে...</div>
+        </div>
+      </div>
+
+      <!-- Grenade Fire -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-header-icon">💣</span>
+          <span class="card-header-title">গ্রেণেড ফায়ার</span>
+          <button class="field-edit-btn" style="margin-left:auto" onclick="openAddTraining('grenade_fire')">+ যোগ করুন</button>
+        </div>
+        <div class="card-body" id="grenade_fireList">
+          <div style="color:var(--text2);text-align:center;padding:16px;font-size:0.82rem">লোড হচ্ছে...</div>
+        </div>
+      </div>
+
+      <!-- Field Fire -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-header-icon">🔫</span>
+          <span class="card-header-title">ফিল্ড ফায়ার</span>
+          <button class="field-edit-btn" style="margin-left:auto" onclick="openAddTraining('field_fire')">+ যোগ করুন</button>
+        </div>
+        <div class="card-body" id="field_fireList">
+          <div style="color:var(--text2);text-align:center;padding:16px;font-size:0.82rem">লোড হচ্ছে...</div>
+        </div>
+      </div>
+
+      <!-- Kill House Fire -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-header-icon">🏠</span>
+          <span class="card-header-title">কিল হাউজ ফায়ার</span>
+          <button class="field-edit-btn" style="margin-left:auto" onclick="openAddTraining('kill_house')">+ যোগ করুন</button>
+        </div>
+        <div class="card-body" id="kill_houseList">
+          <div style="color:var(--text2);text-align:center;padding:16px;font-size:0.82rem">লোড হচ্ছে...</div>
+        </div>
+      </div>
+
+      <!-- CBTA -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-header-icon">⚔️</span>
+          <span class="card-header-title">সিবিটিএ (CBTA)</span>
+          <button class="field-edit-btn" style="margin-left:auto" onclick="openAddTraining('cbta')">+ যোগ করুন</button>
+        </div>
+        <div class="card-body" id="cbtaList">
+          <div style="color:var(--text2);text-align:center;padding:16px;font-size:0.82rem">লোড হচ্ছে...</div>
+        </div>
+      </div>
+
+      <!-- ══ ছুটি বিভাগ ══ -->
       <div class="card">
         <div class="card-header">
           <span class="card-header-icon">🏖️</span>
@@ -1841,7 +1929,7 @@ select.form-input { cursor: pointer; }
       <span class="nav-icon">📚</span>কোর্স
     </button>
     <button class="nav-item" id="nav-leave" onclick="navTo('leave')">
-      <span class="nav-icon">🏖️</span>ছুটি
+      <span class="nav-icon">🏋️</span>প্রশিক্ষণ ও ছুটি
     </button>
     <button class="nav-item" id="nav-notifications" onclick="navTo('notifications')">
       <span class="nav-icon">🔔</span>বিজ্ঞপ্তি
@@ -2707,7 +2795,7 @@ function navTo(page) {
   if (page === 'admin') loadAdminData();
   if (page === 'notifications') loadNotifications();
   if (page === 'courses') { loadPendingCoursesAndRender(); }
-  if (page === 'leave') loadLeave();
+  if (page === 'leave') { loadLeave(); loadAllTraining(); }
   if (page === 'pending') loadPendingPage();
 }
 
@@ -4043,6 +4131,63 @@ async function saveModal() {
     btn.textContent='সংরক্ষণ করুন'; btn.disabled=false; return;
   }
 
+  // ── প্রশিক্ষণ রেকর্ড যোগ ──
+  if (currentEditField.key === '_addTraining') {
+    const type  = currentEditField.trainingType;
+    const from  = document.getElementById('trainFrom')?.value.trim();
+    const to    = document.getElementById('trainTo')?.value.trim();
+    const result = document.getElementById('trainResult')?.value || '';
+    const marks  = document.getElementById('trainMarks')?.value.trim();
+    const grade  = document.getElementById('trainGrade')?.value || '';
+    const count  = document.getElementById('trainCount')?.value.trim();
+    const note   = document.getElementById('trainNote')?.value.trim();
+
+    if (!from) {
+      showToast('তারিখ দিন', 'error');
+      btn.textContent = 'সংরক্ষণ করুন'; btn.disabled = false; return;
+    }
+
+    // type-specific validation
+    if ((type === 'ipft' || type === 'ret') && !result) {
+      showToast('ফলাফল নির্বাচন করুন', 'error');
+      btn.textContent = 'সংরক্ষণ করুন'; btn.disabled = false; return;
+    }
+
+    // IPFT fail items
+    const failItems = [];
+    document.querySelectorAll('.fail-item-cb:checked').forEach(cb => failItems.push(cb.value));
+
+    // Field fire weapons
+    const weapons = [];
+    document.querySelectorAll('.weapon-cb:checked').forEach(cb => weapons.push(cb.value));
+
+    const docId = currentMemberData.id || String(currentMemberData.no || '').replace(/[^A-Z0-9]/gi, '');
+    if (!docId) { showToast('সদস্য ID পাওয়া যায়নি', 'error'); btn.textContent='সংরক্ষণ করুন'; btn.disabled=false; return; }
+
+    try {
+      const data = {
+        type,
+        from_date: from,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        addedBy: currentUser?.uid || '',
+      };
+      if (to) data.to_date = to;
+      if (result) data.result = result;
+      if (marks) data.marks = parseInt(marks) || marks;
+      if (grade) data.grade = grade;
+      if (note) data.note = note;
+      if (count) data.count = parseInt(count) || count;
+      if (failItems.length) data.fail_items = failItems;
+      if (weapons.length) data.weapons = weapons;
+
+      await db.collection('members').doc(docId).collection('training').add(data);
+      closeModal();
+      showToast('✅ ' + TRAINING_CONFIG[type].label + ' রেকর্ড যোগ হয়েছে', 'success');
+      loadTrainingSection(docId, type);
+    } catch(e) { showToast('❌ ব্যর্থ: ' + e.message, 'error'); }
+    btn.textContent = 'সংরক্ষণ করুন'; btn.disabled = false; return;
+  }
+
   // ── ছুটি যোগ ──
   if (currentEditField.key === '_addLeave' || currentEditField.key === '_editLeave') {
     const leaveType = document.getElementById('leaveType')?.value;
@@ -5085,6 +5230,198 @@ function renderCoursesWithPending(pendingList) {
 }
 
 
+
+/* ══════════════════════════════════════════
+   TRAINING SECTION — প্রশিক্ষণ তথ্য
+══════════════════════════════════════════ */
+const TRAINING_CONFIG = {
+  ipft: {
+    label: 'আইপিএফটি (IPFT)', icon: '🏃',
+    failItems: ['১.৬ কিঃ মিঃ','পুশআপ','বীম','রিচআপ','৩.২ কিঃ মিঃ','আড়াআড়ি রশি','৬ ফুট ওয়াল','সাঁতার'],
+  },
+  ret:          { label: 'আরইটি (RET)',       icon: '🎯' },
+  speed_march:  { label: 'স্পীড মার্চ',        icon: '👟' },
+  grenade_fire: { label: 'গ্রেণেড ফায়ার',      icon: '💣' },
+  field_fire:   { label: 'ফিল্ড ফায়ার',        icon: '🔫' },
+  kill_house:   { label: 'কিল হাউজ ফায়ার',    icon: '🏠' },
+  cbta:         { label: 'সিবিটিএ (CBTA)',      icon: '⚔️' },
+};
+
+// বাংলাদেশ সেনাবাহিনীতে ব্যবহৃত অস্ত্রসমূহ
+const BD_ARMY_WEAPONS = [
+  'BD-08 (এসল্ট রাইফেল)','চাইনিজ রাইফেল (Type 56)','M16A1 রাইফেল',
+  'এসএমজি (MP5)','স্টেনগান','এলএমজি (RPK/RPD)','GPMG (PKM)',
+  '84mm RCL (Carl Gustav)','RPG-7','81mm মর্টার','60mm মর্টার',
+  'পিস্তল (9mm)','স্নাইপার রাইফেল (SVD Dragunov)','শটগান',
+  'গ্রেনেড লঞ্চার (UGL)','HMG (.50 Cal)',
+];
+
+const TRAINING_GRADES = ['পাস','ফেল','ভালো','খুব ভালো'];
+
+async function loadAllTraining() {
+  if (!currentMemberData) return;
+  const docId = currentMemberData.id || String(currentMemberData.no || '').replace(/[^A-Z0-9]/gi, '');
+  if (!docId) return;
+  for (const type of Object.keys(TRAINING_CONFIG)) {
+    loadTrainingSection(docId, type);
+  }
+}
+
+async function loadTrainingSection(docId, type) {
+  const box = document.getElementById(type + 'List');
+  if (!box) return;
+  const cfg = TRAINING_CONFIG[type];
+  try {
+    const snap = await db.collection('members').doc(docId).collection('training')
+      .where('type', '==', type).orderBy('from_date', 'desc').get()
+      .catch(() => db.collection('members').doc(docId).collection('training')
+        .where('type', '==', type).get());
+
+    if (snap.empty) {
+      box.innerHTML = `<div style="color:var(--text2);text-align:center;padding:14px;font-size:0.82rem">কোনো রেকর্ড নেই</div>`;
+      return;
+    }
+
+    const isAdmin = userRole === 'admin' || userRole === 'superadmin';
+    const RCOL = { 'পাস':'#3fb950','ফেল':'#f07070','ভালো':'#5b9bef','খুব ভালো':'#c8a94a' };
+
+    box.innerHTML = snap.docs.map(d => {
+      const t = d.data();
+      const displayVal = t.grade || t.result || '';
+      const rc = RCOL[displayVal] || 'var(--text2)';
+      const badge = displayVal ? `<span style="padding:2px 9px;border-radius:12px;background:${rc}20;border:1px solid ${rc}55;color:${rc};font-family:'Rajdhani',sans-serif;font-size:0.72rem;font-weight:700">${displayVal}</span>` : '';
+      const markBadge = t.marks !== undefined ? `<span style="font-family:'Rajdhani',sans-serif;font-size:0.8rem;color:var(--gold)">নম্বর: ${t.marks}</span>` : '';
+      const countBadge = t.count !== undefined ? `<span style="font-family:'Rajdhani',sans-serif;font-size:0.8rem;color:var(--info)">সংখ্যা: ${t.count}</span>` : '';
+      const failStr = t.fail_items?.length ? `<div style="margin-top:5px;font-size:0.75rem;color:#f07070;line-height:1.6">❌ ফেল: ${t.fail_items.join(' • ')}</div>` : '';
+      const weaponStr = t.weapons?.length ? `<div style="margin-top:5px;font-size:0.75rem;color:var(--info)">🔫 ${t.weapons.join(' • ')}</div>` : '';
+      const dateStr = t.to_date
+        ? `📅 ${t.from_date||'—'} হইতে ${t.to_date}`
+        : `📅 ${t.from_date||'—'}`;
+
+      return `<div style="background:var(--dark3);border:1px solid var(--border2);border-radius:10px;padding:12px 14px;margin-bottom:8px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">${badge}${markBadge}${countBadge}</div>
+          ${isAdmin ? `<button onclick="deleteTraining('${d.id}','${type}')" style="background:transparent;border:1px solid rgba(224,85,85,0.3);border-radius:6px;padding:3px 8px;color:var(--danger);cursor:pointer;font-size:11px;font-family:'Rajdhani',sans-serif">🗑</button>` : ''}
+        </div>
+        <div style="font-size:0.82rem;color:var(--text2)">${dateStr}</div>
+        ${failStr}${weaponStr}
+        ${t.note ? `<div style="font-size:0.75rem;color:var(--text2);margin-top:4px">💬 ${t.note}</div>` : ''}
+      </div>`;
+    }).join('');
+  } catch(e) {
+    box.innerHTML = `<div style="color:var(--danger);text-align:center;padding:14px;font-size:0.8rem">লোড ব্যর্থ</div>`;
+  }
+}
+
+// প্রতিটি type এর জন্য আলাদা form builder
+function _buildTrainingForm(type) {
+  const cfg = TRAINING_CONFIG[type];
+  const dateRange = `
+    <div class="form-group">
+      <label class="form-label">তারিখ হইতে *</label>
+      <input type="text" class="form-input" id="trainFrom" placeholder="DD/MM/YYYY">
+    </div>
+    <div class="form-group">
+      <label class="form-label">তারিখ পর্যন্ত *</label>
+      <input type="text" class="form-input" id="trainTo" placeholder="DD/MM/YYYY">
+    </div>`;
+  const singleDate = `
+    <div class="form-group">
+      <label class="form-label">অংশগ্রহণের তারিখ *</label>
+      <input type="text" class="form-input" id="trainFrom" placeholder="DD/MM/YYYY">
+    </div>`;
+  const resultField = `
+    <div class="form-group">
+      <label class="form-label">ফলাফল *</label>
+      <select class="form-input" id="trainResult" style="background:var(--dark3)" onchange="handleTrainResultChange('${type}')">
+        <option value="">— নির্বাচন করুন —</option>
+        <option value="পাস">✅ পাস</option>
+        <option value="ফেল">❌ ফেল</option>
+      </select>
+    </div>`;
+  const markField = `
+    <div class="form-group">
+      <label class="form-label">প্রাপ্ত নম্বর</label>
+      <input type="number" class="form-input" id="trainMarks" placeholder="যেমন: 85" min="0" max="999">
+    </div>`;
+  const gradeField = (opts) => `
+    <div class="form-group">
+      <label class="form-label">মান</label>
+      <select class="form-input" id="trainGrade" style="background:var(--dark3)">
+        <option value="">— নির্বাচন করুন —</option>
+        ${opts.map(g=>`<option value="${g}">${g}</option>`).join('')}
+      </select>
+    </div>`;
+  const failSection = `
+    <div id="failItemsSection" style="display:none">
+      <div class="form-group">
+        <label class="form-label" style="color:#f07070">যে বিষয়ে ফেল (একাধিক নির্বাচন করুন)</label>
+        <div style="background:var(--dark3);border:1px solid var(--border2);border-radius:8px;padding:10px;display:flex;flex-direction:column;gap:7px">
+          ${cfg.failItems?.map(item=>`
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-family:'Noto Serif Bengali',serif;font-size:0.85rem;color:var(--text)">
+            <input type="checkbox" class="fail-item-cb" value="${item}" style="width:16px;height:16px;accent-color:#f07070;cursor:pointer"> ${item}
+          </label>`).join('')||''}
+        </div>
+      </div>
+    </div>`;
+  const weaponSection = `
+    <div class="form-group">
+      <label class="form-label">ব্যবহৃত অস্ত্র (একাধিক নির্বাচন করুন)</label>
+      <div style="background:var(--dark3);border:1px solid var(--border2);border-radius:8px;padding:10px;display:flex;flex-direction:column;gap:7px;max-height:220px;overflow-y:auto">
+        ${BD_ARMY_WEAPONS.map(w=>`
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-family:'Noto Serif Bengali',serif;font-size:0.82rem;color:var(--text)">
+          <input type="checkbox" class="weapon-cb" value="${w}" style="width:15px;height:15px;accent-color:var(--info);cursor:pointer"> ${w}
+        </label>`).join('')}
+      </div>
+    </div>`;
+
+  switch (type) {
+    case 'ipft':
+      return dateRange + resultField + failSection + markField + gradeField(TRAINING_GRADES);
+    case 'ret':
+      return dateRange + markField + resultField;
+    case 'speed_march':
+      return singleDate;
+    case 'grenade_fire':
+      return singleDate + `
+        <div class="form-group">
+          <label class="form-label">সংখ্যা (কতটি গ্রেণেড)</label>
+          <input type="number" class="form-input" id="trainCount" placeholder="যেমন: 2" min="1" max="99">
+        </div>`;
+    case 'field_fire':
+      return dateRange + weaponSection;
+    case 'kill_house':
+    case 'cbta':
+      return singleDate + gradeField(['ভালো','খুব ভালো']);
+    default:
+      return dateRange;
+  }
+}
+
+function openAddTraining(type) {
+  const cfg = TRAINING_CONFIG[type];
+  if (!cfg) return;
+  document.getElementById('modalTitle').textContent = cfg.icon + ' ' + cfg.label + ' — নতুন রেকর্ড';
+  document.getElementById('modalBody').innerHTML = _buildTrainingForm(type);
+  currentEditField = { key: '_addTraining', label: cfg.label, trainingType: type };
+  document.getElementById('editModal').classList.add('open');
+}
+
+function handleTrainResultChange(type) {
+  const val = document.getElementById('trainResult')?.value;
+  const sec = document.getElementById('failItemsSection');
+  if (sec) sec.style.display = val === 'ফেল' ? 'block' : 'none';
+}
+
+async function deleteTraining(trainingDocId, type) {
+  if (!currentMemberData) return;
+  const docId = currentMemberData.id || String(currentMemberData.no || '').replace(/[^A-Z0-9]/gi, '');
+  try {
+    await db.collection('members').doc(docId).collection('training').doc(trainingDocId).delete();
+    showToast('✅ রেকর্ড মুছা হয়েছে', 'success');
+    loadTrainingSection(docId, type);
+  } catch(e) { showToast('❌ মুছা ব্যর্থ: ' + e.message, 'error'); }
+}
 
 /* ══════════════════════════════════════════
    LEAVE (ছুটি) PAGE
