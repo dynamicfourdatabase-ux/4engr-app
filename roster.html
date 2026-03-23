@@ -148,31 +148,31 @@ body {
 }
 .controls {
   max-width: 1440px; margin: 0 auto;
-  display: flex; gap: 7px; flex-wrap: wrap; padding: 10px 20px;
+  display: flex; gap: 5px; flex-wrap: wrap; padding: 6px 12px;
   align-items: center;
 }
-.search-wrap { flex: 2 1 220px; position: relative; }
+.search-wrap { flex: 2 1 200px; position: relative; }
 .search-wrap input {
   width: 100%; background: var(--bg); border: 1px solid var(--border);
-  border-radius: 8px; padding: 9px 14px 9px 36px;
-  color: var(--text); font-family: 'Noto Serif Bengali', serif; font-size: 0.88rem;
+  border-radius: 7px; padding: 7px 12px 7px 30px;
+  color: var(--text); font-family: 'Noto Serif Bengali', serif; font-size: 0.84rem;
   outline: none; transition: border-color 0.2s, box-shadow 0.2s;
 }
-.search-wrap input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(200,169,74,0.1); }
-.search-wrap::before { content:"🔍"; position:absolute; left:11px; top:50%; transform:translateY(-50%); font-size:12px; }
+.search-wrap input:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(200,169,74,0.1); }
+.search-wrap::before { content:"🔍"; position:absolute; left:9px; top:50%; transform:translateY(-50%); font-size:11px; }
 select {
-  flex: 1 1 140px;
-  background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
-  padding: 9px 10px; color: var(--text);
-  font-family: 'Noto Serif Bengali', serif; font-size: 0.82rem;
+  flex: 1 1 120px;
+  background: var(--bg); border: 1px solid var(--border); border-radius: 7px;
+  padding: 7px 8px; color: var(--text);
+  font-family: 'Noto Serif Bengali', serif; font-size: 0.78rem;
   outline: none; cursor: pointer; transition: border-color 0.2s;
   min-width: 0;
 }
 select:focus { border-color: var(--accent); }
 .btn-reset {
   flex: 0 0 auto;
-  background: transparent; border: 1px solid var(--border); border-radius: 8px;
-  padding: 9px 14px; color: var(--text2); font-family: 'Rajdhani', sans-serif;
+  background: transparent; border: 1px solid var(--border); border-radius: 7px;
+  padding: 7px 12px; color: var(--text2); font-family: 'Rajdhani', sans-serif;
   font-size: 0.82rem; letter-spacing: 1px; cursor: pointer; transition: all 0.2s; white-space: nowrap;
 }
 .btn-reset:hover { border-color: var(--danger); color: var(--danger); }
@@ -539,18 +539,18 @@ select:focus { border-color: var(--accent); }
 
   /* Controls */
   .controls-wrap { position: sticky; top: 58px !important; }
-  .controls { padding: 9px 12px; gap: 6px; }
+  .controls { padding: 5px 8px; gap: 4px; }
   .search-wrap { flex: 1 1 100%; }
-  .search-wrap input { font-size: 0.88rem; padding: 9px 12px 9px 34px; }
+  .search-wrap input { font-size: 0.82rem; padding: 7px 10px 7px 28px; }
   select {
     flex: 1 1 calc(50% - 4px);
-    font-size: 0.78rem; padding: 8px 7px; min-width: 0;
+    font-size: 0.74rem; padding: 6px 6px; min-width: 0;
   }
   .btn-reset {
     flex: 1 1 100%; text-align: center;
-    padding: 9px; font-size: 0.8rem;
+    padding: 7px; font-size: 0.76rem;
   }
-  .results-bar { padding: 4px 12px 5px; font-size: 0.74rem; }
+  .results-bar { padding: 3px 10px 4px; font-size: 0.72rem; }
 
   /* Cards */
   .main-area { padding: 8px 8px 40px; }
@@ -1326,26 +1326,20 @@ function showModal(idx){
   // Photo modal click handler
   setTimeout(() => _injectModalPhotoClick(m), 50);
 
-  // Admin/Superadmin হলে Edit বাটন যোগ করো (subadmin পারবে না)
+  // Admin/Superadmin হলে Action Bar যোগ করো (modal-header এর পরে)
   if (webCurrentUser && (webUserRole === 'admin' || webUserRole === 'superadmin')) {
-    const editBtn = document.createElement('button');
-    editBtn.textContent = '✏️ তথ্য সম্পাদনা';
-    const rightPos = webUserRole === 'superadmin' ? '54px' : '16px';
-    editBtn.style.cssText = `position:absolute;top:16px;right:${rightPos};background:rgba(200,169,74,0.15);border:1px solid rgba(200,169,74,0.4);color:#c8a94a;border-radius:8px;padding:6px 14px;font-family:"Rajdhani",sans-serif;font-size:0.72rem;font-weight:700;letter-spacing:1px;cursor:pointer;z-index:10`;
-    editBtn.onclick = () => openRosterEditModal(m);
-    document.querySelector('.modal')?.appendChild(editBtn);
-  }
-
-  // SuperAdmin হলে Delete বাটন যোগ করো
-  if (webCurrentUser && webUserRole === 'superadmin') {
-    const delBtn = document.createElement('button');
-    delBtn.innerHTML = '🗑️';
-    delBtn.title = 'সদস্য ডিলিট করুন';
-    delBtn.style.cssText = 'position:absolute;top:16px;right:16px;background:rgba(192,64,64,0.12);border:1px solid rgba(192,64,64,0.35);color:#c04040;border-radius:8px;padding:6px 10px;font-size:14px;cursor:pointer;z-index:10;transition:all 0.2s';
-    delBtn.onmouseenter = () => delBtn.style.background = 'rgba(192,64,64,0.25)';
-    delBtn.onmouseleave = () => delBtn.style.background = 'rgba(192,64,64,0.12)';
-    delBtn.onclick = () => openDeleteMemberModal(m);
-    document.querySelector('.modal')?.appendChild(delBtn);
+    const actionBar = document.createElement('div');
+    actionBar.id = 'modalActionBar';
+    actionBar.style.cssText = 'display:flex;gap:8px;padding:8px 14px;background:rgba(200,169,74,0.05);border-bottom:1px solid rgba(200,169,74,0.15);';
+    let btns = `<button onclick="openRosterEditModal(filtered[${_currentOpenModalMemberIdx}])" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:8px 12px;background:rgba(200,169,74,0.12);border:1px solid rgba(200,169,74,0.35);color:#c8a94a;border-radius:8px;font-family:'Rajdhani',sans-serif;font-size:0.78rem;font-weight:700;letter-spacing:1px;cursor:pointer">✏️ তথ্য সম্পাদনা</button>`;
+    if (webUserRole === 'superadmin') {
+      btns += `<button onclick="openDeleteMemberModal(filtered[${_currentOpenModalMemberIdx}])" style="display:flex;align-items:center;justify-content:center;gap:4px;padding:8px 10px;background:rgba(192,64,64,0.1);border:1px solid rgba(192,64,64,0.3);color:#c04040;border-radius:8px;font-size:13px;cursor:pointer;transition:all 0.2s" onmouseenter="this.style.background='rgba(192,64,64,0.22)'" onmouseleave="this.style.background='rgba(192,64,64,0.1)'">🗑️</button>`;
+    }
+    actionBar.innerHTML = btns;
+    const modalContent = document.getElementById('modalContent');
+    const firstChild = modalContent.firstChild;
+    if (firstChild) modalContent.insertBefore(actionBar, firstChild.nextSibling);
+    else modalContent.appendChild(actionBar);
   }
 }
 
@@ -1836,21 +1830,60 @@ async function startPendingListener() {
 
 /* ── ওয়েবসাইট থেকে বিজ্ঞপ্তি পাঠানো ── */
 async function webSendAnnouncement() {
-  const title = prompt('বিজ্ঞপ্তির শিরোনাম:');
-  if (!title) return;
-  const body = prompt('বিজ্ঞপ্তির বিস্তারিত:');
-  if (!body) return;
-  const urgent = confirm('জরুরি বিজ্ঞপ্তি? (OK = হ্যাঁ)');
-  try {
-    await db.collection('announcements').add({
-      title, body, urgent,
-      author: webAdminData?.name || 'Admin',
-      authorRole: webUserRole,
-      active: true,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-    });
-    _showAdminToast('✅ বিজ্ঞপ্তি পাঠানো হয়েছে!', 'success');
-  } catch(e) { _showAdminToast('❌ ব্যর্থ: ' + e.message, 'error'); }
+  // Proper modal — browser prompt/confirm এর বদলে
+  document.getElementById('_announcementModal')?.remove();
+  const m = document.createElement('div');
+  m.id = '_announcementModal';
+  m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.78);z-index:99998;display:flex;align-items:center;justify-content:center;padding:16px';
+  m.innerHTML = `
+    <div style="background:#1a1410;border:1px solid rgba(200,169,74,0.3);border-radius:18px;width:100%;max-width:400px;padding:22px;box-shadow:0 20px 60px rgba(0,0,0,0.6)">
+      <div style="font-family:'Rajdhani',sans-serif;font-size:1rem;font-weight:700;color:#c8a94a;margin-bottom:14px;letter-spacing:1px">📣 নতুন বিজ্ঞপ্তি</div>
+      <div style="margin-bottom:10px">
+        <label style="display:block;font-family:'Rajdhani',sans-serif;font-size:0.68rem;letter-spacing:1px;color:rgba(255,255,255,0.45);margin-bottom:5px;text-transform:uppercase">শিরোনাম *</label>
+        <input id="_annTitle" type="text" placeholder="বিজ্ঞপ্তির শিরোনাম লিখুন..."
+          style="width:100%;background:#1c2333;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:9px 12px;color:#e6e6e6;font-family:'Noto Serif Bengali',serif;font-size:0.88rem;outline:none"
+          onfocus="this.style.borderColor='#c8a94a'" onblur="this.style.borderColor='rgba(255,255,255,0.1)'">
+      </div>
+      <div style="margin-bottom:12px">
+        <label style="display:block;font-family:'Rajdhani',sans-serif;font-size:0.68rem;letter-spacing:1px;color:rgba(255,255,255,0.45);margin-bottom:5px;text-transform:uppercase">বিস্তারিত *</label>
+        <textarea id="_annBody" rows="3" placeholder="বিজ্ঞপ্তির বিস্তারিত লিখুন..."
+          style="width:100%;background:#1c2333;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:9px 12px;color:#e6e6e6;font-family:'Noto Serif Bengali',serif;font-size:0.85rem;outline:none;resize:none"
+          onfocus="this.style.borderColor='#c8a94a'" onblur="this.style.borderColor='rgba(255,255,255,0.1)'"></textarea>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;padding:8px 10px;background:rgba(200,169,74,0.06);border:1px solid rgba(200,169,74,0.15);border-radius:8px">
+        <input type="checkbox" id="_annUrgent" style="width:16px;height:16px;accent-color:#c8a94a;cursor:pointer">
+        <label for="_annUrgent" style="font-family:'Noto Serif Bengali',serif;font-size:0.82rem;color:rgba(255,255,255,0.7);cursor:pointer">🚨 জরুরি বিজ্ঞপ্তি হিসেবে চিহ্নিত করুন</label>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button id="_annSendBtn" style="flex:1;padding:11px;background:linear-gradient(135deg,#c8a94a,#8a6010);border:none;border-radius:10px;color:#0a0c10;font-family:'Rajdhani',sans-serif;font-size:0.88rem;font-weight:700;cursor:pointer;letter-spacing:1px">📣 পাঠান</button>
+        <button onclick="document.getElementById('_announcementModal').remove()" style="padding:11px 18px;background:transparent;border:1px solid rgba(255,255,255,0.12);border-radius:10px;color:rgba(255,255,255,0.45);font-family:'Rajdhani',sans-serif;cursor:pointer">বাতিল</button>
+      </div>
+    </div>`;
+  document.body.appendChild(m);
+  m.addEventListener('click', e => { if (e.target === m) m.remove(); });
+
+  document.getElementById('_annSendBtn').addEventListener('click', async () => {
+    const title = document.getElementById('_annTitle').value.trim();
+    const body  = document.getElementById('_annBody').value.trim();
+    const urgent = document.getElementById('_annUrgent').checked;
+    if (!title || !body) { _showAdminToast('❌ শিরোনাম ও বিস্তারিত লিখুন', 'error'); return; }
+    const btn = document.getElementById('_annSendBtn');
+    btn.textContent = '⏳ পাঠানো হচ্ছে...'; btn.disabled = true;
+    try {
+      await db.collection('announcements').add({
+        title, body, urgent,
+        author: webAdminData?.name || 'Admin',
+        authorRole: webUserRole,
+        active: true,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      });
+      m.remove();
+      _showAdminToast('✅ বিজ্ঞপ্তি পাঠানো হয়েছে!', 'success');
+    } catch(e) {
+      btn.textContent = '📣 পাঠান'; btn.disabled = false;
+      _showAdminToast('❌ ব্যর্থ: ' + e.message, 'error');
+    }
+  });
 }
 
 async function openWebPendingModal() {
@@ -2071,7 +2104,7 @@ async function webApprove(docId, btn) {
 }
 
 async function webReject(docId, btn) {
-  if (!confirm('এই অনুরোধটি প্রত্যাখ্যান করবেন?')) return;
+  _showConfirmDialog('❌ অনুরোধ বাতিল', 'এই অনুরোধটি প্রত্যাখ্যান করবেন?', 'হ্যাঁ, বাতিল করুন', 'না', async () => {
   btn.textContent = '⏳'; btn.disabled = true;
   try {
     const doc = await db.collection('editRequests').doc(docId).get();
@@ -2101,6 +2134,7 @@ async function webReject(docId, btn) {
     loadWebPendingCount();
     _showAdminToast('অনুরোধ বাতিল করা হয়েছে', 'error');
   } catch(e) { btn.textContent = '✗ বাতিল'; btn.disabled = false; }
+  }); // confirm callback end
 }
 
 /* ── পাসওয়ার্ড রিসেট মডাল ── */
@@ -2449,16 +2483,22 @@ async function changeUserRole(uid, armyNo, sel) {
   const newRole = sel.value;
   if (!newRole) return;
   const label = newRole === 'revoke' ? 'member' : newRole;
-  if (!confirm(`ভূমিকা পরিবর্তন করবেন → ${label}?`)) { sel.value = ''; return; }
-
-  try {
-    await db.collection('users').doc(uid).update({ role: label, updatedBy: webCurrentUser.uid, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
-    _showAdminToast(`✅ ভূমিকা পরিবর্তন হয়েছে → ${label}`, 'success');
-    setTimeout(loadExistingUsers, 500);
-  } catch(e) {
-    _showAdminToast('❌ পরিবর্তন ব্যর্থ: ' + (e.message || e.code), 'error');
-    sel.value = '';
-  }
+  _showConfirmDialog(
+    '👥 ভূমিকা পরিবর্তন',
+    `<strong style="color:#c8a94a">${armyNo}</strong> এর ভূমিকা <strong style="color:#c8a94a">${label}</strong> করবেন?`,
+    'হ্যাঁ, পরিবর্তন করুন', 'বাতিল',
+    async () => {
+      try {
+        await db.collection('users').doc(uid).update({ role: label, updatedBy: webCurrentUser.uid, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+        _showAdminToast(`✅ ভূমিকা পরিবর্তন হয়েছে → ${label}`, 'success');
+        setTimeout(loadExistingUsers, 500);
+      } catch(e) {
+        _showAdminToast('❌ পরিবর্তন ব্যর্থ: ' + (e.message || e.code), 'error');
+        sel.value = '';
+      }
+    }
+  );
+  sel.value = ''; // reset select immediately
 }
 
 
@@ -3242,7 +3282,8 @@ async function confirmFieldClear(docId, name) {
   if (!checked.length) return;
   const keys   = checked.map(c => c.value);
   const labels = keys.map(k => { const f=CLEARABLE_FIELDS.find(x=>x.key===k); return f?f.label:k; });
-  if (!confirm(`নিচের ${keys.length}টি ফিল্ড মুছে ফেলবেন?\n\n${labels.map(l=>'• '+l).join('\n')}\n\nএই কাজ পূর্বাবস্থায় ফেরানো যাবে না।`)) return;
+  const confirmMsg = `নিচের ${keys.length}টি ফিল্ড মুছে ফেলবেন?<br><br>${labels.map(l=>'• '+l).join('<br>')}<br><br><span style="color:#e05555;font-size:0.8rem">এই কাজ পূর্বাবস্থায় ফেরানো যাবে না।</span>`;
+  _showConfirmDialog('🗑️ ফিল্ড মুছুন', confirmMsg, 'হ্যাঁ, মুছুন', 'বাতিল', async () => {
   const btn = document.getElementById('clearSelectedBtn');
   if (btn) { btn.textContent='⏳ মুছা হচ্ছে...'; btn.disabled=true; }
   try {
@@ -3267,6 +3308,7 @@ async function confirmFieldClear(docId, name) {
     if (btn) { btn.textContent='🗑️ নির্বাচিত ফিল্ড মুছুন'; btn.disabled=false; btn.style.opacity='1'; }
     _showAdminToast('❌ মুছা ব্যর্থ: '+(e.code||e.message), 'error');
   }
+  }); // _showConfirmDialog callback end
 }
 
 function _showAdminToast(msg, type='success') {
