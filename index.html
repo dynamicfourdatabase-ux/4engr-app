@@ -5453,7 +5453,8 @@ function _buildTrainingForm(type) {
 
   switch (type) {
     case 'ipft':
-      return dateRange + resultField + failSection + markField + gradeField(TRAINING_GRADES);
+      // IPFT-এ অতিরিক্ত নম্বর/গ্রেড ফিল্ড অপ্রয়োজনীয় বলে সরানো হয়েছে
+      return dateRange + resultField + failSection;
     case 'ret':
       return dateRange + markField + resultField;
     case 'speed_march':
