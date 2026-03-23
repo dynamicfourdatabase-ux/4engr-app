@@ -2,47 +2,27 @@
   "name": "৪ ইঞ্জিনিয়ার ব্যাটালিয়ন",
   "short_name": "৪ ইঞ্জিনিয়ার",
   "description": "৪ ইঞ্জিনিয়ার ব্যাটালিয়ন সদস্য পোর্টাল",
-
-  "id": "./",
-  "start_url": "./",
-  "scope": "./",
-
+  "start_url": "/4engr-app/",
+  "scope": "/4engr-app/",
   "display": "standalone",
   "orientation": "portrait",
-
   "background_color": "#0d1117",
   "theme_color": "#0d1117",
-
   "lang": "bn",
-
   "icons": [
     {
-      "src": "./icon-192.png",
+      "src": "icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any"
+      "purpose": "any maskable"
     },
     {
-      "src": "./icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "maskable"
-    },
-    {
-      "src": "./icon-512.png",
+      "src": "icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "./icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "maskable"
+      "purpose": "any maskable"
     }
   ],
-
-  "categories": ["productivity"],
-
+  "categories": ["military", "productivity"],
   "screenshots": []
 }

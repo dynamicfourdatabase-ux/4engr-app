@@ -1,12 +1,11 @@
-// ৪ ইঞ্জিনিয়ার ব্যাটালিয়ন — Service Worker v1.2
-const CACHE_NAME = '4engr-v3';
-
+// ৪ ইঞ্জিনিয়ার ব্যাটালিয়ন — Service Worker v1.1
+const CACHE_NAME = '4engr-v2';
 const ASSETS = [
-  './',
-  './index.html',
-  './manifest.json',
-  './icon-192.png',
-  './icon-512.png',
+  '/4engr-app/',
+  '/4engr-app/index.html',
+  '/4engr-app/manifest.json',
+  '/4engr-app/icon-192.png',
+  '/4engr-app/icon-512.png',
   'https://fonts.googleapis.com/css2?family=Noto+Serif+Bengali:wght@400;600;700&family=Rajdhani:wght@400;600;700&display=swap',
 ];
 
@@ -20,7 +19,7 @@ self.addEventListener('install', (e) => {
   self.skipWaiting();
 });
 
-// Activate
+// Activate — পুরোনো cache মুছো
 self.addEventListener('activate', (e) => {
   e.waitUntil(
     caches.keys().then((keys) =>
@@ -30,37 +29,11 @@ self.addEventListener('activate', (e) => {
   self.clients.claim();
 });
 
-// Fetch
+// Fetch — Network first, cache fallback
 self.addEventListener('fetch', (e) => {
-
-  const url = e.request.url;
-
-  // ❌ Skip Firebase & Auth بالكامل
-  if (
-    url.includes('firebase') ||
-    url.includes('googleapis.com') ||
-    url.includes('gstatic.com')
-  ) {
+  if (e.request.url.includes('firebase') || e.request.url.includes('googleapis.com/identitytoolkit')) {
     return;
   }
-
-  // ✅ Static files → cache first
-  if (e.request.method === 'GET' && (
-    url.endsWith('.html') ||
-    url.endsWith('.css') ||
-    url.endsWith('.js') ||
-    url.endsWith('.png') ||
-    url.endsWith('.jpg')
-  )) {
-    e.respondWith(
-      caches.match(e.request).then((cached) => {
-        return cached || fetch(e.request);
-      })
-    );
-    return;
-  }
-
-  // 🌐 Default → network first
   e.respondWith(
     fetch(e.request)
       .then((res) => {
