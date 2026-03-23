@@ -2771,53 +2771,33 @@ async function doRegister() {
   let member  = null;
 
   try {
-    // ── ধাপ ১: members collection থেকে সদস্য খোঁজো ──
-    // প্রথমে সরাসরি try করো
+    // ── ধাপ ১: registrations collection থেকে যাচাই ──
+    // registrations collection publicly readable — auth ছাড়াই পড়া যায়
+    // anonymous sign-in দরকার নেই, permission-denied হবে না
     try {
-      const snap = await db.collection('members').doc(docId).get();
-      if (snap.exists) {
-        member = snap.data();
+      const regSnap = await db.collection('registrations').doc(docId).get();
+      if (regSnap.exists) {
+        member = regSnap.data();
       } else {
-        const q = await db.collection('members').where('no', '==', armyNo).limit(1).get();
-        if (!q.empty) {
-          member = q.docs[0].data();
-        } else {
-          // numeric format এ try করো
-          const numVal = parseInt(armyNo);
-          if (numVal) {
-            const q2 = await db.collection('members').where('no', '==', numVal).limit(1).get();
-            if (!q2.empty) member = q2.docs[0].data();
-          }
+        // padded docId দিয়েও try করো (যেমন 12345 → 012345)
+        const padded = docId.padStart(6, '0');
+        if (padded !== docId) {
+          const regSnap2 = await db.collection('registrations').doc(padded).get();
+          if (regSnap2.exists) member = regSnap2.data();
         }
       }
     } catch(readErr) {
-      // Firestore read fail হলে anonymous দিয়ে try করো
-      try {
-        await auth.signInAnonymously();
-        const snap2 = await db.collection('members').doc(docId).get();
-        if (snap2.exists) {
-          member = snap2.data();
-        } else {
-          const q3 = await db.collection('members').where('no', '==', armyNo).limit(1).get();
-          if (!q3.empty) member = q3.docs[0].data();
-        }
-        // anonymous session শেষ করো — কিন্তু onAuthStateChanged skip করতে হবে
-        _isRegistering = true;
-        await auth.signOut();
-        _isRegistering = false;
-      } catch(anonErr) {
-        hideLoading();
-        if (btn) { btn.disabled = false; btn.textContent = 'নিবন্ধন করুন'; }
-        showErr('❌ সদস্য তথ্য পড়তে ব্যর্থ: ' + (anonErr.code || anonErr.message));
-        return;
-      }
+      hideLoading();
+      if (btn) { btn.disabled = false; btn.textContent = 'নিবন্ধন করুন'; }
+      showErr('❌ সদস্য তথ্য পড়তে ব্যর্থ: ' + (readErr.code || readErr.message));
+      return;
     }
 
     // ── ধাপ ২: সদস্য না পেলে error ──
     if (!member) {
       hideLoading();
       if (btn) { btn.disabled = false; btn.textContent = 'নিবন্ধন করুন'; }
-      showErr('❌ এই সেনা নম্বরে কোনো সদস্য পাওয়া যায়নি।');
+      showErr('❌ এই সেনা নম্বরে কোনো সদস্য পাওয়া যায়নি। Admin এর সাথে যোগাযোগ করুন।');
       return;
     }
 
@@ -2842,12 +2822,22 @@ async function doRegister() {
     showLoading('তথ্য সংরক্ষণ হচ্ছে...');
     await db.collection('users').doc(cred.user.uid).set({
       armyNo,
-      role:      'member',
       name:      member.bn || member.en || armyNo,
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      // role সেট করা হচ্ছে না — Firestore Rules শুধু superadmin-কে role সেট করতে দেয়
+      // default role = 'member' (getUserRole function এ get(...).data.get('role','member') দিয়ে handle হয়)
     });
 
-    // ── ধাপ ৭: sign out ──
+    // ── ধাপ ৭: registrations এ registered: true করো ──
+    try {
+      await db.collection('registrations').doc(docId).set({
+        registered: true,
+        registeredAt: firebase.firestore.FieldValue.serverTimestamp(),
+        uid: cred.user.uid,
+      }, { merge: true });
+    } catch(_) {} // এটা optional — fail হলেও নিবন্ধন আটকাবে না
+
+    // ── ধাপ ৮: sign out ──
     await auth.signOut();
     _isRegistering = false;
     hideLoading();
@@ -3322,9 +3312,10 @@ async function loadMemberData(uid) {
       // users doc নতুনভাবে তৈরি করো
       if (armyNo) {
         await db.collection('users').doc(uid).set({
-          armyNo, role: 'member',
+          armyNo,
           name: armyNo,
           createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          // role ছাড়া — Rules অনুযায়ী member নিজে role সেট করতে পারবে না
         });
       }
     }
@@ -5697,6 +5688,12 @@ async function addNewMember() {
           updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
           updatedBy: currentUser.uid,
         });
+        // registrations collection ও আপডেট করো
+        await db.collection('registrations').doc(docId).set({
+          dob,
+          registered: false,
+          addedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        }, { merge: true });
         showRes('✅ জন্ম তারিখ আপডেট হয়েছে। সদস্য এখন নিবন্ধন করতে পারবেন।\nসেনা নং: ' + no, true);
         clearNewMemberForm();
       }
@@ -5710,6 +5707,13 @@ async function addNewMember() {
       addedBy: currentUser.uid,
       addedAt: firebase.firestore.FieldValue.serverTimestamp(),
       updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+
+    // registrations collection এ লিখি — নিবন্ধন যাচাইয়ের জন্য (publicly readable)
+    await db.collection('registrations').doc(docId).set({
+      dob,
+      registered: false,
+      addedAt: firebase.firestore.FieldValue.serverTimestamp(),
     });
 
     _adminMemberCache = null;
