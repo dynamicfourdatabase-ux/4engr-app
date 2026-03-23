@@ -4164,35 +4164,58 @@ async function saveModal() {
     const docId = currentMemberData.id || String(currentMemberData.no || '').replace(/[^A-Z0-9]/gi, '');
     if (!docId) { showToast('সদস্য ID পাওয়া যায়নি', 'error'); btn.textContent='সংরক্ষণ করুন'; btn.disabled=false; return; }
 
-    try {
-      const data = {
-        type,
-        from_date: from,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-        addedBy: currentUser?.uid || '',
-      };
-      if (to) data.to_date = to;
-      if (result) data.result = result;
-      if (marks) data.marks = parseInt(marks) || marks;
-      if (grade) data.grade = grade;
-      if (note) data.note = note;
-      if (count) data.count = parseInt(count) || count;
-      if (failItems.length) data.fail_items = failItems;
-      if (weapons.length) data.weapons = weapons;
+    const isAdmin = userRole === 'admin' || userRole === 'superadmin';
+    const cfg = TRAINING_CONFIG[type] || { label: 'Training' };
 
-      await db.collection('members').doc(docId).collection('training').add(data);
-      closeModal();
-      showToast('✅ ' + TRAINING_CONFIG[type].label + ' রেকর্ড যোগ হয়েছে', 'success');
-      loadTrainingSection(docId, type);
-    } catch(e) {
-      const isPermErr = e.code === 'permission-denied' || (e.message||'').toLowerCase().includes('permission');
-      const isAdminUser = userRole === 'admin' || userRole === 'superadmin';
-      if (isPermErr && !isAdminUser) {
-        showToast('⚠️ এই তথ্য যোগ করার অনুমতি নেই। Admin-এর সাথে যোগাযোগ করুন।', 'warn');
-      } else {
+    const trainingData = {
+      type,
+      from_date: from,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      addedBy: currentUser?.uid || '',
+    };
+    if (to) trainingData.to_date = to;
+    if (result) trainingData.result = result;
+    if (marks) trainingData.marks = parseInt(marks) || marks;
+    if (grade) trainingData.grade = grade;
+    if (note) trainingData.note = note;
+    if (count) trainingData.count = parseInt(count) || count;
+    if (failItems.length) trainingData.fail_items = failItems;
+    if (weapons.length) trainingData.weapons = weapons;
+
+    if (isAdmin) {
+      try {
+        await db.collection('members').doc(docId).collection('training').add(trainingData);
+        closeModal();
+        showToast('✅ ' + cfg.label + ' রেকর্ড যোগ হয়েছে', 'success');
+        loadTrainingSection(docId, type);
+      } catch(e) {
+        showToast('❌ ব্যর্থ: ' + e.message, 'error');
+      }
+    } else {
+      try {
+        await db.collection('editRequests').add({
+          memberId: docId,
+          memberNo: currentMemberData.no || currentMemberData.armyNo || '',
+          memberName: currentMemberData.bn || currentMemberData.en || '',
+          memberCompany: currentMemberData.co_bn || '',
+          field: 'training',
+          fieldLabel: `ট্রেনিং রেকর্ড ( ${cfg.label} ) যোগ`,
+          oldValue: '',
+          newValue: JSON.stringify(trainingData),
+          extraData: trainingData,
+          requestType: 'addTraining',
+          requestedBy: currentUser.uid,
+          status: 'pending',
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+        closeModal();
+        showToast('⏳ ট্রেনিং রেকর্ড অনুমোদনের জন্য জমা হয়েছে — Admin অনুমোদনের অপেক্ষায়', 'success');
+        checkPendingStatus();
+      } catch(e) {
         showToast('❌ ব্যর্থ: ' + e.message, 'error');
       }
     }
+
     btn.textContent = 'সংরক্ষণ করুন'; btn.disabled = false; return;
   }
 
