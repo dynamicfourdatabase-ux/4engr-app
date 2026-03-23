@@ -2966,9 +2966,46 @@ function startPendingListener(docId) {
               currentMemberData.promo_date = r.extraData.promotionDate;
             }
           }
-          // কোর্স sync
-          if (r.requestType === 'addCourse' && r.newValueEn) currentMemberData.cr_en = r.newValueEn;
-          if ((r.requestType === 'editCourse') && r.newValueEn) currentMemberData.cr_en = r.newValueEn;
+
+          // ── কোর্স সম্পূর্ণ sync ──
+          if (!currentMemberData.courseResults) currentMemberData.courseResults = {};
+
+          // addCourse — cr_bn, cr_en এবং courseResults আপডেট
+          if (r.requestType === 'addCourse' && r.courseExtra) {
+            const ex = r.courseExtra;
+            // cr_bn আপডেট (newValue = নতুন পুরো cr_bn string)
+            if (r.newValue !== undefined) currentMemberData.cr_bn = r.newValue;
+            if (r.newValueEn) currentMemberData.cr_en = r.newValueEn;
+            // courseResults — নতুন কোর্সের index বের করো
+            const crOldArr = (r.oldValue || '').split(',').map(s => s.trim()).filter(Boolean);
+            const newIdx = crOldArr.length;
+            if (ex.result)   currentMemberData.courseResults['course_' + newIdx] = ex.result;
+            if (ex.position && ex.position > 0) currentMemberData.courseResults['pos_' + newIdx] = ex.position;
+            if (ex.recommendation) currentMemberData.courseResults['rec_' + newIdx] = ex.recommendation;
+          }
+
+          // editCourse — cr_bn, cr_en এবং courseResults আপডেট
+          if (r.requestType === 'editCourse' && r.courseEditExtra) {
+            const ex = r.courseEditExtra;
+            if (r.newValue !== undefined) currentMemberData.cr_bn = r.newValue;
+            if (r.newValueEn) currentMemberData.cr_en = r.newValueEn;
+            const idx = ex.idx;
+            if (ex.result)   currentMemberData.courseResults['course_' + idx] = ex.result;
+            if (ex.position && ex.position > 0) currentMemberData.courseResults['pos_' + idx] = ex.position;
+            if (ex.recommendation) currentMemberData.courseResults['rec_' + idx] = ex.recommendation;
+          }
+
+          // courseResult — ফলাফল আপডেট
+          if (r.requestType === 'courseResult' && r.courseResultExtra) {
+            const ex = r.courseResultExtra;
+            currentMemberData.courseResults[ex.resultKey] = ex.grade;
+          }
+
+          // coursePosition — অবস্থান আপডেট
+          if (r.requestType === 'coursePosition' && r.courseResultExtra) {
+            const ex = r.courseResultExtra;
+            if (ex.posKey) currentMemberData.courseResults[ex.posKey] = ex.position;
+          }
         }
 
         showToast(`✅ অনুমোদিত: ${fieldName}`, 'success');
@@ -3033,6 +3070,17 @@ function _startMemberDataWatcher(docId) {
       const skip = new Set(['updatedAt','updatedBy','createdAt']);
       Object.entries(fresh).forEach(([k, v]) => {
         if (skip.has(k)) return;
+        // courseResults — nested object, deep merge করো
+        if (k === 'courseResults' && v && typeof v === 'object') {
+          if (!currentMemberData.courseResults) currentMemberData.courseResults = {};
+          Object.entries(v).forEach(([rk, rv]) => {
+            if (currentMemberData.courseResults[rk] !== rv) {
+              currentMemberData.courseResults[rk] = rv;
+              changed = true;
+            }
+          });
+          return;
+        }
         if (JSON.stringify(currentMemberData[k]) !== JSON.stringify(v)) {
           currentMemberData[k] = v;
           changed = true;
@@ -3042,6 +3090,7 @@ function _startMemberDataWatcher(docId) {
         renderProfile();
         // pending page open থাকলে refresh করো
         if (document.getElementById('page-pending')?.classList.contains('active')) loadPendingPage();
+        // কোর্স পেজ open থাকলে fresh render করো
         if (document.getElementById('page-courses')?.classList.contains('active')) loadPendingCoursesAndRender();
       }
     }, err => console.warn('Member watcher error:', err.message));
