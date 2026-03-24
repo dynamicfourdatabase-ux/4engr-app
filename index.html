@@ -5596,18 +5596,6 @@ function handleSaveTraining(type) {
     if (!date || !quality) return isBn ? 'তারিখ ও গুণমান আবশ্যক' : 'Date and quality are required';
     data.date = date; data.quality = quality;
   }
-    const weapons = WEAPONS.filter(w => document.getElementById('wpn_' + w)?.checked);
-    data.fromDate = from; data.toDate = to; data.weapons = weapons;
-  } else if (type === 'killhouse') {
-    const date = document.getElementById('trDate')?.value.trim();
-    if (!date) return isBn ? 'তারিখ আবশ্যক' : 'Date is required';
-    data.date = date;
-  } else if (type === 'cbta') {
-    const date = document.getElementById('trDate')?.value.trim();
-    const quality = document.getElementById('trQuality')?.value;
-    if (!date || !quality) return isBn ? 'তারিখ ও গুণমান আবশ্যক' : 'Date and quality are required';
-    data.date = date; data.quality = quality;
-  }
   return data;
 }
 
