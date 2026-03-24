@@ -1326,22 +1326,107 @@ select.form-input { cursor: pointer; }
       </div>
     </div>
 
-    <!-- ── PAGE: Leave (ছুটি) ── -->
+    <!-- ── PAGE: Leave / Training & Vacation ── -->
     <div class="page" id="page-leave">
-      <div class="card">
-        <div class="card-header">
-          <span class="card-header-icon">🏖️</span>
-          <span class="card-header-title">ছুটির তথ্য</span>
-          <button class="field-edit-btn" style="margin-left:auto" onclick="openAddLeave()">+ নতুন ছুটি</button>
-        </div>
-        <div class="card-body" id="leaveList">
-          <div style="color:var(--text2);text-align:center;padding:20px;font-size:0.85rem">লোড হচ্ছে...</div>
+      <div style="padding:10px 0 6px 0">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+          <span style="font-size:1.4rem">🎯</span>
+          <span style="font-family:'Rajdhani',sans-serif;font-size:1.3rem;font-weight:700;color:var(--gold)">Training & Vacation</span>
         </div>
       </div>
+
       <!-- মোট ছুটির যোগফল -->
-      <div class="card" id="leaveSummaryCard" style="display:none">
+      <div class="card" id="leaveSummaryCard" style="margin-bottom:12px">
+        <div class="card-header">
+          <span class="card-header-icon">🏖️</span>
+          <span class="card-header-title">Leave Summary</span>
+        </div>
         <div class="card-body">
           <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px" id="leaveSummary"></div>
+        </div>
+      </div>
+
+      <!-- IPFT -->
+      <div class="card" style="margin-bottom:12px">
+        <div class="card-header">
+          <span class="card-header-icon">💪</span>
+          <span class="card-header-title">IPFT</span>
+          <button class="field-edit-btn" style="margin-left:auto" onclick="openAddTraining('ipft')">+ Add</button>
+        </div>
+        <div class="card-body" id="ipftList" style="padding:8px 12px">
+          <div style="color:var(--text2);text-align:center;padding:16px;font-size:0.82rem">Loading...</div>
+        </div>
+      </div>
+
+      <!-- RET -->
+      <div class="card" style="margin-bottom:12px">
+        <div class="card-header">
+          <span class="card-header-icon">📖</span>
+          <span class="card-header-title">RET</span>
+          <button class="field-edit-btn" style="margin-left:auto" onclick="openAddTraining('ret')">+ Add</button>
+        </div>
+        <div class="card-body" id="retList" style="padding:8px 12px">
+          <div style="color:var(--text2);text-align:center;padding:16px;font-size:0.82rem">Loading...</div>
+        </div>
+      </div>
+
+      <!-- Speed March -->
+      <div class="card" style="margin-bottom:12px">
+        <div class="card-header">
+          <span class="card-header-icon">🏃</span>
+          <span class="card-header-title">Speed March</span>
+          <button class="field-edit-btn" style="margin-left:auto" onclick="openAddTraining('speedmarch')">+ Add</button>
+        </div>
+        <div class="card-body" id="speedmarchList" style="padding:8px 12px">
+          <div style="color:var(--text2);text-align:center;padding:16px;font-size:0.82rem">Loading...</div>
+        </div>
+      </div>
+
+      <!-- Grenade Fire -->
+      <div class="card" style="margin-bottom:12px">
+        <div class="card-header">
+          <span class="card-header-icon">💣</span>
+          <span class="card-header-title">Grenade Fire</span>
+          <button class="field-edit-btn" style="margin-left:auto" onclick="openAddTraining('grenade')">+ Add</button>
+        </div>
+        <div class="card-body" id="grenadeList" style="padding:8px 12px">
+          <div style="color:var(--text2);text-align:center;padding:16px;font-size:0.82rem">Loading...</div>
+        </div>
+      </div>
+
+      <!-- Field Fire -->
+      <div class="card" style="margin-bottom:12px">
+        <div class="card-header">
+          <span class="card-header-icon">🎯</span>
+          <span class="card-header-title">Field Fire</span>
+          <button class="field-edit-btn" style="margin-left:auto" onclick="openAddTraining('fieldfire')">+ Add</button>
+        </div>
+        <div class="card-body" id="fieldfireList" style="padding:8px 12px">
+          <div style="color:var(--text2);text-align:center;padding:16px;font-size:0.82rem">Loading...</div>
+        </div>
+      </div>
+
+      <!-- Kill House Fire -->
+      <div class="card" style="margin-bottom:12px">
+        <div class="card-header">
+          <span class="card-header-icon">🏠</span>
+          <span class="card-header-title">Kill House Fire</span>
+          <button class="field-edit-btn" style="margin-left:auto" onclick="openAddTraining('killhouse')">+ Add</button>
+        </div>
+        <div class="card-body" id="killhouseList" style="padding:8px 12px">
+          <div style="color:var(--text2);text-align:center;padding:16px;font-size:0.82rem">Loading...</div>
+        </div>
+      </div>
+
+      <!-- CBTA -->
+      <div class="card" style="margin-bottom:12px">
+        <div class="card-header">
+          <span class="card-header-icon">⭐</span>
+          <span class="card-header-title">CBTA</span>
+          <button class="field-edit-btn" style="margin-left:auto" onclick="openAddTraining('cbta')">+ Add</button>
+        </div>
+        <div class="card-body" id="cbtaList" style="padding:8px 12px">
+          <div style="color:var(--text2);text-align:center;padding:16px;font-size:0.82rem">Loading...</div>
         </div>
       </div>
     </div>
@@ -1841,7 +1926,7 @@ select.form-input { cursor: pointer; }
       <span class="nav-icon">📚</span>কোর্স
     </button>
     <button class="nav-item" id="nav-leave" onclick="navTo('leave')">
-      <span class="nav-icon">🏖️</span>ছুটি
+      <span class="nav-icon">🎯</span>Training & Vacation
     </button>
     <button class="nav-item" id="nav-notifications" onclick="navTo('notifications')">
       <span class="nav-icon">🔔</span>বিজ্ঞপ্তি
@@ -2708,7 +2793,10 @@ function navTo(page) {
   if (page === 'admin') loadAdminData();
   if (page === 'notifications') loadNotifications();
   if (page === 'courses') { loadPendingCoursesAndRender(); }
-  if (page === 'leave') loadLeave();
+  if (page === 'leave') {
+    loadLeave();
+    ['ipft','ret','speedmarch','grenade','fieldfire','killhouse','cbta'].forEach(t => loadTraining(t));
+  }
   if (page === 'pending') loadPendingPage();
 }
 
@@ -3895,6 +3983,48 @@ async function saveModal() {
       } catch(e) { showToast('ব্যর্থ: ' + e.message, 'error'); }
     }
     btn.textContent='সংরক্ষণ করুন'; btn.disabled=false; return;
+  }
+
+  // ── Training records ──
+  if (currentEditField.key === '_addTraining') {
+    const type = currentEditField.trainingType;
+    const result = handleSaveTraining(type);
+    if (typeof result === 'string') { showToast(result, 'error'); btn.textContent='সংরক্ষণ করুন'; btn.disabled=false; return; }
+    const docId = currentMemberData.id || String(currentMemberData.no || '').replace(/[^A-Z0-9]/gi, '');
+    const isAdmin = userRole === 'admin' || userRole === 'superadmin';
+    if (isAdmin) {
+      try {
+        await db.collection('members').doc(docId).collection('training').add({
+          ...result,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          createdBy: currentUser.uid,
+        });
+        closeModal();
+        showToast('✅ ' + t('রেকর্ড যোগ হয়েছে'), 'success');
+        loadTraining(type);
+      } catch(e) { showToast('ব্যর্থ: ' + e.message, 'error'); }
+    } else {
+      try {
+        await db.collection('editRequests').add({
+          memberId: docId,
+          memberNo: currentMemberData.no || currentMemberData.armyNo || '',
+          memberName: currentMemberData.bn || currentMemberData.en || '',
+          memberCompany: currentMemberData.co_bn || '',
+          field: 'training_' + type,
+          fieldLabel: (appLang !== 'en' ? 'Training' : 'Training') + ' Record',
+          oldValue: '',
+          newValue: JSON.stringify(result),
+          requestedBy: currentUser.uid,
+          status: 'pending',
+          trainingType: type,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+        closeModal();
+        showToast('✅ ' + t('অনুমোদনের জন্য জমা হয়েছে'), 'success');
+        checkPendingStatus();
+      } catch(e) { showToast('ব্যর্থ: ' + e.message, 'error'); }
+    }
+    btn.textContent=t('সংরক্ষণ করুন'); btn.disabled=false; return;
   }
 
   // ── সন্তান যোগ ──
@@ -5184,6 +5314,301 @@ async function deleteLeave(leaveId) {
     showToast('✅ ছুটি মুছে দেওয়া হয়েছে', 'success');
     loadLeave();
   } catch(e) { showToast('ব্যর্থ: ' + e.message, 'error'); }
+}
+
+/* ══════════════════════════════════════════
+   TRAINING & VACATION — IPFT / RET / Speed March / Grenade / Field Fire / Kill House / CBTA
+══════════════════════════════════════════ */
+
+const IPFT_SUBJECTS = ['1.6 km', 'Pushup', 'Beam', 'Reachup', '3.2 km', 'Horizontal Rope', '6 Feet Wall', 'Swimming'];
+const WEAPONS = ['LMG', 'MMG', 'MG', 'HMG'];
+const TRAINING_QUALITY = ['Good', 'Very Good'];
+
+async function loadTraining(type) {
+  const box = document.getElementById(type + 'List');
+  if (!box) return;
+  box.innerHTML = '<div style="color:var(--text2);text-align:center;padding:16px;font-size:0.82rem">' + t('লোড হচ্ছে...') + '</div>';
+  const docId = currentMemberData.id || String(currentMemberData.no || '').replace(/[^A-Z0-9]/gi, '');
+  if (!docId) { box.innerHTML = '<div style="color:var(--danger);text-align:center;padding:16px">' + t('সদস্য ID পাওয়া যায়নি') + '</div>'; return; }
+  try {
+    let snap;
+    try {
+      snap = await db.collection('members').doc(docId).collection('training')
+        .where('type', '==', type).orderBy('createdAt', 'desc').get();
+    } catch(e) {
+      snap = await db.collection('members').doc(docId).collection('training')
+        .where('type', '==', type).get();
+    }
+    if (snap.empty) {
+      box.innerHTML = '<div style="color:var(--text2);text-align:center;padding:20px;font-size:0.82rem">' + t('কোনো রেকর্ড নেই') + '</div>';
+      return;
+    }
+    const isAdmin = userRole === 'admin' || userRole === 'superadmin';
+    let html = '';
+    snap.docs.forEach(d => {
+      const docData = d.data();
+      html += renderTrainingCard(type, docData, d.id, isAdmin);
+    });
+    box.innerHTML = html;
+  } catch(e) {
+    box.innerHTML = '<div style="color:var(--danger);text-align:center;padding:16px;font-size:0.82rem">❌ ' + e.message + '</div>';
+  }
+}
+
+function renderTrainingCard(type, data, id, isAdmin) {
+  const isBn = appLang !== 'en';
+  const tr = (bn, fallback) => isBn ? (TRANSLATIONS[bn] || bn) : fallback;
+
+  // Map English subject keys to Bengali labels
+  const subjMap = {
+    '1.6 km': isBn ? '১.৬ কিমি' : '1.6 km',
+    'Pushup': isBn ? 'পুশআপ' : 'Pushup',
+    'Beam': isBn ? 'বিম' : 'Beam',
+    'Reachup': isBn ? 'রিচআপ' : 'Reachup',
+    '3.2 km': isBn ? '৩.২ কিমি' : '3.2 km',
+    'Horizontal Rope': isBn ? 'হরাইজন্টাল রোপ' : 'Horizontal Rope',
+    '6 Feet Wall': isBn ? '৬ ফিট ওয়াল' : '6 Feet Wall',
+    'Swimming': isBn ? 'সুইমিং' : 'Swimming'
+  };
+
+  // Map English quality values to Bengali
+  const qualityMap = {
+    'Good': isBn ? 'ভালো' : 'Good',
+    'Very Good': isBn ? 'অতি উত্তম' : 'Very Good'
+  };
+
+  const resultMap = {
+    'Passed': isBn ? 'উত্তীর্ণ' : 'Passed',
+    'Failed': isBn ? 'অকৃতকার্য' : 'Failed'
+  };
+
+  let details = '';
+  if (type === 'ipft') {
+    const failList = Array.isArray(data.failedSubjects) && data.failedSubjects.length
+      ? data.failedSubjects.map(s => subjMap[s] || s).join(', ')
+      : tr('কোনো অংশ নেই', 'None');
+    const resultLabel = resultMap[data.result] || data.result || '—';
+    details = `<div style="font-size:0.8rem;color:var(--text2)">📅 ${tr('তারিখ:', 'Date:')} ${data.date || '—'} &nbsp;|&nbsp; ${tr('ফলাফল:', 'Result:')} <span style="color:${data.result==='Passed'?'var(--success)':'var(--danger)'}">${resultLabel}</span></div>
+    <div style="font-size:0.78rem;color:${data.result==='Failed'?'var(--danger)':'var(--text2)'};margin-top:4px">❌ ${tr('অকৃতকার্য:', 'Failed:')} ${failList}</div>`;
+  } else if (type === 'ret') {
+    const resultLabel = resultMap[data.result] || data.result || '—';
+    details = `<div style="font-size:0.8rem;color:var(--text2)">📅 ${tr('তারিখ:', 'Date:')} ${data.date || '—'} &nbsp;|&nbsp; ${tr('প্রাপ্ত নম্বর:', 'Marks:')} <b style="color:var(--gold)">${data.marks || '—'}</b> &nbsp;|&nbsp; ${tr('ফলাফল:', 'Result:')} <span style="color:${data.result==='Passed'?'var(--success)':'var(--danger)'}">${resultLabel}</span></div>`;
+  } else if (type === 'speedmarch') {
+    details = `<div style="font-size:0.8rem;color:var(--text2)">📅 ${tr('তারিখ:', 'Date:')} ${data.date || '—'}</div>`;
+  } else if (type === 'grenade') {
+    details = `<div style="font-size:0.8rem;color:var(--text2)">📅 ${tr('তারিখ:', 'Date:')} ${data.date || '—'} &nbsp;|&nbsp; 🎯 ${tr('অংশগ্রহণ:', 'Participations:')} <b style="color:var(--gold)">${data.participations || '—'}</b></div>`;
+  } else if (type === 'fieldfire') {
+    const weapons = Array.isArray(data.weapons) && data.weapons.length ? data.weapons.join(', ') : '—';
+    details = `<div style="font-size:0.8rem;color:var(--text2)">📅 ${tr('হইতে:', 'From:')} ${data.fromDate || '—'} &nbsp; ${tr('পর্যন্ত:', 'To:')} ${data.toDate || '—'}</div>
+    <div style="font-size:0.78rem;color:var(--gold);margin-top:4px">🔫 ${tr('অস্ত্র:', 'Weapons:')} ${weapons}</div>`;
+  } else if (type === 'killhouse') {
+    details = `<div style="font-size:0.8rem;color:var(--text2)">📅 ${tr('তারিখ:', 'Date:')} ${data.date || '—'}</div>`;
+  } else if (type === 'cbta') {
+    const qLabel = qualityMap[data.quality] || data.quality || '—';
+    details = `<div style="font-size:0.8rem;color:var(--text2)">📅 ${tr('তারিখ:', 'Date:')} ${data.date || '—'} &nbsp;|&nbsp; ${tr('গুণমান:', 'Quality:')} <b style="color:var(--gold)">${qLabel}</b></div>`;
+  }
+
+  return `<div style="background:var(--dark3);border:1px solid var(--border2);border-radius:10px;padding:12px;margin-bottom:8px">
+    ${details}
+    <div style="display:flex;gap:6px;margin-top:8px">
+      ${isAdmin ? `<button onclick="deleteTraining('${type}','${id}')" style="background:transparent;border:1px solid rgba(224,85,85,0.3);border-radius:6px;padding:3px 8px;color:var(--danger);cursor:pointer;font-size:11px;font-family:'Rajdhani',sans-serif">🗑</button>` : ''}
+    </div>
+  </div>`;
+}
+
+function openAddTraining(type) {
+  const isBn = appLang !== 'en';
+  const ipftSubjLabels = {
+    '1.6 km': isBn ? '১.৬ কিমি' : '1.6 km',
+    'Pushup': isBn ? 'পুশআপ' : 'Pushup',
+    'Beam': isBn ? 'বিম' : 'Beam',
+    'Reachup': isBn ? 'রিচআপ' : 'Reachup',
+    '3.2 km': isBn ? '৩.২ কিমি' : '3.2 km',
+    'Horizontal Rope': isBn ? 'হরাইজন্টাল রোপ' : 'Horizontal Rope',
+    '6 Feet Wall': isBn ? '৬ ফিট ওয়াল' : '6 Feet Wall',
+    'Swimming': isBn ? 'সুইমিং' : 'Swimming'
+  };
+
+  let html = '';
+  if (type === 'ipft') {
+    html = `<div class="form-group">
+      <label class="form-label">${t('তারিখ (DD/MM/YYYY)')}</label>
+      <input type="text" class="form-input" id="trDate" placeholder="${t('01/01/2025')}" style="background:var(--dark3)">
+    </div>
+    <div class="form-group">
+      <label class="form-label">${t('ফলাফল')}</label>
+      <select class="form-input" id="trResult" style="background:var(--dark3)" onchange="toggleIpftFails(this.value)">
+        <option value="Passed">${t('উত্তীর্ণ')}</option>
+        <option value="Failed">${t('অকৃতকার্য')}</option>
+      </select>
+    </div>
+    <div id="ipftFailSection" style="display:none;margin-top:10px">
+      <label class="form-label" style="color:var(--danger)">${t('যেসব বিষয়ে অকৃতকার্য (সব নির্বাচন করুন):')}</label>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px">
+        ${IPFT_SUBJECTS.map((s, i) => `<label style="display:flex;align-items:center;gap:6px;font-size:0.82rem;cursor:pointer;padding:6px 8px;background:var(--dark3);border-radius:6px;border:1px solid var(--border2)">
+          <input type="checkbox" id="fail_${i}" value="${s}"> ${ipftSubjLabels[s] || s}
+        </label>`).join('')}
+      </div>
+    </div>`;
+  } else if (type === 'ret') {
+    html = `<div class="form-group">
+      <label class="form-label">${t('তারিখ (DD/MM/YYYY)')}</label>
+      <input type="text" class="form-input" id="trDate" placeholder="${t('01/01/2025')}" style="background:var(--dark3)">
+    </div>
+    <div class="form-group">
+      <label class="form-label">${t('প্রাপ্ত নম্বর')}</label>
+      <input type="number" class="form-input" id="trMarks" placeholder="${t('যেমন ৪৫')}" style="background:var(--dark3)">
+    </div>
+    <div class="form-group">
+      <label class="form-label">${t('ফলাফল')}</label>
+      <select class="form-input" id="trResult" style="background:var(--dark3)">
+        <option value="Passed">${t('উত্তীর্ণ')}</option>
+        <option value="Failed">${t('অকৃতকার্য')}</option>
+      </select>
+    </div>`;
+  } else if (type === 'speedmarch') {
+    html = `<div class="form-group">
+      <label class="form-label">${t('অংশগ্রহণের তারিখ (DD/MM/YYYY)')}</label>
+      <input type="text" class="form-input" id="trDate" placeholder="${t('01/01/2025')}" style="background:var(--dark3)">
+    </div>`;
+  } else if (type === 'grenade') {
+    html = `<div class="form-group">
+      <label class="form-label">${t('তারিখ (DD/MM/YYYY)')}</label>
+      <input type="text" class="form-input" id="trDate" placeholder="${t('01/01/2025')}" style="background:var(--dark3)">
+    </div>
+    <div class="form-group">
+      <label class="form-label">${t('অংশগ্রহণের সংখ্যা')}</label>
+      <input type="number" class="form-input" id="trParticipations" placeholder="${t('যেমন ৫')}" min="1" style="background:var(--dark3)">
+    </div>`;
+  } else if (type === 'fieldfire') {
+    html = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="form-group">
+        <label class="form-label">${t('হইতে তারিখ')}</label>
+        <input type="text" class="form-input" id="trFromDate" placeholder="${t('01/01/2025')}" style="background:var(--dark3)">
+      </div>
+      <div class="form-group">
+        <label class="form-label">${t('পর্যন্ত তারিখ')}</label>
+        <input type="text" class="form-input" id="trToDate" placeholder="${t('07/01/2025')}" style="background:var(--dark3)">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">${t('ব্যবহৃত অস্ত্র (সব নির্বাচন করুন):')}</label>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px">
+        ${WEAPONS.map(w => `<label style="display:flex;align-items:center;gap:6px;font-size:0.82rem;cursor:pointer;padding:6px 8px;background:var(--dark3);border-radius:6px;border:1px solid var(--border2)">
+          <input type="checkbox" id="wpn_${w}" value="${w}"> ${w}
+        </label>`).join('')}
+      </div>
+    </div>`;
+  } else if (type === 'killhouse') {
+    html = `<div class="form-group">
+      <label class="form-label">${t('তারিখ (DD/MM/YYYY)')}</label>
+      <input type="text" class="form-input" id="trDate" placeholder="${t('01/01/2025')}" style="background:var(--dark3)">
+    </div>`;
+  } else if (type === 'cbta') {
+    html = `<div class="form-group">
+      <label class="form-label">${t('তারিখ (DD/MM/YYYY)')}</label>
+      <input type="text" class="form-input" id="trDate" placeholder="${t('01/01/2025')}" style="background:var(--dark3)">
+    </div>
+    <div class="form-group">
+      <label class="form-label">${t('গুণমান')}</label>
+      <select class="form-input" id="trQuality" style="background:var(--dark3)">
+        <option value="">-- ${t('নির্বাচন করুন')} --</option>
+        <option value="Good">${t('ভালো')}</option>
+        <option value="Very Good">${t('অতি উত্তম')}</option>
+      </select>
+    </div>`;
+  }
+
+  const titles = {
+    ipft: t('IPFT রেকর্ড যোগ করুন'),
+    ret: t('RET রেকর্ড যোগ করুন'),
+    speedmarch: t('Speed March রেকর্ড যোগ করুন'),
+    grenade: t('Grenade Fire রেকর্ড যোগ করুন'),
+    fieldfire: t('Field Fire রেকর্ড যোগ করুন'),
+    killhouse: t('Kill House Fire রেকর্ড যোগ করুন'),
+    cbta: t('CBTA রেকর্ড যোগ করুন')
+  };
+  document.getElementById('modalTitle').textContent = titles[type] || t('রেকর্ড যোগ করুন');
+  document.getElementById('modalBody').innerHTML = html;
+  currentEditField = { key: '_addTraining', trainingType: type };
+  document.getElementById('editModal').classList.add('open');
+}
+
+function toggleIpftFails(val) {
+  const sec = document.getElementById('ipftFailSection');
+  if (sec) sec.style.display = val === 'Failed' ? 'block' : 'none';
+}
+
+async function deleteTraining(type, id) {
+  const isBn = appLang !== 'en';
+  if (!await confirmAsync(t('রেকর্ড মুছে দেবেন?'), {danger:true,icon:'🗑️',title:t('মুছে দিন')})) return;
+  const docId = currentMemberData.id || String(currentMemberData.no || '').replace(/[^A-Z0-9]/gi, '');
+  try {
+    await db.collection('members').doc(docId).collection('training').doc(id).delete();
+    showToast('✅ ' + t('রেকর্ড মুছে দেওয়া হয়েছে'), 'success');
+    loadTraining(type);
+  } catch(e) { showToast('ব্যর্থ: ' + e.message, 'error'); }
+}
+
+// Handle save for all training types
+function handleSaveTraining(type) {
+  const isBn = appLang !== 'en';
+  const docId = currentMemberData.id || String(currentMemberData.no || '').replace(/[^A-Z0-9]/gi, '');
+  let data = { type, updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
+
+  if (type === 'ipft') {
+    const date = document.getElementById('trDate')?.value.trim();
+    const result = document.getElementById('trResult')?.value;
+    if (!date) return isBn ? 'তারিখ আবশ্যক' : 'Date is required';
+    data.date = date; data.result = result;
+    if (result === 'Failed') {
+      const fails = IPFT_SUBJECTS.filter((s, i) => document.getElementById('fail_' + i)?.checked);
+      data.failedSubjects = fails;
+    }
+  } else if (type === 'ret') {
+    const date = document.getElementById('trDate')?.value.trim();
+    const marks = document.getElementById('trMarks')?.value.trim();
+    const result = document.getElementById('trResult')?.value;
+    if (!date || !marks) return isBn ? 'তারিখ ও নম্বর আবশ্যক' : 'Date and marks are required';
+    data.date = date; data.marks = marks; data.result = result;
+  } else if (type === 'speedmarch') {
+    const date = document.getElementById('trDate')?.value.trim();
+    if (!date) return isBn ? 'তারিখ আবশ্যক' : 'Date is required';
+    data.date = date;
+  } else if (type === 'grenade') {
+    const date = document.getElementById('trDate')?.value.trim();
+    const parts = document.getElementById('trParticipations')?.value.trim();
+    if (!date || !parts) return isBn ? 'তারিখ ও সংখ্যা আবশ্যক' : 'Date and participations are required';
+    data.date = date; data.participations = parts;
+  } else if (type === 'fieldfire') {
+    const from = document.getElementById('trFromDate')?.value.trim();
+    const to = document.getElementById('trToDate')?.value.trim();
+    if (!from || !to) return isBn ? 'তারিখ আবশ্যক' : 'From and To dates are required';
+    const weapons = WEAPONS.filter(w => document.getElementById('wpn_' + w)?.checked);
+    data.fromDate = from; data.toDate = to; data.weapons = weapons;
+  } else if (type === 'killhouse') {
+    const date = document.getElementById('trDate')?.value.trim();
+    if (!date) return isBn ? 'তারিখ আবশ্যক' : 'Date is required';
+    data.date = date;
+  } else if (type === 'cbta') {
+    const date = document.getElementById('trDate')?.value.trim();
+    const quality = document.getElementById('trQuality')?.value;
+    if (!date || !quality) return isBn ? 'তারিখ ও গুণমান আবশ্যক' : 'Date and quality are required';
+    data.date = date; data.quality = quality;
+  }
+    const weapons = WEAPONS.filter(w => document.getElementById('wpn_' + w)?.checked);
+    data.fromDate = from; data.toDate = to; data.weapons = weapons;
+  } else if (type === 'killhouse') {
+    const date = document.getElementById('trDate')?.value.trim();
+    if (!date) return isBn ? 'তারিখ আবশ্যক' : 'Date is required';
+    data.date = date;
+  } else if (type === 'cbta') {
+    const date = document.getElementById('trDate')?.value.trim();
+    const quality = document.getElementById('trQuality')?.value;
+    if (!date || !quality) return isBn ? 'তারিখ ও গুণমান আবশ্যক' : 'Date and quality are required';
+    data.date = date; data.quality = quality;
+  }
+  return data;
 }
 
 /* ══════════════════════════════════════════
@@ -8844,7 +9269,81 @@ const TRANSLATIONS = {
   'অনুমোদিত': 'Approved', 'অপেক্ষায়': 'Pending', 'বাতিল': 'Rejected',
   'পুরুষ': 'Male',
   'মহিলা': 'Female',
-  'অবস্থান তথ্য জানা যায় নি': 'Position unknown'
+  'অবস্থান তথ্য জানা যায় নি': 'Position unknown',
+  // Training & Vacation page
+  'Training & Vacation': 'Training & Vacation',
+  'Leave Summary': 'Leave Summary',
+  'IPFT': 'IPFT', 'RET': 'RET',
+  'Speed March': 'Speed March',
+  'Grenade Fire': 'Grenade Fire',
+  'Field Fire': 'Field Fire',
+  'Kill House Fire': 'Kill House Fire',
+  'CBTA': 'CBTA',
+  // Training form titles
+  'Add IPFT': 'Add IPFT', 'Add RET': 'Add RET',
+  'Add Speed March': 'Add Speed March',
+  'Add Grenade Fire': 'Add Grenade Fire',
+  'Add Field Fire': 'Add Field Fire',
+  'Add Kill House Fire': 'Add Kill House Fire',
+  'Add CBTA': 'Add CBTA',
+  // Form labels
+  'Date (DD/MM/YYYY)': 'Date (DD/MM/YYYY)',
+  'From Date': 'From Date', 'To Date': 'To Date',
+  'Result': 'Result', 'Passed': 'Passed', 'Failed': 'Failed',
+  'Failed Subjects (select all that apply):': 'Failed Subjects (select all that apply):',
+  'Marks Obtained': 'Marks Obtained',
+  'Number of Participations': 'Number of Participations',
+  'Date of Participation (DD/MM/YYYY)': 'Date of Participation (DD/MM/YYYY)',
+  'Weapons Used (select all):': 'Weapons Used (select all):',
+  'Quality': 'Quality', 'Good': 'Good', 'Very Good': 'Very Good',
+  // Placeholders
+  'e.g. 20': 'e.g. 20', 'e.g. 2': 'e.g. 2',
+  '01/01/2025': '01/01/2025', '07/01/2025': '07/01/2025',
+  // Misc
+  'No records yet': 'No records yet',
+  'Loading...': 'Loading...',
+  'Record added': 'Record added',
+  'Submitted for admin approval': 'Submitted for admin approval',
+  'Delete': 'Delete', 'Delete this record?': 'Delete this record?',
+  // Bengali translations for training form labels
+  'তারিখ (DD/MM/YYYY)': 'Date (DD/MM/YYYY)',
+  'ফলাফল': 'Result', 'উত্তীর্ণ': 'Passed', 'অকৃতকার্য': 'Failed',
+  'যেসব বিষয়ে অকৃতকার্য (সব নির্বাচন করুন):': 'Failed Subjects (select all that apply):',
+  'প্রাপ্ত নম্বর': 'Marks Obtained', 'যেমন ২০': 'e.g. 20',
+  'অংশগ্রহণের তারিখ (DD/MM/YYYY)': 'Date of Participation (DD/MM/YYYY)',
+  'অংশগ্রহণের সংখ্যা': 'Participations', 'যেমন ২': 'e.g. 2',
+  'হইতে তারিখ': 'From Date', 'পর্যন্ত তারিখ': 'To Date',
+  'ব্যবহৃত অস্ত্র (সব নির্বাচন করুন):': 'Weapons Used (select all):',
+  'গুণমান': 'Quality', 'ভালো': 'Good', 'অতি উত্তম': 'Very Good',
+  'নির্বাচন করুন': 'Select',
+  // Bengali training form titles
+  'IPFT রেকর্ড যোগ করুন': 'Add IPFT Record',
+  'RET রেকর্ড যোগ করুন': 'Add RET Record',
+  'Speed March রেকর্ড যোগ করুন': 'Add Speed March Record',
+  'Grenade Fire রেকর্ড যোগ করুন': 'Add Grenade Fire Record',
+  'Field Fire রেকর্ড যোগ করুন': 'Add Field Fire Record',
+  'Kill House Fire রেকর্ড যোগ করুন': 'Add Kill House Fire Record',
+  'CBTA রেকর্ড যোগ করুন': 'Add CBTA Record',
+  'রেকর্ড যোগ করুন': 'Add Record',
+  // Training card labels (BN)
+  'তারিখ:': 'Date:', 'ফলাফল:': 'Result:', 'অকৃতকার্য:': 'Failed:',
+  'কোনো অংশ নেই': 'None',
+  'প্রাপ্ত নম্বর:': 'Marks:', 'অংশগ্রহণ:': 'Participations:',
+  'হইতে:': 'From:', 'পর্যন্ত:': 'To:', 'অস্ত্র:': 'Weapons:',
+  'গুণমান:': 'Quality:',
+  // IPFT subjects (stored in DB as English keys, translated in display)
+  '১.৬ কিমি': '1.6 km', 'পুশআপ': 'Pushup', 'বিম': 'Beam', 'রিচআপ': 'Reachup',
+  '৩.২ কিমি': '3.2 km', 'হরাইজন্টাল রোপ': 'Horizontal Rope', '৬ ফিট ওয়াল': '6 Feet Wall', 'সুইমিং': 'Swimming',
+  // Toast messages
+  'রেকর্ড যোগ হয়েছে': 'Record added',
+  'অনুমোদনের জন্য জমা হয়েছে': 'Submitted for admin approval',
+  'রেকর্ড মুছে দেওয়া হয়েছে': 'Record deleted',
+  'রেকর্ড মুছে দেবেন?': 'Delete this record?',
+  // Leave summary
+  'ছুটির তথ্য': 'Leave Info', 'মোট ছুটি (দিন)': 'Total Leave (Days)',
+  'কোনো রেকর্ড নেই': 'No records yet',
+  'সদস্য ID পাওয়া যায়নি': 'Member ID not found',
+  'মুছে দিন': 'Delete'
 };
 
 function t(bn) {
@@ -8865,6 +9364,12 @@ function toggleAppLang() {
     loadPendingCoursesAndRender(); // pending কোর্স
   }
 
+  // Training & Vacation page reload
+  if (document.getElementById('page-leave')?.classList.contains('active')) {
+    loadLeave();
+    ['ipft','ret','speedmarch','grenade','fieldfire','killhouse','cbta'].forEach(t => loadTraining(t));
+  }
+
   // Static labels translate করো
   applyLangToUI();
 }
@@ -8876,7 +9381,7 @@ function applyLangToUI() {
   const navMap = {
     'nav-profile':       [isBn ? 'প্রোফাইল'  : 'Profile',       '👤'],
     'nav-courses':       [isBn ? 'কোর্স'      : 'Courses',       '📚'],
-    'nav-leave':         [isBn ? 'ছুটি'       : 'Leave',         '🏖️'],
+    'nav-leave':         [isBn ? 'Training & Vacation' : 'Training & Vacation', '🎯'],
     'nav-notifications': [isBn ? 'বিজ্ঞপ্তি' : 'Notifications', '🔔'],
     'nav-admin':         ['Admin',                                 '🛡️'],
     'nav-pending':       [isBn ? 'অপেক্ষমান' : 'Pending',        '⏳'],

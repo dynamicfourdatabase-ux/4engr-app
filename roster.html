@@ -1669,7 +1669,7 @@ async function openWebPendingModal() {
         : await db.collection('editRequests').where('status','==','pending').orderBy('createdAt','desc').get();
     }
     const list = modal.querySelector('#webPendingList');
-    if (q.empty) { list.innerHTML = '<div style="text-align:center;padding:20px;color:#3fb950;font-size:0.85rem">✅ কোনো অপেক্ষমাণ অনুরোধ নেই</div>'; return; }
+    if (q.empty) { list.innerHTML = '<div style="text-align:center;padding:20px;color:#3fb950;font-size:0.85rem">✅ ' + L('কোনো অপেক্ষমাণ অনুরোধ নেই', 'No pending requests') + '</div>'; return; }
 
     list.innerHTML = q.docs.map(d => {
       const r = d.data();
@@ -1687,11 +1687,48 @@ async function openWebPendingModal() {
         detailHtml = `<span style="color:#c8a94a">🏠 ঠিকানা:</span> <span style="color:#e6e6e6">${parts.join(', ')||r.newValue}</span>`;
       } else if (r.extraData?.promotionSlot) {
         detailHtml = `<span style="color:#c8a94a">⭐ পদোন্নতি (${r.extraData.promotionSlot}):</span> <span style="color:#e6e6e6">${r.extraData.promotionDate||r.newValue}</span>`;
+      } else if (r.field && r.field.startsWith('training_')) {
+        // Training record — parse and display readable bilingual format
+        const trainingType = r.trainingType || r.field.replace('training_', '');
+        const typeLabel = trainingType.toUpperCase();
+        const subjMap = {
+          '1.6 km': L('১.৬ কিমি', '1.6 km'),
+          'Pushup': L('পুশআপ', 'Pushup'),
+          'Beam': L('বিম', 'Beam'),
+          'Reachup': L('রিচআপ', 'Reachup'),
+          '3.2 km': L('৩.২ কিমি', '3.2 km'),
+          'Horizontal Rope': L('হরাইজন্টাল রোপ', 'Horizontal Rope'),
+          '6 Feet Wall': L('৬ ফিট ওয়াল', '6 Feet Wall'),
+          'Swimming': L('সুইমিং', 'Swimming')
+        };
+        const resultMap = { 'Passed': L('উত্তীর্ণ', 'Passed'), 'Failed': L('অকৃতকার্য', 'Failed') };
+        const qualityMap = { 'Good': L('ভালো', 'Good'), 'Very Good': L('অতি উত্তম', 'Very Good') };
+        let parsed = {};
+        try { parsed = JSON.parse(r.newValue); } catch(_) {}
+        const date = parsed.date || '';
+        const result = resultMap[parsed.result] || parsed.result || '';
+        const marks = parsed.marks || '';
+        const participations = parsed.participations || '';
+        const quality = qualityMap[parsed.quality] || parsed.quality || '';
+        const fromDate = parsed.fromDate || '';
+        const toDate = parsed.toDate || '';
+        const weapons = Array.isArray(parsed.weapons) ? parsed.weapons.join(', ') : '';
+        const failedSubjects = Array.isArray(parsed.failedSubjects) ? parsed.failedSubjects.map(s => subjMap[s] || s).join(', ') : '';
+        let trainingDetails = [];
+        if (date) trainingDetails.push(`${L('📅 তারিখ', '📅 Date')}: ${date}`);
+        if (result) trainingDetails.push(`${L('✅ ফলাফল', '✅ Result')}: ${result}`);
+        if (marks) trainingDetails.push(`${L('📊 নম্বর', '📊 Marks')}: ${marks}`);
+        if (participations) trainingDetails.push(`${L('🎯 অংশগ্রহণ', '🎯 Participations')}: ${participations}`);
+        if (quality) trainingDetails.push(`${L('⭐ গুণমান', '⭐ Quality')}: ${quality}`);
+        if (fromDate && toDate) trainingDetails.push(`${L('📅', '📅')} ${fromDate} — ${toDate}`);
+        if (weapons) trainingDetails.push(`${L('🔫 অস্ত্র', '🔫 Weapons')}: ${weapons}`);
+        if (failedSubjects) trainingDetails.push(`${L('❌ অকৃতকার্য', '❌ Failed')}: ${failedSubjects}`);
+        detailHtml = `<span style="color:#c8a94a">🎯 ${typeLabel} Training:</span> <span style="color:#e6e6e6">${trainingDetails.length > 0 ? trainingDetails.join(' &nbsp;|&nbsp; ') : r.newValue}</span>`;
       }
 
       // পুরনো মান
       const oldHtml = r.oldValue
-        ? `<div style="font-size:0.7rem;color:rgba(255,255,255,0.3);margin-top:3px">পূর্বের: ${r.oldValue}</div>`
+        ? `<div style="font-size:0.7rem;color:rgba(255,255,255,0.3);margin-top:3px">${L('পূর্বের:', 'Previous:')} ${r.oldValue}</div>`
         : '';
 
       return `<div style="background:#1c2333;border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:12px 14px;margin-bottom:10px">
@@ -1703,13 +1740,13 @@ async function openWebPendingModal() {
         <div style="font-size:0.82rem;margin-bottom:2px">${detailHtml}</div>
         ${oldHtml}
         <div style="display:flex;gap:8px;margin-top:10px">
-          <button onclick="webApprove('${d.id}',this)" style="flex:1;padding:8px;background:rgba(63,185,80,0.15);border:1px solid rgba(63,185,80,0.3);color:#3fb950;border-radius:7px;font-family:'Rajdhani',sans-serif;font-size:0.75rem;font-weight:700;cursor:pointer;letter-spacing:1px">✓ অনুমোদন</button>
-          <button onclick="webReject('${d.id}',this)" style="flex:1;padding:8px;background:rgba(224,85,85,0.12);border:1px solid rgba(224,85,85,0.3);color:#e05555;border-radius:7px;font-family:'Rajdhani',sans-serif;font-size:0.75rem;font-weight:700;cursor:pointer;letter-spacing:1px">✗ বাতিল</button>
+          <button onclick="webApprove('${d.id}',this)" style="flex:1;padding:8px;background:rgba(63,185,80,0.15);border:1px solid rgba(63,185,80,0.3);color:#3fb950;border-radius:7px;font-family:'Rajdhani',sans-serif;font-size:0.75rem;font-weight:700;cursor:pointer;letter-spacing:1px">${L('✓ অনুমোদন','✓ Approve')}</button>
+          <button onclick="webReject('${d.id}',this)" style="flex:1;padding:8px;background:rgba(224,85,85,0.12);border:1px solid rgba(224,85,85,0.3);color:#e05555;border-radius:7px;font-family:'Rajdhani',sans-serif;font-size:0.75rem;font-weight:700;cursor:pointer;letter-spacing:1px">${L('✗ বাতিল','✗ Reject')}</button>
         </div>
       </div>`;
     }).join('');
   } catch(e) {
-    modal.querySelector('#webPendingList').innerHTML = `<div style="color:#e05555;font-size:0.82rem">লোড ব্যর্থ: ${e.message}</div>`;
+    modal.querySelector('#webPendingList').innerHTML = `<div style="color:#e05555;font-size:0.82rem">❌ ${L('লোড ব্যর্থ:', 'Load failed:')} ${e.message}</div>`;
   }
 }
 
@@ -1786,6 +1823,52 @@ async function webApprove(docId, btn) {
       if (ex.recommendation) updateData['courseResults.rec_' + ex.idx] = ex.recommendation;
     }
 
+    // Training records — add to subcollection (separate from batch, no member doc update)
+    if (r.field && r.field.startsWith('training_') && r.newValue) {
+      const trainingType = r.trainingType || r.field.replace('training_', '');
+      const trainingData = JSON.parse(r.newValue);
+      delete trainingData.type;
+      delete trainingData.updatedAt;
+      try {
+        await memberRef.collection('training').add({
+          ...trainingData,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          createdBy: r.requestedBy,
+        });
+        await db.collection('editRequests').doc(docId).update({
+          status: 'approved',
+          approvedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          approvedBy: webCurrentUser.uid,
+        });
+        try {
+          await db.collection('notifications').add({
+            uid: r.requestedBy,
+            memberId: r.memberId,
+            type: 'approved',
+            title: lang === 'bn' ? '✅ অনুরোধ অনুমোদিত হয়েছে' : '✅ Request Approved',
+            body: lang === 'bn'
+              ? `আপনার "${r.fieldLabel || trainingType.toUpperCase()} Training" রেকর্ড Admin অনুমোদন করেছেন।`
+              : `Your "${r.fieldLabel || trainingType.toUpperCase()} Training" record has been approved by Admin.`,
+            requestId: docId,
+            field: r.field,
+            newValue: r.newValue,
+            read: false,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          });
+        } catch(_) {}
+        btn.closest('div[style*=border-radius]').remove();
+        loadWebPendingCount();
+        _showAdminToast(
+          (lang === 'bn' ? '✅ ' : '✅ ') + (r.fieldLabel || trainingType.toUpperCase()) + (lang === 'bn' ? ' রেকর্ড অনুমোদিত হয়েছে' : ' record approved'),
+          'success'
+        );
+      } catch(e) {
+        btn.textContent = '✓ অনুমোদন'; btn.disabled = false;
+        _showAdminToast('❌ ' + (e.message||e.code), 'error');
+      }
+      return;
+    }
+
     batch.update(memberRef, updateData);
     batch.update(db.collection('editRequests').doc(docId), {
       status: 'approved',
@@ -1794,14 +1877,16 @@ async function webApprove(docId, btn) {
     });
 
     // APP এ notification পাঠাও
+    const fieldName = r.fieldLabel || r.field || (lang === 'bn' ? 'তথ্য' : 'Information');
     try {
-      const fieldName = r.fieldLabel || r.field || 'তথ্য';
       await db.collection('notifications').add({
         uid: r.requestedBy,
         memberId: r.memberId,
         type: 'approved',
-        title: '✅ অনুরোধ অনুমোদিত হয়েছে',
-        body: `আপনার "${fieldName}" পরিবর্তনের অনুরোধ Admin অনুমোদন করেছেন।`,
+        title: lang === 'bn' ? '✅ অনুরোধ অনুমোদিত হয়েছে' : '✅ Request Approved',
+        body: lang === 'bn'
+          ? `আপনার "${fieldName}" পরিবর্তনের অনুরোধ Admin অনুমোদন করেছেন।`
+          : `Your request to update "${fieldName}" has been approved by Admin.`,
         requestId: docId,
         field: r.field,
         newValue: r.newValue,
@@ -1828,7 +1913,7 @@ async function webApprove(docId, btn) {
 }
 
 async function webReject(docId, btn) {
-  if (!confirm('এই অনুরোধটি প্রত্যাখ্যান করবেন?')) return;
+  if (!confirm(lang === 'bn' ? 'এই অনুরোধটি প্রত্যাখ্যান করবেন?' : 'Reject this request?')) return;
   btn.textContent = '⏳'; btn.disabled = true;
   try {
     const doc = await db.collection('editRequests').doc(docId).get();
@@ -1841,13 +1926,15 @@ async function webReject(docId, btn) {
     // APP এ rejected notification পাঠাও
     if (r.requestedBy) {
       try {
-        const fieldName = r.fieldLabel || r.field || 'তথ্য';
+        const fieldName = r.fieldLabel || r.field || (lang === 'bn' ? 'তথ্য' : 'Information');
         await db.collection('notifications').add({
           uid: r.requestedBy,
           memberId: r.memberId,
           type: 'rejected',
-          title: '❌ অনুরোধ বাতিল হয়েছে',
-          body: `আপনার "${fieldName}" পরিবর্তনের অনুরোধ বাতিল করা হয়েছে।`,
+          title: lang === 'bn' ? '❌ অনুরোধ বাতিল হয়েছে' : '❌ Request Rejected',
+          body: lang === 'bn'
+            ? `আপনার "${fieldName}" পরিবর্তনের অনুরোধ বাতিল করা হয়েছে।`
+            : `Your request to update "${fieldName}" has been rejected.`,
           requestId: docId,
           read: false,
           createdAt: firebase.firestore.FieldValue.serverTimestamp(),
