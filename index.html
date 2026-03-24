@@ -1355,17 +1355,6 @@ select.form-input { cursor: pointer; }
 
       <!-- ========== ট্রেনিং সেকশন ========== -->
       <div style="margin-top: 24px;">
-      <!-- ট্রেনিং টাইপ বাটন -->
-      <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px;">
-        <button onclick="openAddTraining('ipft')" class="admin-tab-btn" style="background:linear-gradient(135deg,var(--gold),#9a7a20); color:#0a0c10;">🏃 IPFT</button>
-        <button onclick="openAddTraining('ret')" class="admin-tab-btn" style="background:linear-gradient(135deg,var(--gold),#9a7a20); color:#0a0c10;">📝 RET</button>
-        <button onclick="openAddTraining('speedmarch')" class="admin-tab-btn" style="background:linear-gradient(135deg,var(--gold),#9a7a20); color:#0a0c10;">⚡ Speed March</button>
-        <button onclick="openAddTraining('grenade')" class="admin-tab-btn" style="background:linear-gradient(135deg,var(--gold),#9a7a20); color:#0a0c10;">💣 Grenade Fire</button>
-        <button onclick="openAddTraining('fieldfire')" class="admin-tab-btn" style="background:linear-gradient(135deg,var(--gold),#9a7a20); color:#0a0c10;">🔫 Field Fire</button>
-        <button onclick="openAddTraining('killhouse')" class="admin-tab-btn" style="background:linear-gradient(135deg,var(--gold),#9a7a20); color:#0a0c10;">🏠 Kill House</button>
-        <button onclick="openAddTraining('cbta')" class="admin-tab-btn" style="background:linear-gradient(135deg,var(--gold),#9a7a20); color:#0a0c10;">⭐ CBTA</button>
-      </div>
-
       <!-- IPFT কার্ড -->
       <div class="card" style="margin-bottom: 16px;">
         <div class="card-header">
@@ -4548,7 +4537,6 @@ async function loadPendingPage() {
       docs = q.docs;
     }
 
-    // sort — নতুন আগে
     docs = docs.slice().sort((a, b) =>
       (b.data().createdAt?.seconds || 0) - (a.data().createdAt?.seconds || 0)
     );
@@ -4576,31 +4564,63 @@ async function loadPendingPage() {
       const fieldName = r.fieldLabel || FIELD_LABELS[r.field] || r.field || 'তথ্য';
       const isEdit = r.requestType === 'editCourse';
       const isCourse = r.requestType === 'addCourse' || isEdit;
-      const isCourseResult = r.requestType === 'courseResult' || r.requestType === 'coursePosition';
-
+      
       let dispVal = r.newValue || '—';
       let oldVal  = r.oldValue || '';
-      if (r.requestType === 'addCourse' && r.courseExtra) {
+      let oldValueHtml = '';
+      
+      // ========== ছুটি সংশোধনের জন্য আলাদা ডিসপ্লে ==========
+      if (r.requestType === 'editLeave' && r.oldValue && r.newValue) {
+        try {
+          const oldData = JSON.parse(r.oldValue);
+          const newData = JSON.parse(r.newValue);
+          
+          const isBn = appLang !== 'en';
+          const leaveTypeLabel = isBn ? newData.leave_type : (LEAVE_TYPES_EN[newData.leave_type] || newData.leave_type);
+          
+          dispVal = `
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <div><span style="color:var(--text2)">${isBn ? 'ছুটির প্রকার' : 'Leave Type'}:</span> <strong style="color:var(--gold)">${leaveTypeLabel}</strong></div>
+              <div><span style="color:var(--text2)">${isBn ? 'তারিখ' : 'Date'}:</span> <strong>${newData.from_date} → ${newData.to_date}</strong> <span style="color:var(--success)">(${newData.total_days} ${isBn ? 'দিন' : 'days'})</span></div>
+            </div>
+          `;
+          
+          oldValueHtml = `
+            <div style="font-size:0.75rem;color:var(--text3);text-decoration:line-through;margin-bottom:6px;padding:4px 6px;background:rgba(224,85,85,0.08);border-radius:6px">
+              <span style="color:var(--text2)">${isBn ? 'পূর্বের মান' : 'Previous'}:</span> 
+              ${oldData.leave_type} (${oldData.from_date} → ${oldData.to_date}) · ${oldData.total_days} ${isBn ? 'দিন' : 'days'}
+            </div>
+          `;
+          
+        } catch(e) {
+          console.warn('Parse leave data error:', e);
+        }
+      } 
+      // ========== কোর্সের জন্য আলাদা ডিসপ্লে ==========
+      else if (r.requestType === 'addCourse' && r.courseExtra) {
         dispVal = r.courseExtra.nameBn || r.courseExtra.nameEn || dispVal.split(',').pop().trim();
-        oldVal  = '';
-      } else if (r.requestType === 'editCourse' && r.courseEditExtra) {
+      } 
+      else if (r.requestType === 'editCourse' && r.courseEditExtra) {
         dispVal = r.courseEditExtra.nameBn || dispVal.split(',').pop().trim();
-      } else if (dispVal.length > 50) {
+      }
+      
+      if (dispVal && dispVal.length > 50) {
         dispVal = dispVal.substring(0, 50) + '...';
       }
-      if (oldVal.length > 50) oldVal = oldVal.substring(0, 50) + '...';
+      if (oldVal && oldVal.length > 50) oldVal = oldVal.substring(0, 50) + '...';
 
-      const badgeColor  = isEdit || isCourseResult ? 'var(--info)' : 'var(--warn)';
-      const badgeBg     = isEdit || isCourseResult ? 'rgba(56,139,253,0.12)' : 'rgba(210,153,34,0.12)';
-      const badgeBorder = isEdit || isCourseResult ? 'rgba(56,139,253,0.35)' : 'rgba(210,153,34,0.35)';
-      const badgeText   = isEdit ? '✏️ সম্পাদনা' : isCourseResult ? '📊 ফলাফল/অবস্থান' : '⏳ নতুন';
+      const badgeColor  = isEdit || r.requestType === 'courseResult' ? 'var(--info)' : 'var(--warn)';
+      const badgeBg     = isEdit || r.requestType === 'courseResult' ? 'rgba(56,139,253,0.12)' : 'rgba(210,153,34,0.12)';
+      const badgeBorder = isEdit || r.requestType === 'courseResult' ? 'rgba(56,139,253,0.35)' : 'rgba(210,153,34,0.35)';
+      let badgeText   = isEdit ? '✏️ সম্পাদনা' : r.requestType === 'courseResult' ? '📊 ফলাফল/অবস্থান' : '⏳ নতুন';
+      if (r.requestType === 'editLeave') badgeText = '✏️ ছুটি সংশোধন';
 
       html += `<div style="background:var(--bg2);border:1px solid var(--border2);border-left:3px solid ${badgeColor};border-radius:var(--radius-sm);padding:13px 14px;margin-bottom:10px">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px">
           <div style="font-size:0.88rem;font-weight:700;color:var(--text)">${fieldName}</div>
           <span style="font-size:0.62rem;background:${badgeBg};border:1px solid ${badgeBorder};color:${badgeColor};border-radius:10px;padding:2px 8px;font-family:'Rajdhani',sans-serif;font-weight:700;white-space:nowrap">${badgeText}</span>
         </div>
-        ${oldVal ? `<div style="font-size:0.78rem;color:var(--text3);text-decoration:line-through;margin-bottom:3px">${oldVal}</div>` : ''}
+        ${oldValueHtml || (oldVal ? `<div style="font-size:0.78rem;color:var(--text3);text-decoration:line-through;margin-bottom:3px">${oldVal}</div>` : '')}
         <div style="font-size:0.88rem;color:var(--gold);font-weight:600">${dispVal}</div>
         ${dt ? `<div style="font-size:0.68rem;color:var(--text3);margin-top:6px">📅 ${dt}</div>` : ''}
       </div>`;
@@ -5441,7 +5461,7 @@ async function deleteLeave(leaveId) {
 ══════════════════════════════════════════ */
 
 const IPFT_SUBJECTS = ['1.6 km', 'Pushup', 'Beam', 'Reachup', '3.2 km', 'Horizontal Rope', '6 Feet Wall', 'Swimming'];
-const WEAPONS = ['LMG', 'MMG', 'MG', 'HMG'];
+const WEAPONS = ['RL', 'LMG', 'MMG', 'MG', 'HMG', 'GF', 'Rifle', 'Signal Pistol', 'SMG', 'Pistol'];
 const TRAINING_QUALITY = ['Good', 'Very Good'];
 
 async function loadTraining(type) {
@@ -5508,7 +5528,7 @@ function renderTrainingCard(type, data, id, isAdmin) {
       ? data.failedSubjects.map(s => subjMap[s] || s).join(', ')
       : tr('কোনো অংশ নেই', 'None');
     const resultLabel = resultMap[data.result] || data.result || '—';
-    details = `<div style="font-size:0.8rem;color:var(--text2)">📅 ${tr('তারিখ:', 'Date:')} ${data.date || '—'} &nbsp;|&nbsp; ${tr('ফলাফল:', 'Result:')} <span style="color:${data.result==='Passed'?'var(--success)':'var(--danger)'}">${resultLabel}</span></div>
+    details = `<div style="font-size:0.8rem;color:var(--text2)">📅 ${tr('হইতে:', 'From:')} ${data.fromDate || '—'} &nbsp; ${tr('পর্যন্ত:', 'To:')} ${data.toDate || '—'}} &nbsp;|&nbsp; ${tr('ফলাফল:', 'Result:')} <span style="color:${data.result==='Passed'?'var(--success)':'var(--danger)'}">${resultLabel}</span></div>
     <div style="font-size:0.78rem;color:${data.result==='Failed'?'var(--danger)':'var(--text2)'};margin-top:4px">❌ ${tr('অকৃতকার্য:', 'Failed:')} ${failList}</div>`;
   } else if (type === 'ret') {
     const resultLabel = resultMap[data.result] || data.result || '—';
@@ -5552,8 +5572,14 @@ function openAddTraining(type) {
   let html = '';
   if (type === 'ipft') {
     html = `<div class="form-group">
-      <label class="form-label">${t('তারিখ (DD/MM/YYYY)')}</label>
-      <input type="text" class="form-input" id="trDate" placeholder="${t('01/01/2025')}" style="background:var(--dark3)">
+      <div class="form-group">
+        <label class="form-label">${t('হইতে তারিখ')}</label>
+        <input type="text" class="form-input" id="trFromDate" placeholder="${t('01/01/2025')}" style="background:var(--dark3)">
+      </div>
+      <div class="form-group">
+        <label class="form-label">${t('পর্যন্ত তারিখ')}</label>
+        <input type="text" class="form-input" id="trToDate" placeholder="${t('07/01/2025')}" style="background:var(--dark3)">
+      </div>
     </div>
     <div class="form-group">
       <label class="form-label">${t('ফলাফল')}</label>
