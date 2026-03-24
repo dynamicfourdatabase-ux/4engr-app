@@ -1327,119 +1327,117 @@ select.form-input { cursor: pointer; }
     </div>
 
     <!-- ── PAGE: ছুটি ও প্রশিক্ষণ ── -->
-    <div class="page" id="page-leave2">
+      <div class="page" id="page-leave2">
 
-      <!-- ছুটির বিবরণ কার্ড -->
-      <div class="card">
-        <div class="card-header">
-          <span class="card-header-icon">🏖️</span>
-          <span class="card-header-title" data-bn="ছুটির বিবরণ" data-en="Leave Details">ছুটির বিবরণ</span>
-          <button class="field-edit-btn" style="margin-left:auto" onclick="openAddLeave()">+ যোগ করুন</button>
+        <!-- ছুটির বিবরণ কার্ড -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-header-icon">🏖️</span>
+            <span class="card-header-title" data-bn="ছুটির বিবরণ" data-en="Leave Details">ছুটির বিবরণ</span>
+            <button class="field-edit-btn" style="margin-left:auto" onclick="openAddLeave()">+ যোগ করুন</button>
+          </div>
+          <div class="card-body" id="leaveList" style="padding:8px 12px">
+            <div style="color:var(--text2);text-align:center;padding:20px;font-size:0.85rem">লোড হচ্ছে...</div>
+          </div>
         </div>
-        <div class="card-body" id="leaveList" style="padding:8px 12px">
-          <div style="color:var(--text2);text-align:center;padding:20px;font-size:0.85rem">লোড হচ্ছে...</div>
-        </div>
-      </div>
 
-      <!-- ছুটির সামারি কার্ড -->
-      <div class="card" id="leaveSummaryCard" style="display:none">
-        <div class="card-header">
-          <span class="card-header-icon">📊</span>
-          <span class="card-header-title" data-bn="ছুটির সারসংক্ষেপ" data-en="Leave Summary">ছুটির সারসংক্ষেপ</span>
-        </div>
-        <div class="card-body" style="padding:12px">
-          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px" id="leaveSummary"></div>
-        </div>
+        <!-- ছুটির সামারি কার্ড -->
+        <div class="card" id="leaveSummaryCard" style="display:none">
+          <div class="card-header">
+            <span class="card-header-icon">📊</span>
+            <span class="card-header-title" data-bn="ছুটির সারসংক্ষেপ" data-en="Leave Summary">ছুটির সারসংক্ষেপ</span>
+          </div>
+          <div class="card-body" style="padding:12px">
+            <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px" id="leaveSummary"></div>
+          </div>
+          <!-- ========== ট্রেনিং সেকশন ========== -->
+        <div style="margin-top: 24px;">
+          <!-- IPFT কার্ড -->
+          <div class="card" style="margin-bottom: 16px;">
+            <div class="card-header">
+              <span class="card-header-icon">🏃</span>
+              <span class="card-header-title">IPFT রেকর্ড</span>
+              <button class="field-edit-btn" style="margin-left:auto" onclick="openAddTraining('ipft')">+ যোগ করুন</button>
+            </div>
+            <div class="card-body" id="ipftList" style="padding: 12px;">
+              <div style="color:var(--text2);text-align:center;padding:20px;font-size:0.85rem">লোড হচ্ছে...</div>
+            </div>
+          </div>
+
+          <!-- RET কার্ড -->
+          <div class="card" style="margin-bottom: 16px;">
+            <div class="card-header">
+              <span class="card-header-icon">📝</span>
+              <span class="card-header-title">RET রেকর্ড</span>
+              <button class="field-edit-btn" style="margin-left:auto" onclick="openAddTraining('ret')">+ যোগ করুন</button>
+            </div>
+            <div class="card-body" id="retList" style="padding: 12px;">
+              <div style="color:var(--text2);text-align:center;padding:20px;font-size:0.85rem">লোড হচ্ছে...</div>
+            </div>
+          </div>
+
+          <!-- Speed March কার্ড -->
+          <div class="card" style="margin-bottom: 16px;">
+            <div class="card-header">
+              <span class="card-header-icon">⚡</span>
+              <span class="card-header-title">Speed March রেকর্ড</span>
+              <button class="field-edit-btn" style="margin-left:auto" onclick="openAddTraining('speedmarch')">+ যোগ করুন</button>
+            </div>
+            <div class="card-body" id="speedmarchList" style="padding: 12px;">
+              <div style="color:var(--text2);text-align:center;padding:20px;font-size:0.85rem">লোড হচ্ছে...</div>
+            </div>
+          </div>
+
+          <!-- Grenade Fire কার্ড -->
+          <div class="card" style="margin-bottom: 16px;">
+            <div class="card-header">
+              <span class="card-header-icon">💣</span>
+              <span class="card-header-title">Grenade Fire রেকর্ড</span>
+              <button class="field-edit-btn" style="margin-left:auto" onclick="openAddTraining('grenade')">+ যোগ করুন</button>
+            </div>
+            <div class="card-body" id="grenadeList" style="padding: 12px;">
+              <div style="color:var(--text2);text-align:center;padding:20px;font-size:0.85rem">লোড হচ্ছে...</div>
+            </div>
+          </div>
+
+          <!-- Field Fire কার্ড -->
+          <div class="card" style="margin-bottom: 16px;">
+            <div class="card-header">
+              <span class="card-header-icon">🔫</span>
+              <span class="card-header-title">Field Fire রেকর্ড</span>
+              <button class="field-edit-btn" style="margin-left:auto" onclick="openAddTraining('fieldfire')">+ যোগ করুন</button>
+            </div>
+            <div class="card-body" id="fieldfireList" style="padding: 12px;">
+              <div style="color:var(--text2);text-align:center;padding:20px;font-size:0.85rem">লোড হচ্ছে...</div>
+            </div>
+          </div>
+
+          <!-- Kill House Fire কার্ড -->
+          <div class="card" style="margin-bottom: 16px;">
+            <div class="card-header">
+              <span class="card-header-icon">🏠</span>
+              <span class="card-header-title">Kill House Fire রেকর্ড</span>
+              <button class="field-edit-btn" style="margin-left:auto" onclick="openAddTraining('killhouse')">+ যোগ করুন</button>
+            </div>
+            <div class="card-body" id="killhouseList" style="padding: 12px;">
+              <div style="color:var(--text2);text-align:center;padding:20px;font-size:0.85rem">লোড হচ্ছে...</div>
+            </div>
+          </div>
+
+          <!-- CBTA কার্ড -->
+          <div class="card" style="margin-bottom: 16px;">
+            <div class="card-header">
+              <span class="card-header-icon">⭐</span>
+              <span class="card-header-title">CBTA রেকর্ড</span>
+              <button class="field-edit-btn" style="margin-left:auto" onclick="openAddTraining('cbta')">+ যোগ করুন</button>
+            </div>
+            <div class="card-body" id="cbtaList" style="padding: 12px;">
+              <div style="color:var(--text2);text-align:center;padding:20px;font-size:0.85rem">লোড হচ্ছে...</div>
+            </div>
+          </div>
+        </div> 
       </div>
     </div>
-
-      <!-- ========== ট্রেনিং সেকশন ========== -->
-      <div style="margin-top: 24px;">
-      <!-- IPFT কার্ড -->
-      <div class="card" style="margin-bottom: 16px;">
-        <div class="card-header">
-          <span class="card-header-icon">🏃</span>
-          <span class="card-header-title">IPFT রেকর্ড</span>
-          <button class="field-edit-btn" style="margin-left:auto" onclick="openAddTraining('ipft')">+ যোগ করুন</button>
-        </div>
-        <div class="card-body" id="ipftList" style="padding: 12px;">
-          <div style="color:var(--text2);text-align:center;padding:20px;font-size:0.85rem">লোড হচ্ছে...</div>
-        </div>
-      </div>
-
-      <!-- RET কার্ড -->
-      <div class="card" style="margin-bottom: 16px;">
-        <div class="card-header">
-          <span class="card-header-icon">📝</span>
-          <span class="card-header-title">RET রেকর্ড</span>
-          <button class="field-edit-btn" style="margin-left:auto" onclick="openAddTraining('ret')">+ যোগ করুন</button>
-        </div>
-        <div class="card-body" id="retList" style="padding: 12px;">
-          <div style="color:var(--text2);text-align:center;padding:20px;font-size:0.85rem">লোড হচ্ছে...</div>
-        </div>
-      </div>
-
-      <!-- Speed March কার্ড -->
-      <div class="card" style="margin-bottom: 16px;">
-        <div class="card-header">
-          <span class="card-header-icon">⚡</span>
-          <span class="card-header-title">Speed March রেকর্ড</span>
-          <button class="field-edit-btn" style="margin-left:auto" onclick="openAddTraining('speedmarch')">+ যোগ করুন</button>
-        </div>
-        <div class="card-body" id="speedmarchList" style="padding: 12px;">
-          <div style="color:var(--text2);text-align:center;padding:20px;font-size:0.85rem">লোড হচ্ছে...</div>
-        </div>
-      </div>
-
-      <!-- Grenade Fire কার্ড -->
-      <div class="card" style="margin-bottom: 16px;">
-        <div class="card-header">
-          <span class="card-header-icon">💣</span>
-          <span class="card-header-title">Grenade Fire রেকর্ড</span>
-          <button class="field-edit-btn" style="margin-left:auto" onclick="openAddTraining('grenade')">+ যোগ করুন</button>
-        </div>
-        <div class="card-body" id="grenadeList" style="padding: 12px;">
-          <div style="color:var(--text2);text-align:center;padding:20px;font-size:0.85rem">লোড হচ্ছে...</div>
-        </div>
-      </div>
-
-      <!-- Field Fire কার্ড -->
-      <div class="card" style="margin-bottom: 16px;">
-        <div class="card-header">
-          <span class="card-header-icon">🔫</span>
-          <span class="card-header-title">Field Fire রেকর্ড</span>
-          <button class="field-edit-btn" style="margin-left:auto" onclick="openAddTraining('fieldfire')">+ যোগ করুন</button>
-        </div>
-        <div class="card-body" id="fieldfireList" style="padding: 12px;">
-          <div style="color:var(--text2);text-align:center;padding:20px;font-size:0.85rem">লোড হচ্ছে...</div>
-        </div>
-      </div>
-
-      <!-- Kill House Fire কার্ড -->
-      <div class="card" style="margin-bottom: 16px;">
-        <div class="card-header">
-          <span class="card-header-icon">🏠</span>
-          <span class="card-header-title">Kill House Fire রেকর্ড</span>
-          <button class="field-edit-btn" style="margin-left:auto" onclick="openAddTraining('killhouse')">+ যোগ করুন</button>
-        </div>
-        <div class="card-body" id="killhouseList" style="padding: 12px;">
-          <div style="color:var(--text2);text-align:center;padding:20px;font-size:0.85rem">লোড হচ্ছে...</div>
-        </div>
-      </div>
-
-      <!-- CBTA কার্ড -->
-      <div class="card" style="margin-bottom: 16px;">
-        <div class="card-header">
-          <span class="card-header-icon">⭐</span>
-          <span class="card-header-title">CBTA রেকর্ড</span>
-          <button class="field-edit-btn" style="margin-left:auto" onclick="openAddTraining('cbta')">+ যোগ করুন</button>
-        </div>
-        <div class="card-body" id="cbtaList" style="padding: 12px;">
-          <div style="color:var(--text2);text-align:center;padding:20px;font-size:0.85rem">লোড হচ্ছে...</div>
-        </div>
-      </div>
-    </div>
-
     <!-- ── PAGE: Pending (অপেক্ষমান) ── -->
     <div class="page" id="page-pending">
       <div id="pendingPageContent"></div>
@@ -2802,17 +2800,15 @@ function navTo(page) {
   if (page === 'admin') loadAdminData();
   if (page === 'notifications') loadNotifications();
   if (page === 'courses') { loadPendingCoursesAndRender(); }
-  if (page === 'leave2') { loadLeave(); }
   if (page === 'leave2') { 
-    loadLeave(); 
-    // 👇 এখানে ট্রেনিং লোড করুন
-    loadTraining('ipft');
-    loadTraining('ret');
-    loadTraining('speedmarch');
-    loadTraining('grenade');
-    loadTraining('fieldfire');
-    loadTraining('killhouse');
-    loadTraining('cbta');
+  loadLeave(); 
+  loadTraining('ipft');
+  loadTraining('ret');
+  loadTraining('speedmarch');
+  loadTraining('grenade');
+  loadTraining('fieldfire');
+  loadTraining('killhouse');
+  loadTraining('cbta');
   }
   if (page === 'pending') loadPendingPage();
 }
@@ -5528,8 +5524,8 @@ function renderTrainingCard(type, data, id, isAdmin) {
       ? data.failedSubjects.map(s => subjMap[s] || s).join(', ')
       : tr('কোনো অংশ নেই', 'None');
     const resultLabel = resultMap[data.result] || data.result || '—';
-    details = `<div style="font-size:0.8rem;color:var(--text2)">📅 ${tr('হইতে:', 'From:')} ${data.fromDate || '—'} &nbsp; ${tr('পর্যন্ত:', 'To:')} ${data.toDate || '—'}} &nbsp;|&nbsp; ${tr('ফলাফল:', 'Result:')} <span style="color:${data.result==='Passed'?'var(--success)':'var(--danger)'}">${resultLabel}</span></div>
-    <div style="font-size:0.78rem;color:${data.result==='Failed'?'var(--danger)':'var(--text2)'};margin-top:4px">❌ ${tr('অকৃতকার্য:', 'Failed:')} ${failList}</div>`;
+    details = `<div style="font-size:0.8rem;color:var(--text2)">📅 ${tr('হইতে:', 'From:')} ${data.fromDate || '—'} &nbsp; ${tr('পর্যন্ত:', 'To:')} ${data.toDate || '—'} &nbsp;|&nbsp; ${tr('ফলাফল:', 'Result:')} <span style="color:${data.result==='Passed'?'var(--success)':'var(--danger)'}">${resultLabel}</span></div>
+<div style="font-size:0.78rem;color:${data.result==='Failed'?'var(--danger)':'var(--text2)'};margin-top:4px">❌ ${tr('অকৃতকার্য:', 'Failed:')} ${failList}</div>`;
   } else if (type === 'ret') {
     const resultLabel = resultMap[data.result] || data.result || '—';
     details = `<div style="font-size:0.8rem;color:var(--text2)">📅 ${tr('তারিখ:', 'Date:')} ${data.date || '—'} &nbsp;|&nbsp; ${tr('প্রাপ্ত নম্বর:', 'Marks:')} <b style="color:var(--gold)">${data.marks || '—'}</b> &nbsp;|&nbsp; ${tr('ফলাফল:', 'Result:')} <span style="color:${data.result==='Passed'?'var(--success)':'var(--danger)'}">${resultLabel}</span></div>`;
@@ -5703,13 +5699,16 @@ function handleSaveTraining(type) {
   let data = { type, updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
 
   if (type === 'ipft') {
-    const date = document.getElementById('trDate')?.value.trim();
-    const result = document.getElementById('trResult')?.value;
-    if (!date) return isBn ? 'তারিখ আবশ্যক' : 'Date is required';
-    data.date = date; data.result = result;
-    if (result === 'Failed') {
-      const fails = IPFT_SUBJECTS.filter((s, i) => document.getElementById('fail_' + i)?.checked);
-      data.failedSubjects = fails;
+  const from = document.getElementById('trFromDate')?.value.trim();
+  const to = document.getElementById('trToDate')?.value.trim();
+  const result = document.getElementById('trResult')?.value;
+  if (!from || !to) return isBn ? 'তারিখ আবশ্যক' : 'Dates are required';
+  data.fromDate = from;
+  data.toDate = to;
+  data.result = result;
+  if (result === 'Failed') {
+    const fails = IPFT_SUBJECTS.filter((s, i) => document.getElementById('fail_' + i)?.checked);
+    data.failedSubjects = fails;
     }
   } else if (type === 'ret') {
     const date = document.getElementById('trDate')?.value.trim();
