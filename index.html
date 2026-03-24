@@ -1351,7 +1351,104 @@ select.form-input { cursor: pointer; }
           <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px" id="leaveSummary"></div>
         </div>
       </div>
+    </div>
 
+      <!-- ========== ট্রেনিং সেকশন ========== -->
+      <div style="margin-top: 24px;">
+      <!-- ট্রেনিং টাইপ বাটন -->
+      <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px;">
+        <button onclick="openAddTraining('ipft')" class="admin-tab-btn" style="background:linear-gradient(135deg,var(--gold),#9a7a20); color:#0a0c10;">🏃 IPFT</button>
+        <button onclick="openAddTraining('ret')" class="admin-tab-btn" style="background:linear-gradient(135deg,var(--gold),#9a7a20); color:#0a0c10;">📝 RET</button>
+        <button onclick="openAddTraining('speedmarch')" class="admin-tab-btn" style="background:linear-gradient(135deg,var(--gold),#9a7a20); color:#0a0c10;">⚡ Speed March</button>
+        <button onclick="openAddTraining('grenade')" class="admin-tab-btn" style="background:linear-gradient(135deg,var(--gold),#9a7a20); color:#0a0c10;">💣 Grenade Fire</button>
+        <button onclick="openAddTraining('fieldfire')" class="admin-tab-btn" style="background:linear-gradient(135deg,var(--gold),#9a7a20); color:#0a0c10;">🔫 Field Fire</button>
+        <button onclick="openAddTraining('killhouse')" class="admin-tab-btn" style="background:linear-gradient(135deg,var(--gold),#9a7a20); color:#0a0c10;">🏠 Kill House</button>
+        <button onclick="openAddTraining('cbta')" class="admin-tab-btn" style="background:linear-gradient(135deg,var(--gold),#9a7a20); color:#0a0c10;">⭐ CBTA</button>
+      </div>
+
+      <!-- IPFT কার্ড -->
+      <div class="card" style="margin-bottom: 16px;">
+        <div class="card-header">
+          <span class="card-header-icon">🏃</span>
+          <span class="card-header-title">IPFT রেকর্ড</span>
+          <button class="field-edit-btn" style="margin-left:auto" onclick="openAddTraining('ipft')">+ যোগ করুন</button>
+        </div>
+        <div class="card-body" id="ipftList" style="padding: 12px;">
+          <div style="color:var(--text2);text-align:center;padding:20px;font-size:0.85rem">লোড হচ্ছে...</div>
+        </div>
+      </div>
+
+      <!-- RET কার্ড -->
+      <div class="card" style="margin-bottom: 16px;">
+        <div class="card-header">
+          <span class="card-header-icon">📝</span>
+          <span class="card-header-title">RET রেকর্ড</span>
+          <button class="field-edit-btn" style="margin-left:auto" onclick="openAddTraining('ret')">+ যোগ করুন</button>
+        </div>
+        <div class="card-body" id="retList" style="padding: 12px;">
+          <div style="color:var(--text2);text-align:center;padding:20px;font-size:0.85rem">লোড হচ্ছে...</div>
+        </div>
+      </div>
+
+      <!-- Speed March কার্ড -->
+      <div class="card" style="margin-bottom: 16px;">
+        <div class="card-header">
+          <span class="card-header-icon">⚡</span>
+          <span class="card-header-title">Speed March রেকর্ড</span>
+          <button class="field-edit-btn" style="margin-left:auto" onclick="openAddTraining('speedmarch')">+ যোগ করুন</button>
+        </div>
+        <div class="card-body" id="speedmarchList" style="padding: 12px;">
+          <div style="color:var(--text2);text-align:center;padding:20px;font-size:0.85rem">লোড হচ্ছে...</div>
+        </div>
+      </div>
+
+      <!-- Grenade Fire কার্ড -->
+      <div class="card" style="margin-bottom: 16px;">
+        <div class="card-header">
+          <span class="card-header-icon">💣</span>
+          <span class="card-header-title">Grenade Fire রেকর্ড</span>
+          <button class="field-edit-btn" style="margin-left:auto" onclick="openAddTraining('grenade')">+ যোগ করুন</button>
+        </div>
+        <div class="card-body" id="grenadeList" style="padding: 12px;">
+          <div style="color:var(--text2);text-align:center;padding:20px;font-size:0.85rem">লোড হচ্ছে...</div>
+        </div>
+      </div>
+
+      <!-- Field Fire কার্ড -->
+      <div class="card" style="margin-bottom: 16px;">
+        <div class="card-header">
+          <span class="card-header-icon">🔫</span>
+          <span class="card-header-title">Field Fire রেকর্ড</span>
+          <button class="field-edit-btn" style="margin-left:auto" onclick="openAddTraining('fieldfire')">+ যোগ করুন</button>
+        </div>
+        <div class="card-body" id="fieldfireList" style="padding: 12px;">
+          <div style="color:var(--text2);text-align:center;padding:20px;font-size:0.85rem">লোড হচ্ছে...</div>
+        </div>
+      </div>
+
+      <!-- Kill House Fire কার্ড -->
+      <div class="card" style="margin-bottom: 16px;">
+        <div class="card-header">
+          <span class="card-header-icon">🏠</span>
+          <span class="card-header-title">Kill House Fire রেকর্ড</span>
+          <button class="field-edit-btn" style="margin-left:auto" onclick="openAddTraining('killhouse')">+ যোগ করুন</button>
+        </div>
+        <div class="card-body" id="killhouseList" style="padding: 12px;">
+          <div style="color:var(--text2);text-align:center;padding:20px;font-size:0.85rem">লোড হচ্ছে...</div>
+        </div>
+      </div>
+
+      <!-- CBTA কার্ড -->
+      <div class="card" style="margin-bottom: 16px;">
+        <div class="card-header">
+          <span class="card-header-icon">⭐</span>
+          <span class="card-header-title">CBTA রেকর্ড</span>
+          <button class="field-edit-btn" style="margin-left:auto" onclick="openAddTraining('cbta')">+ যোগ করুন</button>
+        </div>
+        <div class="card-body" id="cbtaList" style="padding: 12px;">
+          <div style="color:var(--text2);text-align:center;padding:20px;font-size:0.85rem">লোড হচ্ছে...</div>
+        </div>
+      </div>
     </div>
 
     <!-- ── PAGE: Pending (অপেক্ষমান) ── -->
@@ -2717,6 +2814,17 @@ function navTo(page) {
   if (page === 'notifications') loadNotifications();
   if (page === 'courses') { loadPendingCoursesAndRender(); }
   if (page === 'leave2') { loadLeave(); }
+  if (page === 'leave2') { 
+    loadLeave(); 
+    // 👇 এখানে ট্রেনিং লোড করুন
+    loadTraining('ipft');
+    loadTraining('ret');
+    loadTraining('speedmarch');
+    loadTraining('grenade');
+    loadTraining('fieldfire');
+    loadTraining('killhouse');
+    loadTraining('cbta');
+  }
   if (page === 'pending') loadPendingPage();
 }
 
