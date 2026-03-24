@@ -1326,109 +1326,32 @@ select.form-input { cursor: pointer; }
       </div>
     </div>
 
-    <!-- ── PAGE: Leave / Training & Vacation ── -->
-    <div class="page" id="page-leave">
-      <div style="padding:10px 0 6px 0">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
-          <span style="font-size:1.4rem">🎯</span>
-          <span style="font-family:'Rajdhani',sans-serif;font-size:1.3rem;font-weight:700;color:var(--gold)">Training & Vacation</span>
+    <!-- ── PAGE: ছুটি ও প্রশিক্ষণ ── -->
+    <div class="page" id="page-leave2">
+
+      <!-- ছুটির বিবরণ কার্ড -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-header-icon">🏖️</span>
+          <span class="card-header-title" data-bn="ছুটির বিবরণ" data-en="Leave Details">ছুটির বিবরণ</span>
+          <button class="field-edit-btn" style="margin-left:auto" onclick="openAddLeave()">+ যোগ করুন</button>
+        </div>
+        <div class="card-body" id="leaveList" style="padding:8px 12px">
+          <div style="color:var(--text2);text-align:center;padding:20px;font-size:0.85rem">লোড হচ্ছে...</div>
         </div>
       </div>
 
-      <!-- মোট ছুটির যোগফল -->
-      <div class="card" id="leaveSummaryCard" style="margin-bottom:12px">
+      <!-- ছুটির সামারি কার্ড -->
+      <div class="card" id="leaveSummaryCard" style="display:none">
         <div class="card-header">
-          <span class="card-header-icon">🏖️</span>
-          <span class="card-header-title">Leave Summary</span>
+          <span class="card-header-icon">📊</span>
+          <span class="card-header-title" data-bn="ছুটির সারসংক্ষেপ" data-en="Leave Summary">ছুটির সারসংক্ষেপ</span>
         </div>
-        <div class="card-body">
+        <div class="card-body" style="padding:12px">
           <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px" id="leaveSummary"></div>
         </div>
       </div>
 
-      <!-- IPFT -->
-      <div class="card" style="margin-bottom:12px">
-        <div class="card-header">
-          <span class="card-header-icon">💪</span>
-          <span class="card-header-title">IPFT</span>
-          <button class="field-edit-btn" style="margin-left:auto" onclick="openAddTraining('ipft')">+ Add</button>
-        </div>
-        <div class="card-body" id="ipftList" style="padding:8px 12px">
-          <div style="color:var(--text2);text-align:center;padding:16px;font-size:0.82rem">Loading...</div>
-        </div>
-      </div>
-
-      <!-- RET -->
-      <div class="card" style="margin-bottom:12px">
-        <div class="card-header">
-          <span class="card-header-icon">📖</span>
-          <span class="card-header-title">RET</span>
-          <button class="field-edit-btn" style="margin-left:auto" onclick="openAddTraining('ret')">+ Add</button>
-        </div>
-        <div class="card-body" id="retList" style="padding:8px 12px">
-          <div style="color:var(--text2);text-align:center;padding:16px;font-size:0.82rem">Loading...</div>
-        </div>
-      </div>
-
-      <!-- Speed March -->
-      <div class="card" style="margin-bottom:12px">
-        <div class="card-header">
-          <span class="card-header-icon">🏃</span>
-          <span class="card-header-title">Speed March</span>
-          <button class="field-edit-btn" style="margin-left:auto" onclick="openAddTraining('speedmarch')">+ Add</button>
-        </div>
-        <div class="card-body" id="speedmarchList" style="padding:8px 12px">
-          <div style="color:var(--text2);text-align:center;padding:16px;font-size:0.82rem">Loading...</div>
-        </div>
-      </div>
-
-      <!-- Grenade Fire -->
-      <div class="card" style="margin-bottom:12px">
-        <div class="card-header">
-          <span class="card-header-icon">💣</span>
-          <span class="card-header-title">Grenade Fire</span>
-          <button class="field-edit-btn" style="margin-left:auto" onclick="openAddTraining('grenade')">+ Add</button>
-        </div>
-        <div class="card-body" id="grenadeList" style="padding:8px 12px">
-          <div style="color:var(--text2);text-align:center;padding:16px;font-size:0.82rem">Loading...</div>
-        </div>
-      </div>
-
-      <!-- Field Fire -->
-      <div class="card" style="margin-bottom:12px">
-        <div class="card-header">
-          <span class="card-header-icon">🎯</span>
-          <span class="card-header-title">Field Fire</span>
-          <button class="field-edit-btn" style="margin-left:auto" onclick="openAddTraining('fieldfire')">+ Add</button>
-        </div>
-        <div class="card-body" id="fieldfireList" style="padding:8px 12px">
-          <div style="color:var(--text2);text-align:center;padding:16px;font-size:0.82rem">Loading...</div>
-        </div>
-      </div>
-
-      <!-- Kill House Fire -->
-      <div class="card" style="margin-bottom:12px">
-        <div class="card-header">
-          <span class="card-header-icon">🏠</span>
-          <span class="card-header-title">Kill House Fire</span>
-          <button class="field-edit-btn" style="margin-left:auto" onclick="openAddTraining('killhouse')">+ Add</button>
-        </div>
-        <div class="card-body" id="killhouseList" style="padding:8px 12px">
-          <div style="color:var(--text2);text-align:center;padding:16px;font-size:0.82rem">Loading...</div>
-        </div>
-      </div>
-
-      <!-- CBTA -->
-      <div class="card" style="margin-bottom:12px">
-        <div class="card-header">
-          <span class="card-header-icon">⭐</span>
-          <span class="card-header-title">CBTA</span>
-          <button class="field-edit-btn" style="margin-left:auto" onclick="openAddTraining('cbta')">+ Add</button>
-        </div>
-        <div class="card-body" id="cbtaList" style="padding:8px 12px">
-          <div style="color:var(--text2);text-align:center;padding:16px;font-size:0.82rem">Loading...</div>
-        </div>
-      </div>
     </div>
 
     <!-- ── PAGE: Pending (অপেক্ষমান) ── -->
@@ -1925,8 +1848,8 @@ select.form-input { cursor: pointer; }
     <button class="nav-item" id="nav-courses" onclick="navTo('courses')">
       <span class="nav-icon">📚</span>কোর্স
     </button>
-    <button class="nav-item" id="nav-leave" onclick="navTo('leave')">
-      <span class="nav-icon">🎯</span>Training & Vacation
+    <button class="nav-item" id="nav-leave2" onclick="navTo('leave2')">
+      <span class="nav-icon">🏖️</span>ছুটি ও প্রশিক্ষণ
     </button>
     <button class="nav-item" id="nav-notifications" onclick="navTo('notifications')">
       <span class="nav-icon">🔔</span>বিজ্ঞপ্তি
@@ -2793,10 +2716,7 @@ function navTo(page) {
   if (page === 'admin') loadAdminData();
   if (page === 'notifications') loadNotifications();
   if (page === 'courses') { loadPendingCoursesAndRender(); }
-  if (page === 'leave') {
-    loadLeave();
-    ['ipft','ret','speedmarch','grenade','fieldfire','killhouse','cbta'].forEach(t => loadTraining(t));
-  }
+  if (page === 'leave2') { loadLeave(); }
   if (page === 'pending') loadPendingPage();
 }
 
@@ -4079,12 +3999,13 @@ async function saveModal() {
 
   // ── ছুটি যোগ ──
   if (currentEditField.key === '_addLeave' || currentEditField.key === '_editLeave') {
+    const isBn = appLang !== 'en';
     const leaveType = document.getElementById('leaveType')?.value;
     const from = document.getElementById('leaveFrom')?.value.trim();
     const to = document.getElementById('leaveTo')?.value.trim();
-    if (!leaveType || !from || !to) { showToast('সব তথ্য পূরণ করুন', 'error'); btn.textContent='সংরক্ষণ করুন'; btn.disabled=false; return; }
+    if (!leaveType || !from || !to) { showToast(isBn?'সব তথ্য পূরণ করুন':'Please fill all fields', 'error'); btn.textContent='সংরক্ষণ করুন'; btn.disabled=false; return; }
     const days = calcDays(from, to);
-    if (days <= 0) { showToast('তারিখ সঠিক নয়', 'error'); btn.textContent='সংরক্ষণ করুন'; btn.disabled=false; return; }
+    if (days <= 0) { showToast(isBn?'তারিখ সঠিক নয়':'Invalid date range', 'error'); btn.textContent='সংরক্ষণ করুন'; btn.disabled=false; return; }
 
     const docId = currentMemberData.id || String(currentMemberData.no || '').replace(/[^A-Z0-9]/gi, '');
     try {
@@ -4098,7 +4019,7 @@ async function saveModal() {
           createdAt: firebase.firestore.FieldValue.serverTimestamp(),
           createdBy: currentUser.uid,
         });
-        showToast('✅ ছুটি যোগ হয়েছে — ' + days + ' দিন', 'success');
+        showToast((isBn ? '✅ ছুটি যোগ হয়েছে — ' : '✅ Leave added — ') + days + (isBn?' দিন':' days'), 'success');
       } else {
         const leaveRef = db.collection('members').doc(docId).collection('leaves').doc(currentEditField.leaveId);
         const existing = await leaveRef.get();
@@ -4108,11 +4029,11 @@ async function saveModal() {
           total_days: days, edit_count: editCount,
           updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
         });
-        showToast('✅ ছুটি সংশোধন হয়েছে', 'success');
+        showToast(isBn ? '✅ ছুটি সংশোধন হয়েছে' : '✅ Leave updated', 'success');
       }
       closeModal();
       loadLeave();
-    } catch(e) { showToast('ব্যর্থ: ' + e.message, 'error'); }
+    } catch(e) { showToast((isBn?'ব্যর্থ: ':'Failed: ') + e.message, 'error'); }
     btn.textContent='সংরক্ষণ করুন'; btn.disabled=false; return;
   }
 
@@ -4614,8 +4535,10 @@ function renderCourses() {
   const results = m.courseResults || {};
 
   if (!courses.length) {
-    document.getElementById('coursesList').innerHTML =
-      '<div style="color:var(--text2);text-align:center;padding:20px;font-size:0.85rem;">কোনো কোর্স যোগ করা হয়নি</div>';
+    const emptyMsg = '<div style="color:var(--text2);text-align:center;padding:20px;font-size:0.85rem;">কোনো কোর্স যোগ করা হয়নি</div>';
+    document.getElementById('coursesList').innerHTML = emptyMsg;
+    const cl2 = document.getElementById('coursesList2');
+    if (cl2) cl2.innerHTML = emptyMsg;
     return;
   }
 
@@ -4704,6 +4627,14 @@ function renderCourses() {
   }).join('');
 
   document.getElementById('coursesList').innerHTML = html;
+  // coursesList2 (কোর্স পেইজের কপি) — একই কন্টেন্ট সিঙ্ক করো
+  const cl2 = document.getElementById('coursesList2');
+  if (cl2) cl2.innerHTML = html;
+}
+
+// coursesList2 এর জন্য — navTo('leave2') থেকে কল হয়
+function renderCoursesInto(targetId) {
+  renderCourses(); // renderCourses ফাংশনই coursesList ও coursesList2 দুটোই আপডেট করে
 }
 
 async function setCourseResult(idx, grade, btn) {
@@ -5123,41 +5054,67 @@ function renderCoursesWithPending(pendingList) {
 /* ══════════════════════════════════════════
    LEAVE (ছুটি) PAGE
 ══════════════════════════════════════════ */
-const LEAVE_TYPES = ['সাময়িক ছুটি', 'সুযোগী ছুটি', 'চিত্তবিনোদন ছুটি', 'সাপ্তাহিক ছুটি'];
+const LEAVE_TYPES = [
+  'সাপ্তাহিক ছুটি',
+  'সাময়িক ছুটি',
+  'সুযোগী ছুটি',
+  'চিত্তবিনোদন ছুটি',
+  'চিকিৎসা ছুটি',
+  'অন্যান্য'
+];
+const LEAVE_TYPES_EN = {
+  'সাপ্তাহিক ছুটি':    'Weekly Leave',
+  'সাময়িক ছুটি':       'Casual Leave',
+  'সুযোগী ছুটি':       'Privilege Leave',
+  'চিত্তবিনোদন ছুটি':  'Recreation Leave',
+  'চিকিৎসা ছুটি':      'Medical Leave',
+  'অন্যান্য':          'Others'
+};
+const LEAVE_TYPE_COLOR = {
+  'সাপ্তাহিক ছুটি':   'color:#8b7cf8;border-color:rgba(139,124,248,0.4);background:rgba(139,124,248,0.08)',
+  'সাময়িক ছুটি':      'color:#3fb950;border-color:rgba(63,185,80,0.4);background:rgba(63,185,80,0.08)',
+  'সুযোগী ছুটি':      'color:var(--info);border-color:rgba(56,139,253,0.4);background:rgba(56,139,253,0.08)',
+  'চিত্তবিনোদন ছুটি': 'color:var(--gold);border-color:rgba(200,169,74,0.4);background:rgba(200,169,74,0.08)',
+  'চিকিৎসা ছুটি':     'color:#e05555;border-color:rgba(224,85,85,0.4);background:rgba(224,85,85,0.08)',
+  'অন্যান্য':         'color:var(--text2);border-color:var(--border2);background:transparent'
+};
 
 async function loadLeave() {
   const box = document.getElementById('leaveList');
   const summaryCard = document.getElementById('leaveSummaryCard');
   const summaryBox = document.getElementById('leaveSummary');
-  box.innerHTML = '<div style="color:var(--text2);text-align:center;padding:20px;font-size:0.85rem">লোড হচ্ছে...</div>';
+  if (!box) return;
+  box.innerHTML = '<div style="color:var(--text2);text-align:center;padding:20px;font-size:0.85rem">লোড হচ্ছে... / Loading...</div>';
 
   const docId = currentMemberData.id || String(currentMemberData.no || '').replace(/[^A-Z0-9]/gi, '');
-  if (!docId) { box.innerHTML = '<div style="color:var(--danger);text-align:center;padding:20px">সদস্য ID পাওয়া যায়নি</div>'; return; }
+  if (!docId) {
+    box.innerHTML = '<div style="color:var(--danger);text-align:center;padding:20px">সদস্য ID পাওয়া যায়নি / Member ID not found</div>';
+    return;
+  }
+
+  const isBn = appLang !== 'en';
 
   try {
-    // orderBy index না থাকলে permission error দেয় — তাই দুটো পদ্ধতি try করো
     let snap;
     try {
       snap = await db.collection('members').doc(docId).collection('leaves')
         .orderBy('from_date', 'desc').get();
     } catch(indexErr) {
-      // index বা permission সমস্যা — orderBy ছাড়া পড়ো
       snap = await db.collection('members').doc(docId).collection('leaves').get();
     }
 
     if (snap.empty) {
-      box.innerHTML = '<div style="color:var(--text2);text-align:center;padding:30px;font-size:0.85rem">📋 কোনো ছুটির রেকর্ড নেই</div>';
-      summaryCard.style.display = 'none';
+      box.innerHTML = `<div style="color:var(--text2);text-align:center;padding:30px;font-size:0.85rem">
+        📋 ${isBn ? 'কোনো ছুটির রেকর্ড নেই' : 'No leave records found'}
+      </div>`;
+      if (summaryCard) summaryCard.style.display = 'none';
       return;
     }
 
-    // client-side sort — from_date অনুযায়ী নতুন থেকে পুরনো
+    // client-side sort
     const allDocs = snap.docs.slice().sort((a, b) => {
-      const fa = a.data().from_date || '';
-      const fb = b.data().from_date || '';
-      // DD/MM/YYYY → compare as YYYY/MM/DD
-      const toSortable = s => { const p = s.split('/'); return p.length===3 ? p[2]+p[1]+p[0] : s; };
-      return toSortable(fb).localeCompare(toSortable(fa));
+      const toSortable = s => { const p = (s||'').split('/'); return p.length===3 ? p[2]+p[1]+p[0] : s||''; };
+      return toSortable(b.data().from_date).localeCompare(toSortable(a.data().from_date));
     });
 
     // যোগফল হিসাব
@@ -5165,56 +5122,58 @@ async function loadLeave() {
     LEAVE_TYPES.forEach(lt => totals[lt] = 0);
 
     let html = '';
-    allDocs.forEach((d, idx) => {
+    allDocs.forEach((d) => {
       const lv = d.data();
       const days = lv.total_days || calcDays(lv.from_date, lv.to_date);
       totals[lv.leave_type] = (totals[lv.leave_type] || 0) + days;
       const isAdmin = userRole === 'admin' || userRole === 'superadmin';
-      // একবারের বেশি সংশোধন করা যাবে না — edit_count চেক
       const canEdit = (lv.edit_count || 0) < 1;
+      const colorStyle = LEAVE_TYPE_COLOR[lv.leave_type] || LEAVE_TYPE_COLOR['অন্যান্য'];
+      const typeLabel = isBn
+        ? (lv.leave_type || '—')
+        : (LEAVE_TYPES_EN[lv.leave_type] || lv.leave_type || '—');
 
-      html += `<div style="background:var(--dark3);border:1px solid var(--border2);border-radius:10px;padding:12px 14px;margin-bottom:10px">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+      html += `<div style="background:var(--bg3);border:1px solid var(--border2);border-radius:10px;padding:12px 14px;margin-bottom:10px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
           <span style="font-family:'Rajdhani',sans-serif;font-size:0.7rem;letter-spacing:1.5px;text-transform:uppercase;
-            padding:2px 8px;border-radius:20px;border:1px solid;
-            ${lv.leave_type==='সাময়িক ছুটি'?'color:#3fb950;border-color:rgba(63,185,80,0.4);background:rgba(63,185,80,0.08)':
-              lv.leave_type==='সুযোগী ছুটি'?'color:var(--info);border-color:rgba(56,139,253,0.4);background:rgba(56,139,253,0.08)':
-              lv.leave_type==='চিত্তবিনোদন ছুটি'?'color:var(--gold);border-color:rgba(200,169,74,0.4);background:rgba(200,169,74,0.08)':
-              'color:var(--text2);border-color:var(--border2);background:transparent'}">${lv.leave_type||'—'}</span>
-          <div style="display:flex;gap:6px">
-            ${canEdit ? `<button onclick="editLeave('${d.id}')" style="background:transparent;border:1px solid rgba(200,169,74,0.3);border-radius:6px;padding:3px 8px;color:var(--gold);cursor:pointer;font-size:11px;font-family:'Rajdhani',sans-serif">✏️ সংশোধন</button>` : '<span style="font-size:10px;color:var(--text3);font-family:\'Rajdhani\',sans-serif">🔒 লক</span>'}
+            padding:3px 10px;border-radius:20px;border:1px solid;${colorStyle}">${typeLabel}</span>
+          <div style="display:flex;gap:6px;align-items:center">
+            ${canEdit ? `<button onclick="editLeave('${d.id}')" style="background:transparent;border:1px solid rgba(200,169,74,0.3);border-radius:6px;padding:3px 8px;color:var(--gold);cursor:pointer;font-size:11px;font-family:'Rajdhani',sans-serif">✏️ ${isBn?'সংশোধন':'Edit'}</button>` : `<span style="font-size:10px;color:var(--text3);font-family:'Rajdhani',sans-serif">🔒 ${isBn?'লক':'Locked'}</span>`}
             ${isAdmin ? `<button onclick="deleteLeave('${d.id}')" style="background:transparent;border:1px solid rgba(224,85,85,0.3);border-radius:6px;padding:3px 8px;color:var(--danger);cursor:pointer;font-size:11px;font-family:'Rajdhani',sans-serif">🗑</button>` : ''}
           </div>
         </div>
-        <div style="display:flex;gap:16px;font-size:0.82rem;color:var(--text2)">
-          <span>📅 ${lv.from_date||'—'} হইতে ${lv.to_date||'—'}</span>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;font-size:0.82rem;color:var(--text2);margin-bottom:6px">
+          <span>📅 <span style="color:var(--text)">${lv.from_date||'—'}</span></span>
+          <span style="color:var(--text3)">${isBn?'হইতে':'to'}</span>
+          <span style="color:var(--text)">${lv.to_date||'—'}</span>
         </div>
-        <div style="margin-top:6px;font-family:'Rajdhani',sans-serif;font-size:1.1rem;font-weight:700;color:var(--gold)">
-          মোট: ${days} দিন
+        <div style="font-family:'Rajdhani',sans-serif;font-size:1.1rem;font-weight:700;color:var(--gold)">
+          ${isBn ? 'মোট:' : 'Total:'} ${days} ${isBn?'দিন':'days'}
         </div>
       </div>`;
     });
 
     box.innerHTML = html;
 
-    // যোগফল দেখাও
-    summaryCard.style.display = 'block';
+    // সামারি
+    if (summaryCard) summaryCard.style.display = 'block';
     let totalAll = 0;
     summaryBox.innerHTML = LEAVE_TYPES.map(lt => {
-      totalAll += totals[lt];
-      return `<div style="background:var(--dark3);border:1px solid var(--border2);border-radius:10px;padding:12px;text-align:center">
-        <div style="font-size:1.4rem;font-weight:700;color:var(--gold)">${totals[lt]}</div>
-        <div style="font-size:0.68rem;font-family:'Rajdhani',sans-serif;letter-spacing:1px;color:var(--text2);margin-top:3px">${lt}</div>
+      totalAll += (totals[lt]||0);
+      const colorStyle = LEAVE_TYPE_COLOR[lt] || LEAVE_TYPE_COLOR['অন্যান্য'];
+      const label = isBn ? lt : (LEAVE_TYPES_EN[lt] || lt);
+      return `<div style="background:var(--bg3);border:1px solid var(--border2);border-radius:10px;padding:12px;text-align:center">
+        <div style="font-size:1.5rem;font-weight:700;font-family:'Rajdhani',sans-serif;${colorStyle.split(';')[0]}">${totals[lt]||0}</div>
+        <div style="font-size:0.65rem;font-family:'Rajdhani',sans-serif;letter-spacing:1px;color:var(--text2);margin-top:4px;line-height:1.4">${label}</div>
       </div>`;
     }).join('') +
     `<div style="background:linear-gradient(135deg,rgba(200,169,74,0.15),rgba(200,169,74,0.05));border:1px solid rgba(200,169,74,0.35);border-radius:10px;padding:12px;text-align:center;grid-column:1/-1">
-      <div style="font-size:1.8rem;font-weight:700;color:var(--gold)">${totalAll}</div>
-      <div style="font-size:0.7rem;font-family:'Rajdhani',sans-serif;letter-spacing:2px;color:var(--text2);margin-top:3px">মোট ছুটি (দিন)</div>
+      <div style="font-size:2rem;font-weight:700;font-family:'Rajdhani',sans-serif;color:var(--gold)">${totalAll}</div>
+      <div style="font-size:0.72rem;font-family:'Rajdhani',sans-serif;letter-spacing:2px;color:var(--text2);margin-top:4px">${isBn ? 'মোট ছুটি (দিন)' : 'Total Leave (Days)'}</div>
     </div>`;
 
   } catch(e) {
     console.error("Leave load error:", e);
-    // Permission error হলে ব্যবহারকারীকে জানাও
     const isPermErr = e.code === "permission-denied" || (e.message||"").toLowerCase().includes("permission");
     box.innerHTML = isPermErr
       ? `<div style="color:var(--warn);text-align:center;padding:24px;font-size:0.82rem;line-height:1.8">⚠️ ছুটির তথ্য দেখার অনুমতি নেই।<br><span style="font-size:0.75rem;color:var(--text2)">Firebase Rules আপডেট করতে হবে।</span><br><br><button onclick="loadLeave()" style="background:linear-gradient(135deg,var(--gold),#9a7a20);border:none;border-radius:8px;padding:8px 18px;color:#0a0c10;font-family:'Rajdhani',sans-serif;font-weight:700;cursor:pointer;font-size:0.8rem">🔄 আবার চেষ্টা</button></div>`
@@ -5235,28 +5194,30 @@ function calcDays(from, to) {
 }
 
 function openAddLeave() {
-  document.getElementById('modalTitle').textContent = 'নতুন ছুটি যোগ করুন';
+  const isBn = appLang !== 'en';
+  document.getElementById('modalTitle').textContent = isBn ? 'নতুন ছুটি যোগ করুন' : 'Add New Leave';
   document.getElementById('modalBody').innerHTML = `
     <div class="form-group">
-      <label class="form-label">ছুটির প্রকার *</label>
-      <select class="form-input" id="leaveType" style="background:var(--dark3)">
-        ${LEAVE_TYPES.map(lt => `<option value="${lt}">${lt}</option>`).join('')}
+      <label class="form-label">${isBn ? 'ছুটির প্রকার' : 'Leave Type'} *</label>
+      <select class="form-input" id="leaveType">
+        ${LEAVE_TYPES.map(lt => `<option value="${lt}">${isBn ? lt : (LEAVE_TYPES_EN[lt]||lt)}</option>`).join('')}
       </select>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
       <div class="form-group">
-        <label class="form-label">হইতে তারিখ * (DD/MM/YYYY)</label>
-        <input type="text" class="form-input" id="leaveFrom" placeholder="01/01/2025">
+        <label class="form-label">${isBn ? 'হইতে তারিখ' : 'From Date'} * (DD/MM/YYYY)</label>
+        <input type="text" class="form-input" id="leaveFrom" placeholder="01/01/2025" oninput="calcLeavePreview()" maxlength="10">
       </div>
       <div class="form-group">
-        <label class="form-label">পর্যন্ত তারিখ * (DD/MM/YYYY)</label>
-        <input type="text" class="form-input" id="leaveTo" placeholder="07/01/2025" oninput="calcLeavePreview()">
+        <label class="form-label">${isBn ? 'পর্যন্ত তারিখ' : 'To Date'} * (DD/MM/YYYY)</label>
+        <input type="text" class="form-input" id="leaveTo" placeholder="07/01/2025" oninput="calcLeavePreview()" maxlength="10">
       </div>
     </div>
-    <div id="leaveDaysPreview" style="background:rgba(200,169,74,0.1);border:1px solid rgba(200,169,74,0.3);border-radius:8px;padding:10px 14px;font-family:'Rajdhani',sans-serif;font-size:1rem;color:var(--gold);display:none;margin-top:4px;text-align:center"></div>
+    <div id="leaveDaysPreview" style="background:rgba(200,169,74,0.1);border:1px solid rgba(200,169,74,0.3);border-radius:10px;padding:12px 14px;font-family:'Rajdhani',sans-serif;font-size:1.1rem;font-weight:700;color:var(--gold);display:none;margin-top:4px;text-align:center"></div>
   `;
   currentEditField = { key: '_addLeave' };
   document.getElementById('editModal').classList.add('open');
+  setTimeout(() => document.getElementById('leaveFrom')?.focus(), 100);
 }
 
 function calcLeavePreview() {
@@ -5265,55 +5226,60 @@ function calcLeavePreview() {
   const preview = document.getElementById('leaveDaysPreview');
   if (!preview) return;
   const days = calcDays(from, to);
+  const isBn = appLang !== 'en';
   if (days > 0) {
     preview.style.display = 'block';
-    preview.textContent = 'মোট: ' + days + ' দিন';
+    preview.textContent = (isBn ? 'মোট: ' : 'Total: ') + days + (isBn ? ' দিন' : ' days');
   } else {
     preview.style.display = 'none';
   }
 }
 
 async function editLeave(leaveId) {
+  const isBn = appLang !== 'en';
   const docId = currentMemberData.id || String(currentMemberData.no || '').replace(/[^A-Z0-9]/gi, '');
   const snap = await db.collection('members').doc(docId).collection('leaves').doc(leaveId).get();
-  if (!snap.exists) { showToast('ছুটির তথ্য পাওয়া যায়নি', 'error'); return; }
+  if (!snap.exists) { showToast(isBn ? 'ছুটির তথ্য পাওয়া যায়নি' : 'Leave record not found', 'error'); return; }
   const lv = snap.data();
 
-  document.getElementById('modalTitle').textContent = 'ছুটি সংশোধন';
+  document.getElementById('modalTitle').textContent = isBn ? 'ছুটি সংশোধন' : 'Edit Leave';
   document.getElementById('modalBody').innerHTML = `
     <div style="background:rgba(210,153,34,0.1);border:1px solid rgba(210,153,34,0.3);border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:0.78rem;color:var(--warn)">
-      ⚠️ একবারের বেশি সংশোধন করা যাবে না।
+      ⚠️ ${isBn ? 'একবারের বেশি সংশোধন করা যাবে না।' : 'Can only be edited once.'}
     </div>
     <div class="form-group">
-      <label class="form-label">ছুটির প্রকার</label>
-      <select class="form-input" id="leaveType" style="background:var(--dark3)">
-        ${LEAVE_TYPES.map(lt => `<option value="${lt}" ${lv.leave_type===lt?'selected':''}>${lt}</option>`).join('')}
+      <label class="form-label">${isBn ? 'ছুটির প্রকার' : 'Leave Type'}</label>
+      <select class="form-input" id="leaveType">
+        ${LEAVE_TYPES.map(lt => `<option value="${lt}" ${lv.leave_type===lt?'selected':''}>${isBn ? lt : (LEAVE_TYPES_EN[lt]||lt)}</option>`).join('')}
       </select>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
       <div class="form-group">
-        <label class="form-label">হইতে তারিখ</label>
-        <input type="text" class="form-input" id="leaveFrom" value="${lv.from_date||''}">
+        <label class="form-label">${isBn ? 'হইতে তারিখ' : 'From Date'}</label>
+        <input type="text" class="form-input" id="leaveFrom" value="${lv.from_date||''}" oninput="calcLeavePreview()" maxlength="10">
       </div>
       <div class="form-group">
-        <label class="form-label">পর্যন্ত তারিখ</label>
-        <input type="text" class="form-input" id="leaveTo" value="${lv.to_date||''}" oninput="calcLeavePreview()">
+        <label class="form-label">${isBn ? 'পর্যন্ত তারিখ' : 'To Date'}</label>
+        <input type="text" class="form-input" id="leaveTo" value="${lv.to_date||''}" oninput="calcLeavePreview()" maxlength="10">
       </div>
     </div>
-    <div id="leaveDaysPreview" style="background:rgba(200,169,74,0.1);border:1px solid rgba(200,169,74,0.3);border-radius:8px;padding:10px 14px;font-family:'Rajdhani',sans-serif;font-size:1rem;color:var(--gold);margin-top:4px;text-align:center">মোট: ${lv.total_days||0} দিন</div>
+    <div id="leaveDaysPreview" style="background:rgba(200,169,74,0.1);border:1px solid rgba(200,169,74,0.3);border-radius:10px;padding:12px 14px;font-family:'Rajdhani',sans-serif;font-size:1.1rem;font-weight:700;color:var(--gold);margin-top:4px;text-align:center">
+      ${isBn ? 'মোট:' : 'Total:'} ${lv.total_days||0} ${isBn ? 'দিন' : 'days'}
+    </div>
   `;
   currentEditField = { key: '_editLeave', leaveId };
   document.getElementById('editModal').classList.add('open');
 }
 
 async function deleteLeave(leaveId) {
-  if (!await confirmAsync('এই ছুটির রেকর্ড মুছে দেবেন?', {danger:true,icon:'🗑️',title:'ছুটি মুছুন'})) return;
+  const isBn = appLang !== 'en';
+  if (!await confirmAsync(isBn ? 'এই ছুটির রেকর্ড মুছে দেবেন?' : 'Delete this leave record?', {danger:true,icon:'🗑️',title: isBn?'ছুটি মুছুন':'Delete Leave'})) return;
   const docId = currentMemberData.id || String(currentMemberData.no || '').replace(/[^A-Z0-9]/gi, '');
   try {
     await db.collection('members').doc(docId).collection('leaves').doc(leaveId).delete();
-    showToast('✅ ছুটি মুছে দেওয়া হয়েছে', 'success');
+    showToast(isBn ? '✅ ছুটি মুছে দেওয়া হয়েছে' : '✅ Leave record deleted', 'success');
     loadLeave();
-  } catch(e) { showToast('ব্যর্থ: ' + e.message, 'error'); }
+  } catch(e) { showToast((isBn?'ব্যর্থ: ':'Failed: ') + e.message, 'error'); }
 }
 
 /* ══════════════════════════════════════════
@@ -9331,7 +9297,28 @@ const TRANSLATIONS = {
   'ছুটির তথ্য': 'Leave Info', 'মোট ছুটি (দিন)': 'Total Leave (Days)',
   'কোনো রেকর্ড নেই': 'No records yet',
   'সদস্য ID পাওয়া যায়নি': 'Member ID not found',
-  'মুছে দিন': 'Delete'
+  'মুছে দিন': 'Delete',
+  // ছুটি ও প্রশিক্ষণ page
+  'ছুটি ও প্রশিক্ষণ': 'Leave & Training',
+  'ছুটির বিবরণ': 'Leave Details',
+  'ছুটির সারসংক্ষেপ': 'Leave Summary',
+  'সাপ্তাহিক ছুটি': 'Weekly Leave',
+  'সাময়িক ছুটি': 'Casual Leave',
+  'সুযোগী ছুটি': 'Privilege Leave',
+  'চিত্তবিনোদন ছুটি': 'Recreation Leave',
+  'চিকিৎসা ছুটি': 'Medical Leave',
+  'অন্যান্য': 'Others',
+  'ছুটির প্রকার': 'Leave Type',
+  'হইতে তারিখ': 'From Date',
+  'পর্যন্ত তারিখ': 'To Date',
+  'নতুন ছুটি যোগ করুন': 'Add New Leave',
+  'ছুটি সংশোধন': 'Edit Leave',
+  'একবারের বেশি সংশোধন করা যাবে না।': 'Can only be edited once.',
+  'এই ছুটির রেকর্ড মুছে দেবেন?': 'Delete this leave record?',
+  'ছুটি মুছুন': 'Delete Leave',
+  '✅ ছুটি যোগ হয়েছে': 'Leave added',
+  '✅ ছুটি সংশোধন হয়েছে': 'Leave updated',
+  '✅ ছুটি মুছে দেওয়া হয়েছে': 'Leave deleted'
 };
 
 function t(bn) {
@@ -9352,11 +9339,6 @@ function toggleAppLang() {
     loadPendingCoursesAndRender(); // pending কোর্স
   }
 
-  // Training & Vacation page reload
-  if (document.getElementById('page-leave')?.classList.contains('active')) {
-    loadLeave();
-    ['ipft','ret','speedmarch','grenade','fieldfire','killhouse','cbta'].forEach(t => loadTraining(t));
-  }
 
   // Static labels translate করো
   applyLangToUI();
@@ -9369,7 +9351,7 @@ function applyLangToUI() {
   const navMap = {
     'nav-profile':       [isBn ? 'প্রোফাইল'  : 'Profile',       '👤'],
     'nav-courses':       [isBn ? 'কোর্স'      : 'Courses',       '📚'],
-    'nav-leave':         [isBn ? 'Training & Vacation' : 'Training & Vacation', '🎯'],
+    'nav-leave2':        [isBn ? 'ছুটি ও প্রশিক্ষণ' : 'Leave & Training', '🏖️'],
     'nav-notifications': [isBn ? 'বিজ্ঞপ্তি' : 'Notifications', '🔔'],
     'nav-admin':         ['Admin',                                 '🛡️'],
     'nav-pending':       [isBn ? 'অপেক্ষমান' : 'Pending',        '⏳'],
