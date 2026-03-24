@@ -79,7 +79,9 @@ body {
 .header {
   background: var(--header-bg);
   border-bottom: 2px solid #c8a94a;
-  position: sticky; top: 0; z-index: 100;
+  position: sticky;
+  top: 0;
+  z-index: 100;
   box-shadow: 0 4px 24px rgba(0,0,0,0.3);
 }
 .header-inner {
@@ -141,11 +143,6 @@ body {
 .view-btn.active { background: rgba(200,169,74,0.2); color: #c8a94a; }
 
 /* ═══════ CONTROLS ═══════ */
-.controls-wrap {
-  background: var(--surface); border-bottom: 1px solid var(--border);
-  position: static;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-}
 .controls {
   max-width: 1440px; margin: 0 auto;
   display: flex; gap: 7px; flex-wrap: wrap; padding: 10px 20px;
@@ -181,6 +178,181 @@ select:focus { border-color: var(--accent); }
   font-family: 'Rajdhani', sans-serif; font-size: 0.8rem; color: var(--text3); letter-spacing: 1px;
 }
 .results-bar span { color: var(--accent); font-weight: 700; }
+
+/* ═══════ STICKY CONTROL WITH SCROLL HIDE ═══════ */
+.controls-wrap {
+  position: sticky;
+  top: 0;
+  z-index: 99;
+  background: var(--surface);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transform: translateY(0);
+  width: 100%;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.controls-wrap.hide-controls {
+  transform: translateY(-100%);
+}
+
+/* মোবাইল ডিভাইসের জন্য - ৩ লাইনে সাজানো */
+@media (max-width: 768px) {
+  .controls-wrap {
+    position: sticky;
+    top: 0;
+  }
+  
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 8px 12px;
+  }
+  
+  /* ১ম লাইন: সার্চ বক্স */
+  .controls .search-wrap {
+    flex: 1 1 100%;
+    order: 1;
+  }
+  
+  .controls .search-wrap input {
+    padding: 8px 12px 8px 32px;
+    font-size: 0.85rem;
+  }
+  
+  /* ২য় লাইন: ফিল্টার সিলেক্ট (৩টি এক লাইনে) */
+  .controls select {
+    flex: 1 1 calc(33.33% - 6px);
+    order: 2;
+    font-size: 0.7rem;
+    padding: 7px 4px;
+    min-width: 0;
+  }
+  
+  /* ৩য় লাইন: বাটন গ্রুপ */
+  .controls .btn-reset,
+  .view-switch,
+  #themeToggle,
+  .lang-switch,
+  #userDropdownContainer {
+    order: 3;
+  }
+  
+  .controls .btn-reset {
+    flex: 0 1 auto;
+    padding: 7px 10px;
+    font-size: 0.7rem;
+  }
+  
+  .view-switch {
+    flex: 0 0 auto;
+  }
+  
+  .view-switch button {
+    padding: 5px 8px;
+  }
+  
+  #themeToggle {
+    flex: 0 0 auto;
+    padding: 5px 8px;
+  }
+  
+  .lang-switch {
+    flex: 0 0 auto;
+  }
+  
+  .lang-switch button {
+    padding: 5px 9px;
+    font-size: 0.7rem;
+  }
+  
+  #userDropdownContainer button {
+    padding: 5px 10px;
+    font-size: 0.7rem;
+  }
+  
+  /* স্ট্যাটাস গ্রুপ - হেডারের ডান পাশে */
+  .stat-group {
+    margin-left: auto;
+  }
+  
+  .stat-group span {
+    font-size: 0.75rem !important;
+  }
+  
+  .results-bar {
+    padding: 4px 12px;
+    font-size: 0.68rem;
+    text-align: center;
+    order: 4;
+  }
+}
+
+/* ছোট মোবাইল (max-width: 480px) */
+@media (max-width: 480px) {
+  .controls select {
+    font-size: 0.65rem;
+    padding: 6px 3px;
+  }
+  
+  .controls .btn-reset {
+    padding: 6px 8px;
+    font-size: 0.62rem;
+  }
+  
+  .view-switch button {
+    padding: 4px 6px;
+    font-size: 10px;
+  }
+  
+  #themeToggle {
+    padding: 4px 6px;
+    font-size: 11px;
+  }
+  
+  .lang-switch button {
+    padding: 4px 7px;
+    font-size: 0.62rem;
+  }
+  
+  #userDropdownContainer button {
+    padding: 4px 8px;
+    font-size: 0.65rem;
+  }
+}
+
+/* ছোট মোবাইল (max-width: 480px) */
+@media (max-width: 480px) {
+  .controls select {
+    font-size: 0.65rem;
+    padding: 6px 3px;
+  }
+  
+  .controls .btn-reset {
+    padding: 6px 8px;
+    font-size: 0.62rem;
+  }
+  
+  .view-switch button {
+    padding: 4px 6px;
+    font-size: 10px;
+  }
+  
+  #themeToggle {
+    padding: 4px 6px;
+    font-size: 11px;
+  }
+  
+  .lang-switch button {
+    padding: 4px 7px;
+    font-size: 0.62rem;
+  }
+  
+  #userDropdownContainer button {
+    padding: 4px 8px;
+    font-size: 0.65rem;
+  }
+}
 
 /* ═══════ RANK BADGES ═══════ */
 .rank-badge {
@@ -545,15 +717,10 @@ select:focus { border-color: var(--accent); }
     <div style="display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap;">
       <a href="4engr-app.html" style="display:flex;align-items:center;gap:5px;padding:6px 12px;background:rgba(200,169,74,0.15);border:1px solid rgba(200,169,74,0.35);border-radius:8px;color:#c8a94a;font-family:'Rajdhani',sans-serif;font-size:0.7rem;font-weight:700;letter-spacing:1px;text-decoration:none;">📱 অ্যাপ</a>
       
-      <div class="stat-group" style="display: flex; gap: 8px;">
-        <div class="stat-box" style="text-align:center;background:rgba(200,169,74,0.1);border:1px solid rgba(200,169,74,0.25);border-radius:8px;padding:4px 10px;">
-          <span class="num" id="totalCount" style="font-family:'Rajdhani',sans-serif;font-size:1.2rem;font-weight:700;color:#c8a94a;">0</span>
-          <span class="lbl" id="lTot" style="font-family:'Rajdhani',sans-serif;font-size:0.55rem;color:rgba(255,255,255,0.4);letter-spacing:1px;">মোট</span>
-        </div>
-        <div class="stat-box" style="text-align:center;background:rgba(200,169,74,0.1);border:1px solid rgba(200,169,74,0.25);border-radius:8px;padding:4px 10px;">
-          <span class="num" id="filteredCount" style="font-family:'Rajdhani',sans-serif;font-size:1.2rem;font-weight:700;color:#c8a94a;">0</span>
-          <span class="lbl" id="lShown" style="font-family:'Rajdhani',sans-serif;font-size:0.55rem;color:rgba(255,255,255,0.4);letter-spacing:1px;">দেখানো</span>
-        </div>
+      <div class="stat-group" style="display: flex; align-items: center; gap: 6px;">
+        <span style="font-family:'Rajdhani',sans-serif;font-size:0.7rem;color:rgba(255,255,255,0.5);">👥</span>
+        <span id="totalCount" style="font-family:'Rajdhani',sans-serif;font-size:1rem;font-weight:700;color:#c8a94a;">0</span>
+        <span style="font-family:'Rajdhani',sans-serif;font-size:0.7rem;color:rgba(255,255,255,0.5);">জন</span>
       </div>
       
       <div class="view-switch" style="display:flex;border:1px solid rgba(200,169,74,0.3);border-radius:7px;overflow:hidden;">
@@ -942,7 +1109,6 @@ function renderCards(){
   const start=(page-1)*PER_PAGE;
   const slice=filtered.slice(start,start+PER_PAGE);
 
-  document.getElementById('filteredCount').textContent=filtered.length;
   if(!filtered.length){
     con.innerHTML=`<div class="empty"><h3>${L('কোনো সদস্য পাওয়া যায়নি','No members found')}</h3><p>${L('অনুসন্ধান পরিবর্তন করুন।','Try a different search.')}</p></div>`;
     document.getElementById('showingText').innerHTML=`<span>0</span> ${L('জন পাওয়া গেছে','members found')}`;
@@ -2862,10 +3028,10 @@ async function confirmDeleteMember(docId, name, no) {
     await db.collection('members').doc(docId).delete();
     document.getElementById('deleteMemberModal')?.remove();
     closeModalBtn();
-    const localIdx = members.findIndex(x =>
+    const localIdx = MEMBERS.findIndex(x =>
       (x._id || String(x.no || '').replace(/[^A-Z0-9]/gi, '')) === docId
     );
-    if (localIdx !== -1) members.splice(localIdx, 1);
+    if (localIdx !== -1) MEMBERS.splice(localIdx, 1);
     applyFilters();
     _showAdminToast('✅ ' + name + ' সফলভাবে ডিলিট হয়েছে', 'success');
   } catch(e) {
@@ -3125,6 +3291,51 @@ function showImageModal(imgSrc) {
     document.getElementById('imageOverlay').classList.add('open');
     document.body.style.overflow = 'hidden';
 }
+
+/* ═══════ SCROLL CONTROL - HIDE ON SCROLL DOWN, SHOW ON SCROLL UP ═══════ */
+let lastScrollY = 0;
+let ticking = false;
+const controlsWrapper = document.querySelector('.controls-wrap');
+
+function handleScroll() {
+  if (!controlsWrapper) return;
+  
+  const currentScrollY = window.scrollY;
+  
+  // নিচে স্ক্রল করলে (100px এর বেশি) - লুকাবে
+  if (currentScrollY > lastScrollY && currentScrollY > 100) {
+    controlsWrapper.classList.add('hide-controls');
+  } 
+  // উপরে স্ক্রল করলে - দেখাবে
+  else if (currentScrollY < lastScrollY) {
+    controlsWrapper.classList.remove('hide-controls');
+  }
+  
+  // পেজের একদম উপরে থাকলে দেখাবে
+  if (currentScrollY <= 10) {
+    controlsWrapper.classList.remove('hide-controls');
+  }
+  
+  lastScrollY = currentScrollY;
+  ticking = false;
+}
+
+// স্ক্রল ইভেন্ট (performance optimized)
+window.addEventListener('scroll', function() {
+  if (!ticking) {
+    requestAnimationFrame(handleScroll);
+    ticking = true;
+  }
+});
+
+// পেজ লোড হলে চেক করুন
+document.addEventListener('DOMContentLoaded', function() {
+  setTimeout(() => {
+    if (window.scrollY <= 10) {
+      controlsWrapper?.classList.remove('hide-controls');
+    }
+  }, 100);
+});
 
 function closeImageModal(event) {
     if (event.target === document.getElementById('imageOverlay')) {
