@@ -3997,45 +3997,91 @@ async function saveModal() {
     btn.textContent='সংরক্ষণ করুন'; btn.disabled=false; return;
   }
 
-  // ── ছুটি যোগ ──
-  if (currentEditField.key === '_addLeave' || currentEditField.key === '_editLeave') {
-    const isBn = appLang !== 'en';
-    const leaveType = document.getElementById('leaveType')?.value;
-    const from = document.getElementById('leaveFrom')?.value.trim();
-    const to = document.getElementById('leaveTo')?.value.trim();
-    if (!leaveType || !from || !to) { showToast(isBn?'সব তথ্য পূরণ করুন':'Please fill all fields', 'error'); btn.textContent='সংরক্ষণ করুন'; btn.disabled=false; return; }
-    const days = calcDays(from, to);
-    if (days <= 0) { showToast(isBn?'তারিখ সঠিক নয়':'Invalid date range', 'error'); btn.textContent='সংরক্ষণ করুন'; btn.disabled=false; return; }
+  // ── ছুটি যোগ ও সংশোধন ──
+if (currentEditField.key === '_addLeave' || currentEditField.key === '_editLeave') {
+  const isBn = appLang !== 'en';
+  const leaveType = document.getElementById('leaveType')?.value;
+  const from = document.getElementById('leaveFrom')?.value.trim();
+  const to = document.getElementById('leaveTo')?.value.trim();
+  if (!leaveType || !from || !to) { showToast(isBn?'সব তথ্য পূরণ করুন':'Please fill all fields', 'error'); btn.textContent='সংরক্ষণ করুন'; btn.disabled=false; return; }
+  const days = calcDays(from, to);
+  if (days <= 0) { showToast(isBn?'তারিখ সঠিক নয়':'Invalid date range', 'error'); btn.textContent='সংরক্ষণ করুন'; btn.disabled=false; return; }
 
-    const docId = currentMemberData.id || String(currentMemberData.no || '').replace(/[^A-Z0-9]/gi, '');
-    try {
-      if (currentEditField.key === '_addLeave') {
-        await db.collection('members').doc(docId).collection('leaves').add({
-          leave_type: leaveType,
-          from_date: from,
-          to_date: to,
-          total_days: days,
-          edit_count: 0,
-          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-          createdBy: currentUser.uid,
-        });
-        showToast((isBn ? '✅ ছুটি যোগ হয়েছে — ' : '✅ Leave added — ') + days + (isBn?' দিন':' days'), 'success');
-      } else {
-        const leaveRef = db.collection('members').doc(docId).collection('leaves').doc(currentEditField.leaveId);
-        const existing = await leaveRef.get();
-        const editCount = (existing.data()?.edit_count || 0) + 1;
-        await leaveRef.update({
-          leave_type: leaveType, from_date: from, to_date: to,
-          total_days: days, edit_count: editCount,
-          updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-        });
-        showToast(isBn ? '✅ ছুটি সংশোধন হয়েছে' : '✅ Leave updated', 'success');
-      }
+  const docId = currentMemberData.id || String(currentMemberData.no || '').replace(/[^A-Z0-9]/gi, '');
+  const isAdmin = userRole === 'admin' || userRole === 'superadmin';
+  
+  try {
+    if (currentEditField.key === '_addLeave') {
+      // নতুন ছুটি যোগ — সরাসরি সেভ
+      await db.collection('members').doc(docId).collection('leaves').add({
+        leave_type: leaveType,
+        from_date: from,
+        to_date: to,
+        total_days: days,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        createdBy: currentUser.uid,
+      });
+      showToast((isBn ? '✅ ছুটি যোগ হয়েছে — ' : '✅ Leave added — ') + days + (isBn?' দিন':' days'), 'success');
       closeModal();
       loadLeave();
-    } catch(e) { showToast((isBn?'ব্যর্থ: ':'Failed: ') + e.message, 'error'); }
-    btn.textContent='সংরক্ষণ করুন'; btn.disabled=false; return;
+    } else {
+      // ছুটি সংশোধন — Admin হলে সরাসরি, Member হলে পেন্ডিং রিকোয়েস্ট
+      const leaveRef = db.collection('members').doc(docId).collection('leaves').doc(currentEditField.leaveId);
+      const existing = await leaveRef.get();
+      const oldData = existing.data();
+      
+      if (isAdmin) {
+        // Admin সরাসরি আপডেট করবে
+        await leaveRef.update({
+          leave_type: leaveType, 
+          from_date: from, 
+          to_date: to,
+          total_days: days,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          updatedBy: currentUser.uid,
+        });
+        showToast(isBn ? '✅ ছুটি সংশোধন হয়েছে' : '✅ Leave updated', 'success');
+        closeModal();
+        loadLeave();
+      } else {
+        // Member — পেন্ডিং রিকোয়েস্ট তৈরি করো
+        await db.collection('editRequests').add({
+          memberId: docId,
+          memberNo: currentMemberData.no || currentMemberData.armyNo,
+          memberName: currentMemberData.bn || currentMemberData.en || currentMemberData.armyNo || '',
+          memberCompany: currentMemberData.co_bn || '',
+          field: 'leave_' + currentEditField.leaveId,
+          fieldLabel: `ছুটি সংশোধন: ${oldData?.leave_type || 'ছুটি'}`,
+          oldValue: JSON.stringify({
+            leave_type: oldData?.leave_type || '',
+            from_date: oldData?.from_date || '',
+            to_date: oldData?.to_date || '',
+            total_days: oldData?.total_days || 0
+          }),
+          newValue: JSON.stringify({
+            leave_type: leaveType,
+            from_date: from,
+            to_date: to,
+            total_days: days
+          }),
+          requestType: 'editLeave',
+          requestedBy: currentUser.uid,
+          status: 'pending',
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+        closeModal();
+        showToast(isBn ? '⏳ ছুটি সংশোধনের অনুরোধ জমা হয়েছে — Admin অনুমোদনের অপেক্ষায়' : '⏳ Leave edit request submitted — waiting for admin approval', 'success');
+        // পেন্ডিং পেজ রিফ্রেশ
+        if (document.getElementById('page-pending')?.classList.contains('active')) loadPendingPage();
+      }
+    }
+  } catch(e) { 
+    showToast((isBn?'ব্যর্থ: ':'Failed: ') + e.message, 'error'); 
   }
+  btn.textContent='সংরক্ষণ করুন'; 
+  btn.disabled=false; 
+  return;
+}
 
   // ── পাসওয়ার্ড পরিবর্তন ──
   if (currentEditField.key === '_changePass') {
@@ -5127,7 +5173,7 @@ async function loadLeave() {
       const days = lv.total_days || calcDays(lv.from_date, lv.to_date);
       totals[lv.leave_type] = (totals[lv.leave_type] || 0) + days;
       const isAdmin = userRole === 'admin' || userRole === 'superadmin';
-      const canEdit = (lv.edit_count || 0) < 1;
+      const canEdit = true; // সবসময় সংশোধন বাটন দেখাবে
       const colorStyle = LEAVE_TYPE_COLOR[lv.leave_type] || LEAVE_TYPE_COLOR['অন্যান্য'];
       const typeLabel = isBn
         ? (lv.leave_type || '—')
@@ -5244,8 +5290,8 @@ async function editLeave(leaveId) {
 
   document.getElementById('modalTitle').textContent = isBn ? 'ছুটি সংশোধন' : 'Edit Leave';
   document.getElementById('modalBody').innerHTML = `
-    <div style="background:rgba(210,153,34,0.1);border:1px solid rgba(210,153,34,0.3);border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:0.78rem;color:var(--warn)">
-      ⚠️ ${isBn ? 'একবারের বেশি সংশোধন করা যাবে না।' : 'Can only be edited once.'}
+    <div style="background:rgba(56,139,253,0.08);border:1px solid rgba(56,139,253,0.2);border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:0.78rem;color:var(--info)">
+      ℹ️ ${isBn ? 'সংশোধনের পর Admin অনুমোদন লাগবে।' : 'Approval required after edit.'}
     </div>
     <div class="form-group">
       <label class="form-label">${isBn ? 'ছুটির প্রকার' : 'Leave Type'}</label>
@@ -7631,35 +7677,72 @@ function renderPendingList(docs) {
       <div style="padding:10px 14px;display:flex;flex-direction:column;gap:8px">`;
 
     grp.items.forEach(it => {
-      const ex = (it.requestType === 'addCourse' && it.courseExtra) ? it.courseExtra : null;
-      const displayVal = ex ? (ex.nameBn || it.newValue.split(',').pop().trim()) : it.newValue;
-      const extraBadges = ex ? `
-        <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:4px">
-          ${ex.result ? `<span style="font-size:0.62rem;background:rgba(63,185,80,0.1);border:1px solid rgba(63,185,80,0.3);color:var(--success);border-radius:8px;padding:1px 7px;font-family:'Rajdhani',sans-serif">📊 ${PLBL[ex.result]||ex.result}</span>` : ''}
-          ${ex.position > 0 ? `<span style="font-size:0.62rem;background:rgba(200,169,74,0.1);border:1px solid rgba(200,169,74,0.3);color:var(--gold);border-radius:8px;padding:1px 7px;font-family:'Rajdhani',sans-serif;font-weight:700">🏆 ${ex.position}তম</span>` : ''}
-          ${ex.nameEn ? `<span style="font-size:0.62rem;color:var(--text2);font-style:italic">${ex.nameEn}</span>` : ''}
-          ${ex.recommendation ? `<span style="font-size:0.62rem;color:var(--text2);font-style:italic">💬 ${ex.recommendation}</span>` : ''}
-        </div>` : '';
-      html += `
-        <div id="pitem_${it.id}" style="background:var(--bg2);border:1px solid var(--border2);border-radius:10px;padding:11px 13px;display:flex;align-items:flex-start;gap:10px;transition:all 0.2s">
-          <div style="flex:1;min-width:0">
-            <div style="font-size:0.78rem;color:var(--text2);font-family:'Rajdhani',sans-serif;letter-spacing:0.5px;margin-bottom:3px">${it.fieldLabel || it.field || '—'}</div>
-            ${it.oldValue ? `<div style="font-size:0.75rem;color:var(--text3);text-decoration:line-through;margin-bottom:2px">${it.oldValue.length>40?it.oldValue.substring(0,40)+'...':it.oldValue}</div>` : ''}
-            <div style="font-size:0.9rem;font-weight:600;color:var(--text)">${displayVal}</div>
-            ${extraBadges}
-          </div>
-          <div style="display:flex;flex-direction:column;gap:5px;flex-shrink:0">
-            <button onclick="pendingItemAction('${it.id}','approve',this)"
-              style="padding:6px 14px;background:rgba(63,185,80,0.12);border:1px solid rgba(63,185,80,0.4);border-radius:8px;color:var(--success);font-size:0.75rem;font-family:'Rajdhani',sans-serif;font-weight:700;cursor:pointer;white-space:nowrap;transition:all 0.15s">
-              ✓ অনুমোদন
-            </button>
-            <button onclick="pendingItemAction('${it.id}','reject',this)"
-              style="padding:6px 14px;background:rgba(224,85,85,0.08);border:1px solid rgba(224,85,85,0.35);border-radius:8px;color:var(--danger);font-size:0.75rem;font-family:'Rajdhani',sans-serif;font-weight:700;cursor:pointer;white-space:nowrap;transition:all 0.15s">
-              ✗ বাতিল
-            </button>
-          </div>
-        </div>`;
-    });
+  let displayVal = it.newValue;
+  let extraBadges = '';
+  let oldValueHtml = '';
+  
+  // শুধু ছুটি সংশোধনের জন্য আলাদা ডিসপ্লে
+  if (it.requestType === 'editLeave' && it.oldValue && it.newValue) {
+    try {
+      const oldData = JSON.parse(it.oldValue);
+      const newData = JSON.parse(it.newValue);
+      
+      const isBn = appLang !== 'en';
+      const leaveTypeLabel = isBn ? newData.leave_type : (LEAVE_TYPES_EN[newData.leave_type] || newData.leave_type);
+      
+      displayVal = `
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <div><span style="color:var(--text2)">${isBn ? 'ছুটির প্রকার' : 'Leave Type'}:</span> <strong style="color:var(--gold)">${leaveTypeLabel}</strong></div>
+          <div><span style="color:var(--text2)">${isBn ? 'তারিখ' : 'Date'}:</span> <strong>${newData.from_date} → ${newData.to_date}</strong> <span style="color:var(--success)">(${newData.total_days} ${isBn ? 'দিন' : 'days'})</span></div>
+        </div>
+      `;
+      
+      oldValueHtml = `
+        <div style="font-size:0.75rem;color:var(--text3);text-decoration:line-through;margin-bottom:6px;padding:4px 6px;background:rgba(224,85,85,0.08);border-radius:6px">
+          <span style="color:var(--text2)">${isBn ? 'পূর্বের মান' : 'Previous'}:</span> 
+          ${oldData.leave_type} (${oldData.from_date} → ${oldData.to_date}) · ${oldData.total_days} ${isBn ? 'দিন' : 'days'}
+        </div>
+      `;
+      
+      extraBadges = `<span style="font-size:0.62rem;background:rgba(56,139,253,0.12);border:1px solid rgba(56,139,253,0.3);color:var(--info);border-radius:8px;padding:1px 7px;font-family:'Rajdhani',sans-serif">✏️ ${isBn ? 'ছুটি সংশোধন' : 'Leave Edit'}</span>`;
+      
+    } catch(e) {
+      console.warn('Parse leave data error:', e);
+    }
+  } else {
+    // বাকি সব রিকোয়েস্ট আগের মতো
+    const ex = (it.requestType === 'addCourse' && it.courseExtra) ? it.courseExtra : null;
+    displayVal = ex ? (ex.nameBn || it.newValue.split(',').pop().trim()) : it.newValue;
+    if (ex && ex.result) {
+      extraBadges = `<div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:4px">
+        <span style="font-size:0.62rem;background:rgba(63,185,80,0.1);border:1px solid rgba(63,185,80,0.3);color:var(--success);border-radius:8px;padding:1px 7px;font-family:'Rajdhani',sans-serif">📊 ${PLBL[ex.result]||ex.result}</span>
+        ${ex.position > 0 ? `<span style="font-size:0.62rem;background:rgba(200,169,74,0.1);border:1px solid rgba(200,169,74,0.3);color:var(--gold);border-radius:8px;padding:1px 7px;font-family:'Rajdhani',sans-serif;font-weight:700">🏆 ${ex.position}তম</span>` : ''}
+        ${ex.nameEn ? `<span style="font-size:0.62rem;color:var(--text2);font-style:italic">${ex.nameEn}</span>` : ''}
+        ${ex.recommendation ? `<span style="font-size:0.62rem;color:var(--text2);font-style:italic">💬 ${ex.recommendation}</span>` : ''}
+      </div>`;
+    }
+  }
+  
+  html += `
+    <div id="pitem_${it.id}" style="background:var(--bg2);border:1px solid var(--border2);border-radius:10px;padding:11px 13px;display:flex;align-items:flex-start;gap:10px;transition:all 0.2s">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:0.78rem;color:var(--text2);font-family:'Rajdhani',sans-serif;letter-spacing:0.5px;margin-bottom:3px">${it.fieldLabel || it.field || '—'}</div>
+        ${oldValueHtml || (it.oldValue && it.requestType !== 'editLeave' ? `<div style="font-size:0.75rem;color:var(--text3);text-decoration:line-through;margin-bottom:2px">${it.oldValue.length>40?it.oldValue.substring(0,40)+'...':it.oldValue}</div>` : '')}
+        <div style="font-size:0.9rem;font-weight:600;color:var(--text)">${displayVal}</div>
+        ${extraBadges}
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;flex-shrink:0">
+        <button onclick="pendingItemAction('${it.id}','approve',this)"
+          style="padding:6px 14px;background:rgba(63,185,80,0.12);border:1px solid rgba(63,185,80,0.4);border-radius:8px;color:var(--success);font-size:0.75rem;font-family:'Rajdhani',sans-serif;font-weight:700;cursor:pointer;white-space:nowrap;transition:all 0.15s">
+          ✓ অনুমোদন
+        </button>
+        <button onclick="pendingItemAction('${it.id}','reject',this)"
+          style="padding:6px 14px;background:rgba(224,85,85,0.08);border:1px solid rgba(224,85,85,0.35);border-radius:8px;color:var(--danger);font-size:0.75rem;font-family:'Rajdhani',sans-serif;font-weight:700;cursor:pointer;white-space:nowrap;transition:all 0.15s">
+          ✗ বাতিল
+        </button>
+      </div>
+    </div>`;
+});
 
     html += `</div></div>`;
   });
@@ -8058,6 +8141,46 @@ async function approveEdit(docId, silent = false) {
         const ex = r.courseResultExtra;
         updateData['courseResults.' + ex.posKey] = ex.position;
         delete updateData[r.field];
+      }
+
+      // ছুটি সংশোধন approve
+      if (r.requestType === 'editLeave' && r.oldValue && r.newValue) {
+        const leaveId = r.field.replace('leave_', '');
+        const newLeaveData = JSON.parse(r.newValue);
+  
+        const leaveRef = db.collection('members').doc(r.memberId).collection('leaves').doc(leaveId);
+        await leaveRef.update({
+          leave_type: newLeaveData.leave_type,
+          from_date: newLeaveData.from_date,
+          to_date: newLeaveData.to_date,
+          total_days: newLeaveData.total_days,
+          approvedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          approvedBy: currentUser.uid,
+        });
+  
+        batch.update(db.collection('editRequests').doc(docId), {
+          status: 'approved',
+          approvedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          approvedBy: currentUser.uid,
+        });
+  
+        await db.collection('notifications').add({
+          uid: r.requestedBy,
+          memberId: r.memberId,
+          type: 'approved',
+          title: '✅ ছুটি সংশোধন অনুমোদিত',
+          body: `আপনার ছুটি সংশোধনের অনুরোধ অনুমোদন করা হয়েছে।`,
+          read: false,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+  
+        await batch.commit();
+        
+        if (!silent) {
+          showToast('✅ ছুটি সংশোধন অনুমোদন করা হয়েছে', 'success');
+          loadAdminData();
+        }
+        return;
       }
 
       // কোর্স যোগ — addCourse
