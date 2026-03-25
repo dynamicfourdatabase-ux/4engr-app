@@ -215,7 +215,7 @@ select:focus { border-color: var(--accent); }
   }
   
   .modal .modal-close {
-    top: 12px !important;
+    top: 44px !important;
     left: 12px !important;
     right: auto !important;
     width: 32px;
@@ -231,17 +231,17 @@ select:focus { border-color: var(--accent); }
   
   /* Superadmin মোডে তিনটি বাটনের পজিশন */
   .modal button[onclick*="openRosterEditModal"][data-edit-role="admin"] {
-    left: 56px !important;
+    left: 116px !important;
     right: auto !important;
     top: 44px !important;
   }
   .modal button[onclick*="openRosterEditModal"][data-edit-role="superadmin"] {
-    left: 56px !important;
+    left: 116px !important;
     right: auto !important;
     top: 44px !important;
   }
   .modal button[onclick*="openDeleteMemberModal"][data-delete-role="superadmin"] {
-    left: 12px !important;
+    left: 64px !important;
     right: auto !important;
     top: 44px !important;
   }
@@ -786,7 +786,7 @@ select:focus { border-color: var(--accent); }
       
       <!-- ইউজার ড্রপডাউন মেনু -->
       <div id="userDropdownContainer" style="position: relative; display: inline-block;">
-        <button id="userMenuBtn" onclick="toggleUserMenu()" ontouchstart="toggleUserMenu()" style="background:rgba(200,169,74,0.15);border:1px solid rgba(200,169,74,0.4);border-radius:30px;padding:3px 10px 3px 3px;cursor:pointer;color:#c8a94a;font-family:'Rajdhani',sans-serif;font-size:0.75rem;font-weight:700;display:flex;align-items:center;gap:6px;">
+        <button id="userMenuBtn" onclick="toggleUserMenu('click')" ontouchstart="toggleUserMenu('touch')" style="background:rgba(200,169,74,0.15);border:1px solid rgba(200,169,74,0.4);border-radius:30px;padding:3px 10px 3px 3px;cursor:pointer;color:#c8a94a;font-family:'Rajdhani',sans-serif;font-size:0.75rem;font-weight:700;display:flex;align-items:center;gap:6px;">
           <div id="userAvatar" style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#c8a94a,#7a5a10);display:flex;align-items:center;justify-content:center;overflow:hidden;">
             <img id="userAvatarImg" src="" style="width:100%;height:100%;object-fit:cover;display:none;">
             <span id="userAvatarText" style="color:#0a0c10;font-size:12px;font-weight:700;">👤</span>
@@ -1514,17 +1514,28 @@ function showModal(target){
     </div>
   `);
 
-  // Dynamic pages (index.html থেকে আসবে)
-  document.getElementById('modalContent').insertAdjacentHTML('beforeend', `
-    <div class="sec" style="margin-top:10px">
-      <div class="sec-title">${L('অতিরিক্ত তথ্য','Extra Information')}</div>
-      <div id="dynamicPagesContainer" style="color:var(--text2);font-size:0.85rem;padding:10px 0">${L('ডাইনামিক পেইজ লোড হচ্ছে...','Loading dynamic pages...')}</div>
-    </div>
-  `);
-
+  // Dynamic pages (index.html থেকে আসবে) — নতুন ট্যাব হিসেবে যুক্ত হবে
   try {
     const normalizedDocId = normalizeMemberDocId(m._id || m.id || m.no || m.armyNo);
-    if (normalizedDocId) loadRosterDynamicPages(normalizedDocId);
+    if (normalizedDocId) {
+      // Notifications — fixed tab (index.html notifications পেজ সিঙ্ক)
+      const notifIdx = document.querySelectorAll('.tab-btn').length; // tab0..tab5 এর পরে
+      document.querySelector('.modal-tabs')?.insertAdjacentHTML(
+        'beforeend',
+        `<button class="tab-btn" id="dyn-tab-btn-notifications" onclick="switchTab(${notifIdx});loadRosterNotifications('${normalizedDocId}')">${L('বিজ্ঞপ্তি','Notifications')}</button>`
+      );
+      document.getElementById('modalContent')?.insertAdjacentHTML(
+        'beforeend',
+        `<div class="tab-content" id="tab6">
+          <div class="sec">
+            <div class="sec-title">${L('বিজ্ঞপ্তি','Notifications')}</div>
+            <div id="rosterNotificationsBody" style="color:var(--text2);font-size:0.85rem;padding:10px 0">${L('বিজ্ঞপ্তি ট্যাবে ক্লিক করুন...','Click Notifications tab to load...')}</div>
+          </div>
+        </div>`
+      );
+
+      loadRosterDynamicTabs(normalizedDocId);
+    }
   } catch(_) {}
 
   document.getElementById('overlay').classList.add('open');
@@ -3811,6 +3822,9 @@ let _rosterTrainingListenerUnsub = null;
 let _rosterLeaveActiveDocId = null;
 let _rosterLatestLeaves = [];
 let _rosterLatestTrainings = [];
+let _rosterNotificationsListenerUnsub = null;
+let _rosterNotificationsActiveDocId = null;
+let _rosterLatestNotifications = [];
 
 // (Dynamic) index.html থেকে আসা নতুন পেইজ sync — members/{docId}/<pageKey> শুনবে
 let _rosterDynamicDocUnsub = null;
@@ -3818,6 +3832,7 @@ let _rosterDynamicActiveDocId = null;
 let _rosterDynamicPageListeners = {}; // { [pageKey]: unSubFn }
 let _rosterDynamicPageData = {}; // { [pageKey]: Array<doc> }
 let _rosterDynamicPageLabels = {}; // { [pageKey]: { bn, en } }
+let _rosterDynamicTabKeys = new Set();
 
 function normalizeMemberDocId(docId) {
   let id = String(docId || '').replace(/[^A-Z0-9]/gi, '');
@@ -3838,9 +3853,81 @@ function cleanupRosterDynamicPages() {
   _rosterDynamicPageData = {};
   _rosterDynamicPageLabels = {};
   _rosterDynamicActiveDocId = null;
+  _rosterDynamicTabKeys.forEach(pageKey => {
+    document.getElementById('dyn-tab-btn-' + pageKey)?.remove();
+    document.getElementById('dyn-tab-content-' + pageKey)?.remove();
+  });
+  _rosterDynamicTabKeys.clear();
+}
 
-  const box = document.getElementById('dynamicPagesContainer');
-  if (box) box.innerHTML = lang === 'bn' ? 'লোড হচ্ছে...' : 'Loading...';
+/* ══════════════════════════════════════════
+   NOTIFICATIONS SYNC — roster.html modal
+══════════════════════════════════════════ */
+async function loadRosterNotifications(docId) {
+  const box = document.getElementById('rosterNotificationsBody');
+  if (!box) return;
+
+  const normalizedDocId = normalizeMemberDocId(docId);
+  if (!normalizedDocId) {
+    box.innerHTML = `<span style="color:var(--text3)">${lang === 'bn' ? 'সদস্য ID পাওয়া যায়নি' : 'Member ID not found'}</span>`;
+    return;
+  }
+
+  if (_rosterNotificationsActiveDocId !== normalizedDocId) {
+    if (typeof _rosterNotificationsListenerUnsub === 'function') _rosterNotificationsListenerUnsub();
+    _rosterNotificationsListenerUnsub = null;
+    _rosterNotificationsActiveDocId = normalizedDocId;
+    _rosterLatestNotifications = [];
+  }
+
+  const render = () => {
+    const arr = Array.isArray(_rosterLatestNotifications) ? _rosterLatestNotifications : [];
+    if (!arr.length) {
+      box.innerHTML = `<div style="color:var(--text3);font-size:0.85rem">${lang === 'bn' ? 'কোনো বিজ্ঞপ্তি নেই' : 'No notifications'}</div>`;
+      return;
+    }
+
+    const itemsHtml = arr.slice(0, 20).map(n => {
+      const title = n.title || n.heading || n.subject || (lang === 'bn' ? 'বিজ্ঞপ্তি' : 'Notification');
+      const bodyTxt = n.body || n.message || n.text || '';
+      const dt = n.createdAt?.toDate ? n.createdAt.toDate().toLocaleDateString('bn-BD') : '';
+      const readBadge = n.read ? (lang === 'bn' ? 'পঠিত' : 'Read') : (lang === 'bn' ? 'নতুন' : 'New');
+      const readColor = n.read ? 'rgba(200,169,74,0.14)' : 'rgba(56,139,253,0.12)';
+      const readBorder = n.read ? 'rgba(200,169,74,0.35)' : 'rgba(56,139,253,0.35)';
+      return `<div style="margin-bottom:10px;padding:10px 12px;border:1px solid var(--border2);border-radius:10px;background:rgba(0,0,0,0.02)">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+          <div style="flex:1;min-width:0">
+            <div style="font-weight:900;color:var(--text);font-size:0.88rem;letter-spacing:0.2px">${_escapeHtml(title)}</div>
+            ${bodyTxt ? `<div style="color:var(--text2);font-size:0.82rem;line-height:1.6;margin-top:4px;white-space:pre-wrap">${_escapeHtml(bodyTxt)}</div>` : ''}
+          </div>
+          <div style="flex-shrink:0">
+            <span style="font-size:0.62rem;background:${readColor};border:1px solid ${readBorder};color:var(--text2);border-radius:10px;padding:2px 8px;font-family:'Rajdhani',sans-serif;font-weight:800;white-space:nowrap">${_escapeHtml(readBadge)}</span>
+            ${dt ? `<div style="color:var(--text3);font-size:0.7rem;margin-top:6px;opacity:0.6">${_escapeHtml(dt)}</div>` : ''}
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+
+    box.innerHTML = `<div style="max-height:360px;overflow:auto;padding-right:6px">${itemsHtml}</div>`;
+  };
+
+  // Listener
+  if (!_rosterNotificationsListenerUnsub) {
+    box.innerHTML = `<span style="color:var(--text2)">${lang === 'bn' ? 'লোড হচ্ছে...' : 'Loading...'}</span>`;
+    _rosterNotificationsListenerUnsub = db
+      .collection('notifications')
+      .where('memberId', '==', normalizedDocId)
+      .orderBy('createdAt', 'desc')
+      .limit(20)
+      .onSnapshot(snap => {
+        _rosterLatestNotifications = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        render();
+      }, err => {
+        box.innerHTML = `<span style="color:var(--danger);font-size:0.82rem">❌ ${err.message}</span>`;
+      });
+  } else {
+    render();
+  }
 }
 
 function _escapeHtml(str) {
@@ -3852,50 +3939,73 @@ function _escapeHtml(str) {
     .replace(/'/g, '&#039;');
 }
 
-function renderRosterDynamicPages() {
-  const box = document.getElementById('dynamicPagesContainer');
-  if (!box) return;
+function ensureDynamicTab(pageKey) {
+  if (document.getElementById('dyn-tab-btn-' + pageKey)) return;
+  const modalTabs = document.querySelector('.modal-tabs');
+  const modalContent = document.getElementById('modalContent');
+  if (!modalTabs || !modalContent) return;
 
-  const keys = Object.keys(_rosterDynamicPageData || {});
-  keys.sort((a, b) => a.localeCompare(b));
+  const labels = _rosterDynamicPageLabels?.[pageKey] || {};
+  const label = lang === 'bn' ? (labels.bn || pageKey) : (labels.en || pageKey);
 
-  if (!keys.length) {
-    box.innerHTML = `<div style="color:var(--text3)">${lang === 'bn' ? 'অতিরিক্ত কোনো ডাইনামিক পেইজ নেই' : 'No dynamic pages found'}</div>`;
+  const idx = modalTabs.querySelectorAll('.tab-btn').length;
+
+  modalTabs.insertAdjacentHTML('beforeend',
+    `<button class="tab-btn" id="dyn-tab-btn-${pageKey}" onclick="switchTab(${idx})">${_escapeHtml(label)}</button>`
+  );
+
+  modalContent.insertAdjacentHTML('beforeend',
+    `<div class="tab-content" id="dyn-tab-content-${pageKey}">
+      <div class="sec">
+        <div class="sec-title">${_escapeHtml(label)}</div>
+        <div id="dyn-tab-body-${pageKey}" style="color:var(--text2);font-size:0.85rem;padding:10px 0">${lang === 'bn' ? 'লোড হচ্ছে...' : 'Loading...'}</div>
+      </div>
+    </div>`
+  );
+
+  _rosterDynamicTabKeys.add(pageKey);
+}
+
+function renderRosterDynamicPage(pageKey) {
+  const body = document.getElementById('dyn-tab-body-' + pageKey);
+  if (!body) return;
+  const arr = Array.isArray(_rosterDynamicPageData[pageKey]) ? _rosterDynamicPageData[pageKey] : [];
+
+  if (!arr.length) {
+    body.innerHTML = `<div style="color:var(--text3);font-size:0.85rem">${lang === 'bn' ? 'কোনো তথ্য নেই' : 'No data'}</div>`;
     return;
   }
 
-  box.innerHTML = keys.map(pageKey => {
-    const labels = _rosterDynamicPageLabels?.[pageKey] || {};
-    const label = lang === 'bn' ? (labels.bn || pageKey) : (labels.en || pageKey);
-    const arr = Array.isArray(_rosterDynamicPageData[pageKey]) ? _rosterDynamicPageData[pageKey] : [];
-    const count = arr.length;
+  // Notifications-style renderer (title/body)
+  if (pageKey.toLowerCase().includes('notif')) {
+    const itemsHtml = arr.slice(0, 12).map(d => {
+      const title = d.title || d.heading || d.subject || '';
+      const bodyTxt = d.body || d.message || d.text || '';
+      const dt = d.createdAt?.toDate ? d.createdAt.toDate().toLocaleDateString('bn-BD') : '';
+      return `<div style="margin-bottom:10px;padding:10px 12px;border:1px solid var(--border2);border-radius:10px;background:rgba(0,0,0,0.02)">
+        <div style="font-weight:800;color:var(--text);font-size:0.88rem">${_escapeHtml(title || (lang === 'bn' ? 'বিজ্ঞপ্তি' : 'Notification'))}</div>
+        ${bodyTxt ? `<div style="color:var(--text2);font-size:0.82rem;line-height:1.6;margin-top:4px;white-space:pre-wrap">${_escapeHtml(bodyTxt)}</div>` : ''}
+        ${dt ? `<div style="color:var(--text3);font-size:0.7rem;margin-top:6px;opacity:0.6">${_escapeHtml(dt)}</div>` : ''}
+      </div>`;
+    }).join('');
+    body.innerHTML = `<div style="max-height:320px;overflow:auto;padding-right:6px">${itemsHtml}</div>`;
+    return;
+  }
 
-    // Preview — last/first record enough
-    const previewObj = arr[0] || {};
-    const previewJson = _escapeHtml(JSON.stringify(previewObj, null, 2).slice(0, 600));
-
-    return `
-      <div style="margin:10px 0;padding:10px 12px;border:1px solid var(--border2);border-radius:12px;background:rgba(0,0,0,0.02)">
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
-          <div style="font-family:'Rajdhani',sans-serif;font-weight:800;letter-spacing:1px;color:var(--text)">${label}</div>
-          <div style="font-size:0.8rem;color:var(--text2)">${count} ${lang === 'bn' ? 'রেকর্ড' : 'records'}</div>
-        </div>
-        <details style="margin-top:8px">
-          <summary style="cursor:pointer;color:var(--text3);font-size:0.82rem">${lang === 'bn' ? 'ডিটেইল দেখুন' : 'View details'}</summary>
-          <pre style="white-space:pre-wrap;word-break:break-word;margin-top:8px;color:var(--text2);font-size:0.78rem">${previewJson}${count ? (arr[0] ? '' : '') : ''}</pre>
-        </details>
-      </div>
-    `;
-  }).join('');
+  // Generic renderer — last records as JSON (professional enough)
+  const preview = arr[0] || {};
+  const json = _escapeHtml(JSON.stringify(preview, null, 2)).slice(0, 900);
+  body.innerHTML = `<div style="color:var(--text2);font-size:0.82rem;line-height:1.6">
+    <div style="font-family:'Rajdhani',sans-serif;font-weight:800;color:var(--text);margin-bottom:8px">
+      ${lang === 'bn' ? 'রেকর্ডের প্রিভিউ' : 'Records preview'} (showing 1)
+    </div>
+    <pre style="white-space:pre-wrap;word-break:break-word;background:rgba(0,0,0,0.03);border:1px solid var(--border2);border-radius:12px;padding:12px;margin:0;color:var(--text2)">${json}</pre>
+  </div>`;
 }
 
-async function loadRosterDynamicPages(docId) {
-  const box = document.getElementById('dynamicPagesContainer');
-  if (!box) return;
-
+async function loadRosterDynamicTabs(docId) {
   const normalizedDocId = normalizeMemberDocId(docId);
   if (!normalizedDocId) {
-    box.innerHTML = `<span style="color:var(--text3)">${lang === 'bn' ? 'সদস্য ID পাওয়া যায়নি' : 'Member ID not found'}</span>`;
     return;
   }
 
@@ -3907,10 +4017,7 @@ async function loadRosterDynamicPages(docId) {
 
   if (typeof _rosterDynamicDocUnsub === 'function') _rosterDynamicDocUnsub();
 
-  const SKIP_KEYS = new Set(['leaves', 'training']);
-
-  // Default UI
-  box.innerHTML = lang === 'bn' ? 'ডাইনামিক পেইজ লোড হচ্ছে...' : 'Loading dynamic pages...';
+  const SKIP_KEYS = new Set(['leaves', 'training', 'course', 'courses', 'leave2', 'notifications', 'notification']);
 
   _rosterDynamicDocUnsub = db.collection('members').doc(normalizedDocId).onSnapshot(snap => {
     const d = snap.data() || {};
@@ -3928,6 +4035,9 @@ async function loadRosterDynamicPages(docId) {
         try { _rosterDynamicPageListeners[existingKey]?.(); } catch(_) {}
         delete _rosterDynamicPageListeners[existingKey];
         delete _rosterDynamicPageData[existingKey];
+        document.getElementById('dyn-tab-btn-' + existingKey)?.remove();
+        document.getElementById('dyn-tab-content-' + existingKey)?.remove();
+        _rosterDynamicTabKeys.delete(existingKey);
       }
     });
 
@@ -3935,22 +4045,20 @@ async function loadRosterDynamicPages(docId) {
     desired.forEach(pageKey => {
       if (_rosterDynamicPageListeners[pageKey]) return;
 
+      ensureDynamicTab(pageKey);
       _rosterDynamicPageData[pageKey] = [];
       _rosterDynamicPageListeners[pageKey] = db
         .collection('members').doc(normalizedDocId).collection(pageKey)
         .onSnapshot(subSnap => {
           _rosterDynamicPageData[pageKey] = subSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-          renderRosterDynamicPages();
+          renderRosterDynamicPage(pageKey);
         }, () => {
           _rosterDynamicPageData[pageKey] = [];
-          renderRosterDynamicPages();
+          renderRosterDynamicPage(pageKey);
         });
     });
-
-    // Render with current data
-    renderRosterDynamicPages();
   }, err => {
-    box.innerHTML = `<span style="color:var(--danger);font-size:0.82rem">❌ ${err.message}</span>`;
+    // Silent — each tab listener can show its own error
   });
 }
 
@@ -4683,16 +4791,22 @@ function closeModalBtn() {
   document.body.style.overflow = '';
   if (typeof _rosterLeaveListenerUnsub === 'function') _rosterLeaveListenerUnsub();
   if (typeof _rosterTrainingListenerUnsub === 'function') _rosterTrainingListenerUnsub();
+  if (typeof _rosterNotificationsListenerUnsub === 'function') _rosterNotificationsListenerUnsub();
   cleanupRosterDynamicPages();
   _rosterLeaveListenerUnsub = null;
   _rosterTrainingListenerUnsub = null;
+  _rosterNotificationsListenerUnsub = null;
   _rosterLeaveActiveDocId = null;
   _rosterLatestLeaves = [];
   _rosterLatestTrainings = [];
+  _rosterNotificationsActiveDocId = null;
+  _rosterLatestNotifications = [];
   const leaveBox = document.getElementById('rosterLeaveBody');
   if (leaveBox) leaveBox.innerHTML = lang==='bn'?'ছুটি ট্যাবে ক্লিক করুন...':'Click Leave tab to load...';
   const trainingBox = document.getElementById('rosterTrainingBody');
   if (trainingBox) trainingBox.innerHTML = lang==='bn'?'ট্রেনিং ট্যাবে ক্লিক করুন...':'Click Training tab to load...';
+  const notifBox = document.getElementById('rosterNotificationsBody');
+  if (notifBox) notifBox.innerHTML = lang==='bn'?'বিজ্ঞপ্তি ট্যাবে ক্লিক করুন...':'Click Notifications tab to load...';
 }
 
 /* ══════════════════════════════════════════
@@ -4950,9 +5064,15 @@ function listAvatarHtml(m) {
 // ---------------------------------------------------------------------
 
 // ========== ইউজার ড্রপডাউন মেনু ফাংশন ==========
-function toggleUserMenu() {
+let _userMenuLastTouchTs = 0;
+function toggleUserMenu(src = 'click') {
   const menu = document.getElementById('userDropdownMenu');
   if (menu) {
+    // mobile এ touchstart + click দুটোই ট্রিগার হতে পারে — ডাবল টগল আটকাও
+    const now = Date.now();
+    if (src === 'click' && (now - _userMenuLastTouchTs) < 450) return;
+    if (src === 'touch') _userMenuLastTouchTs = now;
+
     if (menu.style.display === 'none' || menu.style.display === '') {
       menu.style.display = 'block';
       // মোবাইলে পজিশন অ্যাডজাস্ট

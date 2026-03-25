@@ -3018,6 +3018,13 @@ function showLoginAfterRegister(armyNo) {
 let _pendingListener = null;
 let _rejectedListener = null;
 
+function getBnEnCounterpart(field) {
+  if (!field || typeof field !== 'string') return '';
+  if (field.endsWith('_bn')) return field.replace(/_bn$/, '_en');
+  if (field.endsWith('_en')) return field.replace(/_en$/, '_bn');
+  return '';
+}
+
 function startPendingListener(docId) {
   if (_pendingListener) { _pendingListener(); _pendingListener = null; }
   if (_rejectedListener) { _rejectedListener(); _rejectedListener = null; }
@@ -3042,8 +3049,8 @@ function startPendingListener(docId) {
         if (currentMemberData) {
           if (r.field && r.newValue !== undefined) {
             currentMemberData[r.field] = r.newValue;
-            const syncMap = { r_bn:'r_en', tr_bn:'tr_en', co_bn:'co_en', di_bn:'di_en', ma_bn:'ma_en' };
-            if (syncMap[r.field]) currentMemberData[syncMap[r.field]] = r.newValue;
+            const counterpart = getBnEnCounterpart(r.field);
+            if (counterpart) currentMemberData[counterpart] = r.newValue;
           }
           // extraData sync — ঠিকানা, পদোন্নতি, সন্তান
           if (r.extraData && typeof r.extraData === 'object') {
@@ -3743,9 +3750,11 @@ function renderFields(containerId, fields) {
         if (recText) courseRecs.push(`${courseRecs.length + 1}. ${courseName}: ${recText}`);
       });
   }
-  const computedRec = courseRecs.length ? courseRecs.join('<br>') : (m.rec || '');
+  // Recommendation শুধু কোর্সের courseResults.rec_i থাকলেই দেখাবে
+  const computedRec = courseRecs.length ? courseRecs.join('<br>') : '';
 
   const html = fields.map(f => {
+    if (f.key === 'rec' && !computedRec) return '';
     // EN mode: _en counterpart use করো (r_bn→r_en, tr_bn→tr_en, etc.)
     const _EN_MAP = { r_bn:'r_en', tr_bn:'tr_en', co_bn:'co_en', di_bn:'di_en', ma_bn:'ma_en' };
     let raw;
@@ -4040,6 +4049,10 @@ async function saveModal() {
       } catch(e) { showToast('ব্যর্থ: ' + e.message, 'error'); }
     } else {
       try {
+        // pending request এ newValue হিসেবে FieldValue/Firestore delegate stringify দেখালে ugly লাগে
+        // তাই updatedAt (যেটা FieldValue) বাদ দিয়ে শুধু ভ্যালুগুলো stringify করি
+        const cleanResult = { ...(result || {}) };
+        delete cleanResult.updatedAt;
         await db.collection('editRequests').add({
           memberId: docId,
           memberNo: currentMemberData.no || currentMemberData.armyNo || '',
@@ -4048,7 +4061,7 @@ async function saveModal() {
           field: 'training_' + type,
           fieldLabel: (appLang !== 'en' ? 'Training' : 'Training') + ' Record',
           oldValue: '',
-          newValue: JSON.stringify(result),
+          newValue: JSON.stringify(cleanResult),
           requestedBy: currentUser.uid,
           status: 'pending',
           trainingType: type,
@@ -4403,6 +4416,8 @@ if (currentEditField.key === '_addLeave' || currentEditField.key === '_editLeave
         updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
         updatedBy: currentUser.uid,
       };
+      const counterpart = getBnEnCounterpart(currentEditField.key);
+      if (counterpart) updateData[counterpart] = newVal;
       if (currentEditField.key === 'r_bn')  updateData.r_en  = newVal;
       if (currentEditField.key === 'tr_bn') updateData.tr_en = newVal;
       if (currentEditField.key === 'di_bn') updateData.di_en = newVal;
@@ -4464,6 +4479,8 @@ if (currentEditField.key === '_addLeave' || currentEditField.key === '_editLeave
         updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
         updatedBy: currentUser.uid,
       };
+      const counterpart = getBnEnCounterpart(currentEditField.key);
+      if (counterpart) updateData[counterpart] = newVal;
       if (currentEditField.key === 'r_bn')  updateData.r_en  = newVal;
       if (currentEditField.key === 'tr_bn') updateData.tr_en = newVal;
       if (currentEditField.key === 'di_bn') updateData.di_en = newVal;
@@ -5897,6 +5914,36 @@ async function loadNotifications() {
         let dispVal = r.newValue || '—';
         if (r.requestType === 'addCourse' && r.courseExtra) {
           dispVal = r.courseExtra.nameBn || r.courseExtra.nameEn || dispVal.split(',').pop().trim();
+      } else if (typeof r.field === 'string' && r.field.startsWith('training_') && r.newValue) {
+        try {
+          const bn = appLang !== 'en';
+          const type = r.field.replace('training_', '');
+          const data = typeof r.newValue === 'string' ? JSON.parse(r.newValue || '{}') : (r.newValue || {});
+          const qualityMap = { Good: bn ? 'ভালো' : 'Good', 'Very Good': bn ? 'অতি উত্তম' : 'Very Good' };
+          const resultMap = { Passed: bn ? 'উত্তীর্ণ' : 'Passed', Failed: bn ? 'অকৃতকার্য' : 'Failed' };
+
+          if (type === 'ipft') {
+            const res = resultMap[data.result] || (data.result || '—');
+            dispVal = `${data.fromDate || '—'} → ${data.toDate || '—'} | ${bn ? 'ফলাফল' : 'Result'}: ${res}`;
+          } else if (type === 'ret') {
+            const res = resultMap[data.result] || (data.result || '—');
+            dispVal = `${bn ? 'তারিখ' : 'Date'}: ${data.date || '—'} | ${bn ? 'নম্বর' : 'Marks'}: ${data.marks || '—'} | ${bn ? 'ফলাফল' : 'Result'}: ${res}`;
+          } else if (type === 'speedmarch') {
+            dispVal = `${bn ? 'তারিখ' : 'Date'}: ${data.date || '—'}`;
+          } else if (type === 'grenade') {
+            dispVal = `${bn ? 'তারিখ' : 'Date'}: ${data.date || '—'} | ${bn ? 'অংশগ্রহণ' : 'Participations'}: ${data.participations || '—'}`;
+          } else if (type === 'fieldfire') {
+            const weapons = Array.isArray(data.weapons) ? data.weapons.join(', ') : (data.weapons || '—');
+            dispVal = `${data.fromDate || '—'} → ${data.toDate || '—'} | ${bn ? 'অস্ত্র' : 'Weapons'}: ${weapons}`;
+          } else if (type === 'killhouse') {
+            dispVal = `${bn ? 'তারিখ' : 'Date'}: ${data.date || '—'}`;
+          } else if (type === 'cbta') {
+            const qTxt = qualityMap[data.quality] || (data.quality || '—');
+            dispVal = `${bn ? 'তারিখ' : 'Date'}: ${data.date || '—'} | ${bn ? 'গুণমান' : 'Quality'}: ${qTxt}`;
+          } else {
+            dispVal = bn ? JSON.stringify(data) : JSON.stringify(data);
+          }
+        } catch(_) {}
         } else if (dispVal.length > 50) { dispVal = dispVal.substring(0, 50) + '...'; }
         return `<div style="background:var(--dark3);border:1px solid ${statusBg};border-left:3px solid ${statusColor};border-radius:10px;padding:11px 14px;margin-bottom:8px">`
           + `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px">`
@@ -7923,16 +7970,77 @@ function renderPendingList(docs) {
       console.warn('Parse leave data error:', e);
     }
   } else {
-    // বাকি সব রিকোয়েস্ট আগের মতো
-    const ex = (it.requestType === 'addCourse' && it.courseExtra) ? it.courseExtra : null;
-    displayVal = ex ? (ex.nameBn || it.newValue.split(',').pop().trim()) : it.newValue;
-    if (ex && ex.result) {
-      extraBadges = `<div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:4px">
-        <span style="font-size:0.62rem;background:rgba(63,185,80,0.1);border:1px solid rgba(63,185,80,0.3);color:var(--success);border-radius:8px;padding:1px 7px;font-family:'Rajdhani',sans-serif">📊 ${PLBL[ex.result]||ex.result}</span>
-        ${ex.position > 0 ? `<span style="font-size:0.62rem;background:rgba(200,169,74,0.1);border:1px solid rgba(200,169,74,0.3);color:var(--gold);border-radius:8px;padding:1px 7px;font-family:'Rajdhani',sans-serif;font-weight:700">🏆 ${ex.position}তম</span>` : ''}
-        ${ex.nameEn ? `<span style="font-size:0.62rem;color:var(--text2);font-style:italic">${ex.nameEn}</span>` : ''}
-        ${ex.recommendation ? `<span style="font-size:0.62rem;color:var(--text2);font-style:italic">💬 ${ex.recommendation}</span>` : ''}
-      </div>`;
+    // Training add request — ugly JSON দেখাবে না
+    if (typeof it.field === 'string' && it.field.startsWith('training_') && it.newValue) {
+      try {
+        const type = it.field.replace('training_', '');
+        const data = JSON.parse(it.newValue || '{}');
+        const bn = appLang !== 'en';
+
+        const qualityMap = { Good: bn ? 'ভালো' : 'Good', 'Very Good': bn ? 'অতি উত্তম' : 'Very Good' };
+        const resultMap = { Passed: bn ? 'উত্তীর্ণ' : 'Passed', Failed: bn ? 'অকৃতকার্য' : 'Failed' };
+
+        if (type === 'ipft') {
+          const rTxt = resultMap[data.result] || (data.result || '—');
+          const badgeBg = data.result === 'Passed' ? 'rgba(63,185,80,0.1)' : 'rgba(224,85,85,0.12)';
+          const badgeBd = data.result === 'Passed' ? 'rgba(63,185,80,0.3)' : 'rgba(224,85,85,0.35)';
+          extraBadges = `<span style="font-size:0.62rem;background:${badgeBg};border:1px solid ${badgeBd};color:${data.result === 'Passed' ? 'var(--success)' : 'var(--danger)'};border-radius:8px;padding:1px 7px;font-family:'Rajdhani',sans-serif;font-weight:700">📊 ${rTxt}</span>`;
+          displayVal = `
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <div><span style="color:var(--text2)">${bn?'হইতে/পর্যন্ত':'From/To'}:</span> <strong>${data.fromDate || '—'} → ${data.toDate || '—'}</strong></div>
+              <div><span style="color:var(--text2)">${bn?'ফলাফল':'Result'}:</span> <strong>${rTxt}</strong></div>
+              ${data.result === 'Failed' && Array.isArray(data.failedSubjects) && data.failedSubjects.length
+                ? `<div style="color:var(--danger);font-size:0.75rem;line-height:1.5">❌ ${bn?'ব্যর্থ বিষয়':'Failed subjects'}: ${data.failedSubjects.join(', ')}</div>`
+                : ''}
+            </div>`;
+        } else if (type === 'ret') {
+          const rTxt = resultMap[data.result] || (data.result || '—');
+          extraBadges = `<span style="font-size:0.62rem;background:rgba(56,139,253,0.08);border:1px solid rgba(56,139,253,0.3);color:var(--info);border-radius:8px;padding:1px 7px;font-family:'Rajdhani',sans-serif;font-weight:700">📊 ${rTxt}</span>`;
+          displayVal = `
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <div><span style="color:var(--text2)">${bn?'তারিখ':'Date'}:</span> <strong>${data.date || '—'}</strong></div>
+              <div><span style="color:var(--text2)">${bn?'নম্বর':'Marks'}:</span> <strong>${data.marks || '—'}</strong></div>
+              <div><span style="color:var(--text2)">${bn?'ফলাফল':'Result'}:</span> <strong>${rTxt}</strong></div>
+            </div>`;
+        } else if (type === 'speedmarch') {
+          displayVal = `<div>${bn?'তারিখ':'Date'}: <strong>${data.date || '—'}</strong></div>`;
+        } else if (type === 'grenade') {
+          displayVal = `<div>${bn?'তারিখ':'Date'}: <strong>${data.date || '—'}</strong> &nbsp;|&nbsp; ${bn?'অংশগ্রহণ':'Participations'}: <strong>${data.participations || '—'}</strong></div>`;
+        } else if (type === 'fieldfire') {
+          const weapons = Array.isArray(data.weapons) ? data.weapons.join(', ') : (data.weapons || '—');
+          displayVal = `
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <div><span style="color:var(--text2)">${bn?'হইতে/পর্যন্ত':'From/To'}:</span> <strong>${data.fromDate || '—'} → ${data.toDate || '—'}</strong></div>
+              <div><span style="color:var(--text2)">${bn?'অস্ত্র':'Weapons'}:</span> <strong>${weapons || '—'}</strong></div>
+            </div>`;
+        } else if (type === 'killhouse') {
+          displayVal = `<div>${bn?'তারিখ':'Date'}: <strong>${data.date || '—'}</strong></div>`;
+        } else if (type === 'cbta') {
+          const qTxt = qualityMap[data.quality] || (data.quality || '—');
+          extraBadges = `<span style="font-size:0.62rem;background:rgba(200,169,74,0.1);border:1px solid rgba(200,169,74,0.35);color:var(--gold);border-radius:8px;padding:1px 7px;font-family:'Rajdhani',sans-serif;font-weight:700">⭐ ${qTxt}</span>`;
+          displayVal = `
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <div><span style="color:var(--text2)">${bn?'তারিখ':'Date'}:</span> <strong>${data.date || '—'}</strong></div>
+              <div><span style="color:var(--text2)">${bn?'গুণমান':'Quality'}:</span> <strong>${qTxt}</strong></div>
+            </div>`;
+        } else {
+          displayVal = data ? (bn ? JSON.stringify(data) : JSON.stringify(data)) : it.newValue;
+        }
+      } catch(e) {
+        displayVal = it.newValue;
+      }
+    } else {
+      // বাকি সব রিকোয়েস্ট আগের মতো
+      const ex = (it.requestType === 'addCourse' && it.courseExtra) ? it.courseExtra : null;
+      displayVal = ex ? (ex.nameBn || it.newValue.split(',').pop().trim()) : it.newValue;
+      if (ex && ex.result) {
+        extraBadges = `<div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:4px">
+          <span style="font-size:0.62rem;background:rgba(63,185,80,0.1);border:1px solid rgba(63,185,80,0.3);color:var(--success);border-radius:8px;padding:1px 7px;font-family:'Rajdhani',sans-serif">📊 ${PLBL[ex.result]||ex.result}</span>
+          ${ex.position > 0 ? `<span style="font-size:0.62rem;background:rgba(200,169,74,0.1);border:1px solid rgba(200,169,74,0.3);color:var(--gold);border-radius:8px;padding:1px 7px;font-family:'Rajdhani',sans-serif;font-weight:700">🏆 ${ex.position}তম</span>` : ''}
+          ${ex.nameEn ? `<span style="font-size:0.62rem;color:var(--text2);font-style:italic">${ex.nameEn}</span>` : ''}
+          ${ex.recommendation ? `<span style="font-size:0.62rem;color:var(--text2);font-style:italic">💬 ${ex.recommendation}</span>` : ''}
+        </div>`;
+      }
     }
   }
   
@@ -8087,8 +8195,20 @@ async function rejectGroup(ids) {
     } catch(e) {}
   }
   hideLoading();
+  // UI — items remove/কাউন্টার আপডেট
+  ids.forEach(id => document.getElementById('pitem_' + id)?.remove());
+  const groupEls = [...new Set(ids
+    .map(id => document.getElementById('pitem_' + id)?.closest('.pending-group'))
+    .filter(Boolean)
+  )];
+  groupEls.forEach(gEl => {
+    const remaining = gEl.querySelectorAll('[id^="pitem_"]').length;
+    const cntSpan = gEl.querySelector('.grp-count');
+    if (cntSpan) cntSpan.textContent = remaining;
+    if (remaining === 0) gEl.remove();
+  });
+  _updatePendingCounters();
   showToast(`${done}টি বাতিল করা হয়েছে`, 'error');
-  loadAdminData();
 }
 
 /* সব pending একসাথে approve */
@@ -8326,18 +8446,45 @@ async function approveEdit(docId, silent = false) {
     }
 
     if (memberRef) {
+      let skipMemberBatchUpdate = false;
       const updateData = {
         [r.field]: r.newValue,
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
       };
-      // _bn → _en auto sync
-      const syncMap = { r_bn:'r_en', tr_bn:'tr_en', co_bn:'co_en', di_bn:'di_en', ma_bn:'ma_en' };
-      if (syncMap[r.field]) updateData[syncMap[r.field]] = r.newValue;
+      // _bn / _en auto sync (সব ফিল্ডের জন্য)
+      const counterpart = getBnEnCounterpart(r.field);
+      if (counterpart) updateData[counterpart] = r.newValue;
 
       // পদোন্নতির extraData — promotionSlot ও promotionDate
       if (r.extraData?.promotionSlot && r.extraData?.promotionDate) {
         updateData[r.extraData.promotionSlot] = r.extraData.promotionDate;
         updateData.promo_date = r.extraData.promotionDate;
+      }
+
+      // Training add (pending request) — training_⟨type⟩ ফিল্ডে newValue JSON থাকে
+      if (typeof r.field === 'string' && r.field.startsWith('training_')) {
+        try {
+          const trainingType = r.field.replace('training_', '');
+          const payload = typeof r.newValue === 'string' ? JSON.parse(r.newValue || '{}') : (r.newValue || {});
+          if (payload && typeof payload === 'object') {
+            delete payload.updatedAt; // pending stringify এ updatedAt(FieldValue) থাকলে সেটা সরাও
+            payload.type = payload.type || trainingType;
+            await memberRef.collection('training').add({
+              ...payload,
+              createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+              createdBy: currentUser.uid
+            });
+
+            // roster.html যেন training কালেকশন শুনতে পারে (যদিও fixed tab তবুও meta রাখো)
+            batch.set(memberRef, {
+              __syncPages: firebase.firestore.FieldValue.arrayUnion('training')
+            }, { merge: true });
+
+            skipMemberBatchUpdate = true;
+            // training ফিল্ডটি member doc এ string আকারে লিখো না
+            delete updateData[r.field];
+          }
+        } catch(_) {}
       }
 
       // সন্তানের extraData — c{i}d
@@ -8435,7 +8582,8 @@ async function approveEdit(docId, silent = false) {
       // (subcollection-based নতুন পেইজ হলে সাধারণত field হিসেবে `${key}_...` থাকবে)
       if (typeof r.field === 'string' && r.field.includes('_')) {
         const prefix = r.field.split('_')[0];
-        if (/^[a-zA-Z0-9]+$/.test(prefix)) {
+        // bn/en mirror ফিল্ডগুলো (r_bn/tr_bn/co_bn/di_bn/ma_bn) ছোট prefix — সেগুলো থেকে __syncPages আপডেট করো না
+        if (/^[a-zA-Z0-9]+$/.test(prefix) && prefix.length >= 4) {
           const pageKey = prefix === 'leave' ? 'leaves' : prefix;
           batch.set(memberRef, {
             __syncPages: firebase.firestore.FieldValue.arrayUnion(pageKey)
@@ -8443,7 +8591,7 @@ async function approveEdit(docId, silent = false) {
         }
       }
 
-      batch.update(memberRef, updateData);
+      if (!skipMemberBatchUpdate) batch.update(memberRef, updateData);
     }
 
     batch.update(db.collection('editRequests').doc(docId), {
