@@ -3675,7 +3675,7 @@ function renderProfile() {
     { key: 'rt',         label: t('বাসস্থান মেয়াদ'),          editable: true, type: 'residence' },
     { key: 'rec',        label: t('সুপারিশ'),                editable: true },
     { key: 'pu',         label: t('পূর্বের ইউনিট'),          editable: true,  type: 'textarea' },
-    { key: 'li',         label: t('লাইসেন্স'),               editable: true,  type: 'select', opts: VEHICLES },
+    { key: 'li',         label: t('লাইসেন্স'),               editable: true,  type: 'multiselect', opts: VEHICLES },
     { key: 'pn',         label: t('সাজা'),                   editable: true },
     { key: 'pd',         label: t('পেনশন তারিখ'),            editable: true },
   ];
@@ -9169,16 +9169,25 @@ function openEdit(key, label, type = 'text', optsStr = '') {
   const val = currentMemberData[key] || '';
   let input = '';
 
-  if (type === 'select') {
-    input = `<select class="form-input" id="editInput" style="background:var(--dark3)">
-      ${currentEditField.opts.map(o => `<option value="${o}" ${val === o ? 'selected' : ''}>${o}</option>`).join('')}
-    </select>`;
-  } else if (type === 'textarea') {
-    input = `<textarea class="form-input" id="editInput" rows="4" style="resize:vertical">${val}</textarea>`;
-  } else {
-    input = `<input type="text" class="form-input" id="editInput" value="${val}" placeholder="${label} লিখুন">`;
-  }
-
+  if (type === 'multiselect') {
+  const selectedSet = new Set(val ? val.split(',').map(v => v.trim()) : []);
+  input = `<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;max-height:280px;overflow-y:auto;border:1px solid var(--border2);border-radius:8px;padding:10px;background:var(--bg3)">
+    ${currentEditField.opts.map(o => `
+      <label style="display:flex;align-items:center;gap:8px;font-size:0.85rem;cursor:pointer;padding:4px 6px;border-radius:6px;background:${selectedSet.has(o) ? 'rgba(200,169,74,0.15)' : 'transparent'}">
+        <input type="checkbox" value="${o}" ${selectedSet.has(o) ? 'checked' : ''} style="width:18px;height:18px;cursor:pointer;accent-color:var(--gold)">
+        <span>${o}</span>
+      </label>
+    `).join('')}
+  </div>`;
+} else if (type === 'select') {
+  input = `<select class="form-input" id="editInput" style="background:var(--dark3)">
+    ${currentEditField.opts.map(o => `<option value="${o}" ${val === o ? 'selected' : ''}>${o}</option>`).join('')}
+  </select>`;
+} else if (type === 'textarea') {
+  input = `<textarea class="form-input" id="editInput" rows="4" style="resize:vertical">${val}</textarea>`;
+} else {
+  input = `<input type="text" class="form-input" id="editInput" value="${val}" placeholder="${label} লিখুন">`;
+}
   const oldVal = currentMemberData[key] || '';
   const isFirstTime = !oldVal || oldVal.trim() === '';
   const isAdmin = userRole === 'admin' || userRole === 'superadmin';
