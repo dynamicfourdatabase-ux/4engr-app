@@ -3842,8 +3842,18 @@ function renderFields(containerId, fields) {
 ══════════════════════════════════════════ */
 async function saveModal() {
   if (!currentEditField) return;
-  const input = document.getElementById('editInput');
-  const newVal = input ? input.value.trim() : '';
+  let newVal = '';
+  if (currentEditField.type === 'multiselect') {
+    const checkboxes = document.querySelectorAll('#modalBody input[type="checkbox"]');
+    const selected = Array.from(checkboxes)
+      .filter(cb => cb.checked)
+      .map(cb => cb.value)
+      .join(', ');
+    newVal = selected;
+  } else {
+    const input = document.getElementById('editInput');
+    newVal = input ? input.value.trim() : '';
+  }
 
   const btn = document.getElementById('modalSaveBtn');
   btn.textContent = 'সংরক্ষণ হচ্ছে...';
