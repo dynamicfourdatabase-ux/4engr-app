@@ -3846,9 +3846,11 @@ async function saveModal() {
     const docId = currentMemberData.id || String(currentMemberData.no || currentMemberData.armyNo || '').replace(/[^A-Z0-9]/gi, '');
     const oldVal = currentMemberData.rt || '';
     const isFirstTime = !oldVal || oldVal.trim() === '';
-    const isAdmin = userRole === 'admin' || userRole === 'superadmin';
+    // Photo change — Admin/Super Admin/SubAdmin এর জন্যও সরাসরি সেভ হবে (এপ্রুভাল লাগে না)
+    const isAdmin = userRole === 'admin' || userRole === 'superadmin' || userRole === 'subadmin';
 
-    if (isAdmin || isFirstTime) {
+    // Normal/SubAdmin ক্ষেত্রে সব পরিবর্তন Admin approval ছাড়া সরাসরি সেভ হবে না
+    if (isAdmin) {
       try {
         const ref = db.collection('members').doc(docId);
         const snap = await ref.get();
@@ -3876,6 +3878,7 @@ async function saveModal() {
         closeModal();
         showToast('⏳ আবেদন জমা হয়েছে — Admin অনুমোদনের অপেক্ষায়', 'success');
         checkPendingStatus();
+        renderFields('militaryFields', _lastMilitaryDef || []);
       } catch(e) { showToast('আবেদন ব্যর্থ: ' + (e.code || e.message), 'error'); }
     }
     btn.textContent = 'সংরক্ষণ করুন'; btn.disabled = false; return;
@@ -3912,7 +3915,8 @@ async function saveModal() {
     };
     Object.keys(updateData).forEach(k => { if (!updateData[k]) delete updateData[k]; });
 
-    if (isAdmin || isFirstTime) {
+    // Normal/SubAdmin ক্ষেত্রে সব পরিবর্তন Admin approval ছাড়া সরাসরি সেভ হবে না
+    if (isAdmin) {
       // সরাসরি save
       try {
         const ref  = db.collection('members').doc(docId);
@@ -3946,6 +3950,7 @@ async function saveModal() {
         closeModal();
         showToast('⏳ ঠিকানা পরিবর্তনের আবেদন জমা হয়েছে — Admin অনুমোদনের অপেক্ষায়', 'success');
         checkPendingStatus();
+        renderFields('personalFields', _lastPersonalDef || []);
       } catch(e) { showToast('আবেদন ব্যর্থ: ' + (e.code || e.message), 'error'); }
     }
     btn.textContent = 'সংরক্ষণ করুন'; btn.disabled = false; return;
@@ -3959,7 +3964,9 @@ async function saveModal() {
     if (!promoDate) { showToast('পদোন্নতির তারিখ দিন', 'error'); btn.textContent='সংরক্ষণ করুন'; btn.disabled=false; return; }
 
     const pSlot = currentEditField.pSlot || 'p1';
-    const docId = currentMemberData.id || String(currentMemberData.no || '').replace(/[^A-Z0-9]/gi, '');
+    let docId = String(currentMemberData.no || currentMemberData.armyNo || currentMemberData.id || '')
+      .replace(/[^A-Z0-9]/gi, '');
+    if (/^\d+$/.test(docId) && docId.length <= 6) docId = docId.padStart(6, '0');
     const isAdmin = userRole === 'admin' || userRole === 'superadmin';
 
     if (isAdmin) {
@@ -4100,23 +4107,47 @@ if (currentEditField.key === '_addLeave' || currentEditField.key === '_editLeave
   const days = calcDays(from, to);
   if (days <= 0) { showToast(isBn?'তারিখ সঠিক নয়':'Invalid date range', 'error'); btn.textContent='সংরক্ষণ করুন'; btn.disabled=false; return; }
 
-  const docId = currentMemberData.id || String(currentMemberData.no || '').replace(/[^A-Z0-9]/gi, '');
+  let docId = String(currentMemberData.no || currentMemberData.armyNo || currentMemberData.id || '')
+    .replace(/[^A-Z0-9]/gi, '');
+  if (/^\d+$/.test(docId) && docId.length <= 6) docId = docId.padStart(6, '0');
   const isAdmin = userRole === 'admin' || userRole === 'superadmin';
   
   try {
     if (currentEditField.key === '_addLeave') {
-      // নতুন ছুটি যোগ — সরাসরি সেভ
-      await db.collection('members').doc(docId).collection('leaves').add({
-        leave_type: leaveType,
-        from_date: from,
-        to_date: to,
-        total_days: days,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-        createdBy: currentUser.uid,
-      });
-      showToast((isBn ? '✅ ছুটি যোগ হয়েছে — ' : '✅ Leave added — ') + days + (isBn?' দিন':' days'), 'success');
-      closeModal();
-      loadLeave();
+      if (isAdmin) {
+        // নতুন ছুটি যোগ — Admin হলে সরাসরি সেভ
+        await db.collection('members').doc(docId).collection('leaves').add({
+          leave_type: leaveType,
+          from_date: from,
+          to_date: to,
+          total_days: days,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          createdBy: currentUser.uid,
+        });
+        showToast((isBn ? '✅ ছুটি যোগ হয়েছে — ' : '✅ Leave added — ') + days + (isBn ? ' দিন' : ' days'), 'success');
+        closeModal();
+        loadLeave();
+      } else {
+        // Normal/SubAdmin — আগে pending, Admin approve করলে ডেটা যুক্ত হবে
+        const leaveId = 'lv_' + Date.now() + '_' + Math.random().toString(16).slice(2, 8);
+        await db.collection('editRequests').add({
+          memberId: docId,
+          memberNo: currentMemberData.no || currentMemberData.armyNo,
+          memberName: currentMemberData.bn || currentMemberData.en || currentMemberData.armyNo || '',
+          memberCompany: currentMemberData.co_bn || '',
+          field: 'leave_' + leaveId,
+          fieldLabel: 'ছুটি যোগ: ' + leaveType,
+          oldValue: JSON.stringify({ leave_type: '', from_date: '', to_date: '', total_days: 0 }),
+          newValue: JSON.stringify({ leave_type: leaveType, from_date: from, to_date: to, total_days: days }),
+          requestType: 'editLeave',
+          requestedBy: currentUser.uid,
+          status: 'pending',
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+        closeModal();
+        showToast(isBn ? '⏳ ছুটি যোগ করার অনুরোধ জমা হয়েছে — Admin অনুমোদনের অপেক্ষায়' : '⏳ Leave add request submitted — waiting for admin approval', 'success');
+        if (document.getElementById('page-pending')?.classList.contains('active')) loadPendingPage();
+      }
     } else {
       // ছুটি সংশোধন — Admin হলে সরাসরি, Member হলে পেন্ডিং রিকোয়েস্ট
       const leaveRef = db.collection('members').doc(docId).collection('leaves').doc(currentEditField.leaveId);
@@ -4397,7 +4428,8 @@ if (currentEditField.key === '_addLeave' || currentEditField.key === '_editLeave
   const isFirstTime = !oldVal || oldVal.trim() === '' || oldVal === '—';
 
   // ══ প্রথমবার (ফিল্ড খালি) → সরাসরি save ══
-  if (isFirstTime) {
+  // Normal/SubAdmin ক্ষেত্রে প্রথমবারেও সরাসরি সেভ হবে না; সবসময় pending request যাবে
+  if (isFirstTime && (userRole === 'admin' || userRole === 'superadmin')) {
     try {
       const updateData = {
         [currentEditField.key]: newVal,
@@ -5256,7 +5288,13 @@ async function loadLeave() {
   if (!box) return;
   box.innerHTML = '<div style="color:var(--text2);text-align:center;padding:20px;font-size:0.85rem">লোড হচ্ছে... / Loading...</div>';
 
-  const docId = currentMemberData.id || String(currentMemberData.no || '').replace(/[^A-Z0-9]/gi, '');
+  // Admin/SubAdmin ইউজারের ক্ষেত্রে `currentMemberData.id` হচ্ছে তাদের uid,
+  // কিন্তু সদস্যের leave/training ডেটা থাকে `members/{memberNo}` ডকুমেন্টে।
+  // তাই `no/armyNo` কে প্রাধান্য দিয়ে docId বের করছি।
+  let docId = String(currentMemberData.no || currentMemberData.armyNo || currentMemberData.id || '')
+    .replace(/[^A-Z0-9]/gi, '');
+  // সদস্য docId অনেক ক্ষেত্রে ৬ ডিজিটে padded (যেমন 014525) রাখা থাকে।
+  if (/^\d+$/.test(docId) && docId.length <= 6) docId = docId.padStart(6, '0');
   if (!docId) {
     box.innerHTML = '<div style="color:var(--danger);text-align:center;padding:20px">সদস্য ID পাওয়া যায়নি / Member ID not found</div>';
     return;
@@ -5277,7 +5315,12 @@ async function loadLeave() {
       box.innerHTML = `<div style="color:var(--text2);text-align:center;padding:30px;font-size:0.85rem">
         📋 ${isBn ? 'কোনো ছুটির রেকর্ড নেই' : 'No leave records found'}
       </div>`;
-      if (summaryCard) summaryCard.style.display = 'none';
+      // এই কার্ডের ভেতরেই ট্রেনিং সেকশন আছে।
+      // তাই leave empty হলেও ট্রেনিং যেন hidden না হয়।
+      if (summaryCard) {
+        summaryCard.style.display = 'block';
+        if (summaryBox) summaryBox.innerHTML = '';
+      }
       return;
     }
 
@@ -5345,6 +5388,9 @@ async function loadLeave() {
   } catch(e) {
     console.error("Leave load error:", e);
     const isPermErr = e.code === "permission-denied" || (e.message||"").toLowerCase().includes("permission");
+    // ট্রেনিং সেকশন একই কার্ডের ভিতরে থাকে—leave লোড ব্যর্থ হলেও কার্ডটা দেখাতে হবে।
+    if (summaryCard) summaryCard.style.display = 'block';
+    if (summaryBox) summaryBox.innerHTML = '';
     box.innerHTML = isPermErr
       ? `<div style="color:var(--warn);text-align:center;padding:24px;font-size:0.82rem;line-height:1.8">⚠️ ছুটির তথ্য দেখার অনুমতি নেই।<br><span style="font-size:0.75rem;color:var(--text2)">Firebase Rules আপডেট করতে হবে।</span><br><br><button onclick="loadLeave()" style="background:linear-gradient(135deg,var(--gold),#9a7a20);border:none;border-radius:8px;padding:8px 18px;color:#0a0c10;font-family:'Rajdhani',sans-serif;font-weight:700;cursor:pointer;font-size:0.8rem">🔄 আবার চেষ্টা</button></div>`
       : `<div style="color:var(--danger);text-align:center;padding:20px;font-size:0.82rem">লোড ব্যর্থ: ${e.message}</div>`;
@@ -5464,7 +5510,9 @@ async function loadTraining(type) {
   const box = document.getElementById(type + 'List');
   if (!box) return;
   box.innerHTML = '<div style="color:var(--text2);text-align:center;padding:16px;font-size:0.82rem">' + t('লোড হচ্ছে...') + '</div>';
-  const docId = currentMemberData.id || String(currentMemberData.no || '').replace(/[^A-Z0-9]/gi, '');
+  let docId = String(currentMemberData.no || currentMemberData.armyNo || currentMemberData.id || '')
+    .replace(/[^A-Z0-9]/gi, '');
+  if (/^\d+$/.test(docId) && docId.length <= 6) docId = docId.padStart(6, '0');
   if (!docId) { box.innerHTML = '<div style="color:var(--danger);text-align:center;padding:16px">' + t('সদস্য ID পাওয়া যায়নি') + '</div>'; return; }
   try {
     let snap;
@@ -5684,7 +5732,9 @@ function toggleIpftFails(val) {
 async function deleteTraining(type, id) {
   const isBn = appLang !== 'en';
   if (!await confirmAsync(t('রেকর্ড মুছে দেবেন?'), {danger:true,icon:'🗑️',title:t('মুছে দিন')})) return;
-  const docId = currentMemberData.id || String(currentMemberData.no || '').replace(/[^A-Z0-9]/gi, '');
+  let docId = String(currentMemberData.no || currentMemberData.armyNo || currentMemberData.id || '')
+    .replace(/[^A-Z0-9]/gi, '');
+  if (/^\d+$/.test(docId) && docId.length <= 6) docId = docId.padStart(6, '0');
   try {
     await db.collection('members').doc(docId).collection('training').doc(id).delete();
     showToast('✅ ' + t('রেকর্ড মুছে দেওয়া হয়েছে'), 'success');
@@ -5695,7 +5745,9 @@ async function deleteTraining(type, id) {
 // Handle save for all training types
 function handleSaveTraining(type) {
   const isBn = appLang !== 'en';
-  const docId = currentMemberData.id || String(currentMemberData.no || '').replace(/[^A-Z0-9]/gi, '');
+  let docId = String(currentMemberData.no || currentMemberData.armyNo || currentMemberData.id || '')
+    .replace(/[^A-Z0-9]/gi, '');
+  if (/^\d+$/.test(docId) && docId.length <= 6) docId = docId.padStart(6, '0');
   let data = { type, updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
 
   if (type === 'ipft') {
@@ -8227,6 +8279,11 @@ async function approveGroupBulk(ids) {
 
 async function approveEdit(docId, silent = false) {
   try {
+    const canApprove = userRole === 'admin' || userRole === 'superadmin';
+    if (!canApprove) {
+      // Sub Admin / Member approve করতে পারবে না
+      throw new Error('Permission denied: only Admin/Super Admin can approve.');
+    }
     const doc = await db.collection('editRequests').doc(docId).get();
     const r = doc.data();
     const batch = db.batch();
@@ -8282,14 +8339,15 @@ async function approveEdit(docId, silent = false) {
         const newLeaveData = JSON.parse(r.newValue);
   
         const leaveRef = db.collection('members').doc(r.memberId).collection('leaves').doc(leaveId);
-        await leaveRef.update({
+        // leave add/edit দুটোর ক্ষেত্রেই merge:true দিয়ে কাজ করো
+        await leaveRef.set({
           leave_type: newLeaveData.leave_type,
           from_date: newLeaveData.from_date,
           to_date: newLeaveData.to_date,
           total_days: newLeaveData.total_days,
           approvedAt: firebase.firestore.FieldValue.serverTimestamp(),
           approvedBy: currentUser.uid,
-        });
+        }, { merge: true });
   
         batch.update(db.collection('editRequests').doc(docId), {
           status: 'approved',
@@ -8380,6 +8438,10 @@ async function approveEdit(docId, silent = false) {
 }
 
 async function rejectEdit(docId, silent = false) {
+  const canApprove = userRole === 'admin' || userRole === 'superadmin';
+  if (!canApprove) {
+    throw new Error('Permission denied: only Admin/Super Admin can reject.');
+  }
   if (!silent && !await confirmAsync('এই অনুরোধটি প্রত্যাখ্যান করবেন?', {danger:true,icon:'❌',title:'প্রত্যাখ্যান',okLabel:'বাতিল করুন'})) return;
   try {
     const doc = await db.collection('editRequests').doc(docId).get();
@@ -8443,8 +8505,9 @@ async function uploadPhoto(input) {
         updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
       }, { merge: true });
     } else {
-      const docId = currentMemberData.id ||
-        String(currentMemberData.no || currentMemberData.armyNo || '').replace(/[^A-Z0-9]/gi, '');
+      let docId = String(currentMemberData.no || currentMemberData.armyNo || currentMemberData.id || '')
+        .replace(/[^A-Z0-9]/gi, '');
+      if (/^\d+$/.test(docId) && docId.length <= 6) docId = docId.padStart(6, '0');
       if (!docId) { showToast('সদস্য ID পাওয়া যায়নি', 'error'); hideLoading(); return; }
       const docRef = db.collection('members').doc(docId);
       const snap = await docRef.get();
