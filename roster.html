@@ -979,13 +979,23 @@ function fmtCoursesWithResults(str, results) {
     courses.map((course, i) => {
       const result = results['course_' + i] || '';
       const pos = results['pos_' + i] || '';
+      const rec = results['rec_' + i] || '';
       const resultLabel = grades[result] || '';
       const resultColor = gradeColor[result] || '';
-      return `<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(0,0,0,0.04);border-radius:8px;border:1px solid var(--border2)">
-        <span style="flex:1;font-size:0.85rem">${course}</span>
-        ${resultLabel ? `<span style="font-family:'Rajdhani',sans-serif;font-size:0.7rem;font-weight:700;padding:2px 8px;border-radius:10px;border:1px solid ${resultColor}40;background:${resultColor}18;color:${resultColor}">${resultLabel}</span>` : ''}
-        ${pos ? `<span style="font-family:'Rajdhani',sans-serif;font-size:0.7rem;color:var(--accent);font-weight:700">🏆 ${pos}তম</span>` : ''}
-      </div>`;
+
+      const safeCourse = _escapeHtml(course);
+      const safeRec = _escapeHtml(String(rec).trim());
+
+      return `
+        <div style="padding:8px 10px;background:rgba(0,0,0,0.04);border-radius:8px;border:1px solid var(--border2)">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="flex:1;font-size:0.85rem">${safeCourse}</span>
+            ${resultLabel ? `<span style="font-family:'Rajdhani',sans-serif;font-size:0.7rem;font-weight:700;padding:2px 8px;border-radius:10px;border:1px solid ${resultColor}40;background:${resultColor}18;color:${resultColor}">${resultLabel}</span>` : ''}
+            ${pos ? `<span style="font-family:'Rajdhani',sans-serif;font-size:0.7rem;color:var(--accent);font-weight:700">🏆 ${pos}তম</span>` : ''}
+          </div>
+          ${safeRec ? `<div style="margin-top:6px;padding:4px 8px;background:rgba(255,255,255,0.03);border:1px solid var(--border2);border-radius:8px;font-size:0.72rem;color:var(--text2);font-style:italic;line-height:1.6">💬 ${safeRec}</div>` : ''}
+        </div>
+      `;
     }).join('') + '</div>';
 }
 

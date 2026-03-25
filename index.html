@@ -2794,7 +2794,13 @@ function navTo(page) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   const pg = document.getElementById('page-' + page);
-  if (pg) pg.classList.add('active');
+  if (!pg) {
+    try {
+      showToast((appLang !== 'en' ? 'পেজটি পাওয়া যাচ্ছে না।' : 'Page not found.'), 'error');
+    } catch(_) {}
+    return;
+  }
+  pg.classList.add('active');
   const nav = document.getElementById('nav-' + page);
   if (nav) nav.classList.add('active');
   if (page === 'admin') loadAdminData();
@@ -4012,6 +4018,14 @@ async function saveModal() {
     if (typeof result === 'string') { showToast(result, 'error'); btn.textContent='সংরক্ষণ করুন'; btn.disabled=false; return; }
     const docId = currentMemberData.id || String(currentMemberData.no || '').replace(/[^A-Z0-9]/gi, '');
     const isAdmin = userRole === 'admin' || userRole === 'superadmin';
+    const registerRosterSyncPage = async (pageKey) => {
+      if (!pageKey) return;
+      try {
+        await db.collection('members').doc(docId).set({
+          __syncPages: firebase.firestore.FieldValue.arrayUnion(pageKey),
+        }, { merge: true });
+      } catch(_) {}
+    };
     if (isAdmin) {
       try {
         await db.collection('members').doc(docId).collection('training').add({
@@ -4019,6 +4033,7 @@ async function saveModal() {
           createdAt: firebase.firestore.FieldValue.serverTimestamp(),
           createdBy: currentUser.uid,
         });
+        await registerRosterSyncPage('training');
         closeModal();
         showToast('✅ ' + t('রেকর্ড যোগ হয়েছে'), 'success');
         loadTraining(type);
@@ -4039,6 +4054,7 @@ async function saveModal() {
           trainingType: type,
           createdAt: firebase.firestore.FieldValue.serverTimestamp(),
         });
+        await registerRosterSyncPage('training');
         closeModal();
         showToast('✅ ' + t('অনুমোদনের জন্য জমা হয়েছে'), 'success');
         checkPendingStatus();
@@ -4111,6 +4127,14 @@ if (currentEditField.key === '_addLeave' || currentEditField.key === '_editLeave
     .replace(/[^A-Z0-9]/gi, '');
   if (/^\d+$/.test(docId) && docId.length <= 6) docId = docId.padStart(6, '0');
   const isAdmin = userRole === 'admin' || userRole === 'superadmin';
+  const registerRosterSyncPage = async (pageKey) => {
+    if (!pageKey) return;
+    try {
+      await db.collection('members').doc(docId).set({
+        __syncPages: firebase.firestore.FieldValue.arrayUnion(pageKey),
+      }, { merge: true });
+    } catch(_) {}
+  };
   
   try {
     if (currentEditField.key === '_addLeave') {
@@ -4124,6 +4148,7 @@ if (currentEditField.key === '_addLeave' || currentEditField.key === '_editLeave
           createdAt: firebase.firestore.FieldValue.serverTimestamp(),
           createdBy: currentUser.uid,
         });
+        await registerRosterSyncPage('leaves');
         showToast((isBn ? '✅ ছুটি যোগ হয়েছে — ' : '✅ Leave added — ') + days + (isBn ? ' দিন' : ' days'), 'success');
         closeModal();
         loadLeave();
@@ -4144,6 +4169,7 @@ if (currentEditField.key === '_addLeave' || currentEditField.key === '_editLeave
           status: 'pending',
           createdAt: firebase.firestore.FieldValue.serverTimestamp(),
         });
+        await registerRosterSyncPage('leaves');
         closeModal();
         showToast(isBn ? '⏳ ছুটি যোগ করার অনুরোধ জমা হয়েছে — Admin অনুমোদনের অপেক্ষায়' : '⏳ Leave add request submitted — waiting for admin approval', 'success');
         if (document.getElementById('page-pending')?.classList.contains('active')) loadPendingPage();
@@ -4164,6 +4190,7 @@ if (currentEditField.key === '_addLeave' || currentEditField.key === '_editLeave
           updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
           updatedBy: currentUser.uid,
         });
+        await registerRosterSyncPage('leaves');
         showToast(isBn ? '✅ ছুটি সংশোধন হয়েছে' : '✅ Leave updated', 'success');
         closeModal();
         loadLeave();
@@ -4193,6 +4220,7 @@ if (currentEditField.key === '_addLeave' || currentEditField.key === '_editLeave
           status: 'pending',
           createdAt: firebase.firestore.FieldValue.serverTimestamp(),
         });
+        await registerRosterSyncPage('leaves');
         closeModal();
         showToast(isBn ? '⏳ ছুটি সংশোধনের অনুরোধ জমা হয়েছে — Admin অনুমোদনের অপেক্ষায়' : '⏳ Leave edit request submitted — waiting for admin approval', 'success');
         // পেন্ডিং পেজ রিফ্রেশ
@@ -8348,6 +8376,11 @@ async function approveEdit(docId, silent = false) {
           approvedAt: firebase.firestore.FieldValue.serverTimestamp(),
           approvedBy: currentUser.uid,
         }, { merge: true });
+
+        // roster.html যেন ডাইনামিকভাবে leaves পেইজ দেখাতে পারে
+        batch.set(memberRef, {
+          __syncPages: firebase.firestore.FieldValue.arrayUnion('leaves')
+        }, { merge: true });
   
         batch.update(db.collection('editRequests').doc(docId), {
           status: 'approved',
@@ -8396,6 +8429,18 @@ async function approveEdit(docId, silent = false) {
         if (ex.position && ex.position > 0) updateData['courseResults.pos_'    + idx] = ex.position;
         if (ex.recommendation)              updateData['courseResults.rec_'    + idx] = ex.recommendation;
         // field ইতিমধ্যে cr_bn set করেছে (updateData[r.field] = r.newValue)
+      }
+
+      // roster.html ডাইনামিক পেইজ sync-এর জন্য __syncPages meta আপডেট
+      // (subcollection-based নতুন পেইজ হলে সাধারণত field হিসেবে `${key}_...` থাকবে)
+      if (typeof r.field === 'string' && r.field.includes('_')) {
+        const prefix = r.field.split('_')[0];
+        if (/^[a-zA-Z0-9]+$/.test(prefix)) {
+          const pageKey = prefix === 'leave' ? 'leaves' : prefix;
+          batch.set(memberRef, {
+            __syncPages: firebase.firestore.FieldValue.arrayUnion(pageKey)
+          }, { merge: true });
+        }
       }
 
       batch.update(memberRef, updateData);
