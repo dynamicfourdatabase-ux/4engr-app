@@ -999,6 +999,40 @@ function fmtCoursesWithResults(str, results) {
     }).join('') + '</div>';
 }
 
+function _computeCourseRecommendationItems(m) {
+  if (!m || !m.courseResults || typeof m.courseResults !== 'object') return [];
+  const crRaw = lang === 'bn' ? (m.cr_bn || '') : (m.cr_en || '');
+  const crArr = crRaw.split(',').map(s => s.trim()).filter(Boolean);
+
+  const keys = Object.keys(m.courseResults)
+    .filter(k => k.startsWith('rec_'))
+    .sort((a, b) => parseInt(a.replace('rec_', ''), 10) - parseInt(b.replace('rec_', ''), 10));
+
+  const items = [];
+  keys.forEach(k => {
+    const idx = parseInt(k.replace('rec_', ''), 10);
+    const courseName = crArr[idx] || (lang === 'bn' ? ('কোর্স ' + (idx + 1)) : ('Course ' + (idx + 1)));
+    const recText = m.courseResults[k];
+    if (recText) items.push({ courseName, recText });
+  });
+  return items;
+}
+
+function computeProfileRecommendationHtml(m) {
+  const items = _computeCourseRecommendationItems(m);
+  if (!items.length) return '';
+  return items.map((it, i) => {
+    const num = i + 1;
+    return `${num}. ${_escapeHtml(it.courseName)}: ${_escapeHtml(String(it.recText))}`;
+  }).join('<br>');
+}
+
+function computeProfileRecommendationText(m) {
+  const items = _computeCourseRecommendationItems(m);
+  if (!items.length) return '';
+  return items.map((it, i) => `${i + 1}. ${it.courseName}: ${String(it.recText)}`).join('\n');
+}
+
 /* ─── POPULATE FILTERS ─── */
 function buildFilters(){
   // প্রতিবার build করার আগে সব select এর পুরনো অপশন মুছে দাও (প্রথম default option রাখো)
@@ -1330,6 +1364,7 @@ function showModal(target){
   const edu=lang==='bn'?m.ed_bn:m.ed_en;
   const nm1=lang==='bn'?(m.bn||m.en||'—'):(m.en||m.bn||'—');
   const nm2=lang==='bn'?(m.en||''):(m.bn||'');
+  const profileRecHtml = computeProfileRecommendationHtml(m);
 
   // Promo rows
   const pKeys=['p1','p2','p3','p4','p5'];
@@ -1410,7 +1445,7 @@ function showModal(target){
           <div class="di"><div class="lbl">${L('সম্ভাব্য পেনশন','Expected Pension')}</div><div class="val" style="color:var(--warn)">${fmtDateAge(m.pd,true)}</div></div>
           <div class="di"><div class="lbl">${L('AI ১/২০১৩ বর্ধিত','AI 1/2013 Extended')}</div><div class="val">${ai||'—'}</div></div>
           ${m.pn&&m.pn.length>2&&!['nil','no','nai','n/a','0'].includes(m.pn.toLowerCase())?`<div class="di full"><div class="lbl">${L('সাজা','Punishment')}</div><div class="val"><span class="tag red">${m.pn}</span></div></div>`:''}
-          ${m.rec?`<div class="di full"><div class="lbl">${L('সুপারিশ','Recommendation')}</div><div class="val" style="color:var(--accent3)">${m.rec}</div></div>`:''}
+          ${profileRecHtml?`<div class="di full"><div class="lbl">${L('সুপারিশ','Recommendation')}</div><div class="val" style="color:var(--accent3)">${profileRecHtml}</div></div>`:''}
         </div>
       </div>
       ${promoHtml?`<div class="sec"><div class="sec-title">${L('পদোন্নতির ইতিহাস','Promotion History')}</div><div class="promo-line">${promoHtml}</div></div>`:''}
@@ -2754,6 +2789,7 @@ function openRosterEditModal(m) {
     _showAdminToast('⛔ আপনার কোম্পানির সদস্য ছাড়া এডিট করার অনুমতি নেই', 'error');
     return;
   }
+  const computedRecText = computeProfileRecommendationText(m);
   const RANKS    = ['লেঃ কর্নেল','মেজর','ক্যাপ্টেন','লেফটেন্যান্ট','মাস্টাঃ ওয়াঃ অফিঃ','সিনিঃ ওয়াঃ অফিঃ','ওয়ারেন্ট অফিসার','সার্জেন্ট','কর্পোরাল','ল্যান্স কর্পোরাল','সৈনিক','এনসি (ই)'];
   const TRADES   = ['অফিসার','আরএমটি','আরসিটি','ইএন্ডবিআর','ইলেক্টিশিয়ান','এ/ই','এইসি','এনসি (ই)','এমএ','এসএমটি','ওইপি','ওবিএম','ওসিইউ','ওয়েল্ডার','করনিক','কার্পেন্টার','কুক (ইউ)','টিএসএ','টিবিভি','টিসিভি','টেইলার','ডিএমটি','ডিএসভি','ড্রাফটসম্যান','পিডি','পেইন্টার','বিটিএস','মেশন','মেশিনিষ্ট','সার্ভেয়ার'];
   const COMPANIES= ['৪৮ ফিল্ড কোম্পানী','৪৯ ফিল্ড কোম্পানী','৫০ ফিল্ড কোম্পানী','প্লান্ট কোম্পানী','ব্রীজ কোম্পানী','সদর কোম্পানী','ইএমই'];
@@ -2831,7 +2867,7 @@ function openRosterEditModal(m) {
 
         <div>${lbl('লাইসেন্স')}${sel('li',m.li||m.license,VEHICLES)}</div>
         <div>${lbl('সাজা')}${inp('pn',m.pn)}</div>
-        <div>${lbl('সুপারিশ')}${inp('rec',m.rec)}</div>
+        ${computedRecText ? `<div>${lbl('সুপারিশ')}${inp('rec',computedRecText)}</div>` : ''}
       </div>
       <div>${lbl('পূর্বের ইউনিট')}${ta('pu',m.pu||m.prev_units,'প্রতিটি ইউনিট নতুন লাইনে')}</div>
 
