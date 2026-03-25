@@ -207,7 +207,37 @@ select:focus { border-color: var(--accent); }
     gap: 6px;
     flex-wrap: wrap;
   }
+
+  /* মোবাইলে বাটন পজিশন ঠিক রাখার জন্য */
+@media (max-width: 640px) {
+  .modal {
+    position: relative;
+  }
   
+  .modal .modal-close {
+    top: 12px;
+    right: 12px;
+    width: 32px;
+    height: 32px;
+    z-index: 20;
+  }
+  
+  .modal button[style*="position:absolute"] {
+    top: 12px !important;
+    padding: 5px 10px !important;
+    font-size: 0.65rem !important;
+  }
+  
+  /* Superadmin মোডে তিনটি বাটনের পজিশন */
+  .modal button[onclick*="openRosterEditModal"] {
+    right: 100px !important;
+  }
+  
+  .modal button[onclick*="openDeleteMemberModal"] {
+    right: 48px !important;
+  }
+}
+
   /* মোবাইল ডিভাইসের জন্য ড্রপডাউন মেনু অপটিমাইজেশন */
 @media (max-width: 768px) {
   #userDropdownMenu {
@@ -1379,25 +1409,28 @@ function showModal(idx){
   // Photo modal click handler
   setTimeout(() => _injectModalPhotoClick(m), 50);
 
-  // Admin/Superadmin হলে Edit বাটন যোগ করো (subadmin পারবে না)
-  if (webCurrentUser && (webUserRole === 'admin' || webUserRole === 'superadmin')) {
-    const editBtn = document.createElement('button');
-    editBtn.textContent = '✏️ তথ্য সম্পাদনা';
-    const rightPos = webUserRole === 'superadmin' ? '54px' : '16px';
-    editBtn.style.cssText = `position:absolute;top:16px;right:${rightPos};background:rgba(200,169,74,0.15);border:1px solid rgba(200,169,74,0.4);color:#c8a94a;border-radius:8px;padding:6px 14px;font-family:"Rajdhani",sans-serif;font-size:0.72rem;font-weight:700;letter-spacing:1px;cursor:pointer;z-index:10`;
-    editBtn.onclick = () => openRosterEditModal(m);
-    document.querySelector('.modal')?.appendChild(editBtn);
-  }
+  // Admin/Superadmin হলে Edit বাটন যোগ করো (subadmin নয়)
+if (webCurrentUser && (webUserRole === 'admin' || webUserRole === 'superadmin')) {
+  const editBtn = document.createElement('button');
+  editBtn.textContent = '✏️ তথ্য সম্পাদনা';
+  // Superadmin হলে ডিলিট বাটনের জন্য জায়গা রাখতে right বাড়ানো হয়েছে
+  const rightPos = webUserRole === 'superadmin' ? '135px' : '16px';
+  editBtn.style.cssText = `position:absolute;top:16px;right:${rightPos};background:rgba(200,169,74,0.15);border:1px solid rgba(200,169,74,0.4);color:#c8a94a;border-radius:8px;padding:6px 14px;font-family:"Rajdhani",sans-serif;font-size:0.72rem;font-weight:700;letter-spacing:1px;cursor:pointer;z-index:10`;
+  editBtn.onclick = () => openRosterEditModal(m);
+  document.querySelector('.modal')?.appendChild(editBtn);
+}
 
   // SuperAdmin হলে Delete বাটন যোগ করো
   if (webCurrentUser && webUserRole === 'superadmin') {
     const delBtn = document.createElement('button');
     delBtn.innerHTML = '🗑️';
     delBtn.title = 'সদস্য ডিলিট করুন';
-    delBtn.style.cssText = 'position:absolute;top:16px;right:16px;background:rgba(192,64,64,0.12);border:1px solid rgba(192,64,64,0.35);color:#c04040;border-radius:8px;padding:6px 10px;font-size:14px;cursor:pointer;z-index:10;transition:all 0.2s';
-    delBtn.onmouseenter = () => delBtn.style.background = 'rgba(192,64,64,0.25)';
-    delBtn.onmouseleave = () => delBtn.style.background = 'rgba(192,64,64,0.12)';
-    delBtn.onclick = () => openDeleteMemberModal(m);
+    // right:80px - ক্লোজ বাটন (16px) এবং Edit বাটন (135px) এর মাঝখানে
+    delBtn.style.cssText = 'position:absolute;top:16px;right:80px;background:rgba(192,64,64,0.12);border:1px solid rgba(192,64,64,0.35);color:#c04040;border-radius:8px;padding:6px 10px;font-size:14px;cursor:pointer;z-index:10;transition:all 0.2s';
+    delBtn.onclick = (e) => {
+      e.stopPropagation();
+      openDeleteMemberModal(m);
+    };
     document.querySelector('.modal')?.appendChild(delBtn);
   }
 }
