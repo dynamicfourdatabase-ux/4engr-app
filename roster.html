@@ -37,6 +37,7 @@ const auth = firebase.auth();
   --warn: #b87820;
   /* Light Mode (ডিফল্ট) */
   --bg: #f5f3ee;
+  --bg2: #f0ede6;
   --surface: #ffffff;
   --card: #ffffff;
   --card-hover: #fafaf7;
@@ -49,9 +50,11 @@ const auth = firebase.auth();
   --shadow-hover: 0 6px 24px rgba(0,0,0,0.13);
   --header-bg: #1a1410;
   --header-border: #c8a94a;
+  --dark3: #ffffff;
 }
 [data-theme="dark"] {
   --bg: #0d1117;
+  --bg2: #161b22;
   --surface: #161b22;
   --card: #161b22;
   --card-hover: #1c2333;
@@ -64,6 +67,7 @@ const auth = firebase.auth();
   --shadow-hover: 0 8px 32px rgba(200,169,74,0.15);
   --header-bg: #0a0c10;
   --header-border: #c8a94a;
+  --dark3: #1c2333;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -208,43 +212,6 @@ select:focus { border-color: var(--accent); }
     flex-wrap: wrap;
   }
 
-  /* মোবাইলে বাটন পজিশন ঠিক রাখার জন্য */
-@media (max-width: 640px) {
-  .modal {
-    position: relative;
-  }
-  
-  .modal .modal-close {
-    top: 44px !important;
-    left: 12px !important;
-    right: auto !important;
-    width: 32px;
-    height: 32px;
-    z-index: 20;
-  }
-  
-  .modal button[style*="position:absolute"] {
-    top: 12px !important;
-    padding: 5px 10px !important;
-    font-size: 0.65rem !important;
-  }
-  
-  /* Superadmin মোডে তিনটি বাটনের পজিশন */
-  .modal button[onclick*="openRosterEditModal"][data-edit-role="admin"] {
-    left: 116px !important;
-    right: auto !important;
-    top: 44px !important;
-  }
-  .modal button[onclick*="openRosterEditModal"][data-edit-role="superadmin"] {
-    left: 116px !important;
-    right: auto !important;
-    top: 44px !important;
-  }
-  .modal button[onclick*="openDeleteMemberModal"][data-delete-role="superadmin"] {
-    left: 64px !important;
-    right: auto !important;
-    top: 44px !important;
-  }
 
 @media (max-width: 640px) {
   /* এডিট মোডালের দুই কলামের গ্রিডকে এক কলামে রূপান্তর */
@@ -347,14 +314,13 @@ select:focus { border-color: var(--accent); }
     letter-spacing: 1px;
   }
   
-  /* বাটন গ্রুপ - এক লাইনে */
+  /* বাটন গ্রুপ */
   .header-inner > div:last-child {
     display: flex;
     align-items: center;
     gap: 6px;
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+    flex-wrap: wrap;
+    justify-content: center;
   }
   
   /* সব বাটন ছোট আকারে */
@@ -756,13 +722,12 @@ select:focus { border-color: var(--accent); }
     width: 100%;
   }
 
-  /* হেডার বাটন গ্রুপকে স্ক্রোলযোগ্য করা */
+  /* হেডার বাটন গ্রুপ */
   .header-inner {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    justify-content: flex-start;
-    gap: 8px;
+    flex-wrap: wrap;
+    overflow: visible;
+    justify-content: center;
+    gap: 6px;
     padding: 6px 12px;
   }
   .header-inner > * {
@@ -770,14 +735,13 @@ select:focus { border-color: var(--accent); }
   }
 }
 
-/* মোবাইলে হেডার বাটন গুলো ছোট ও স্ট্যাক না করে স্ক্রল করে দেখানো */
+/* মোবাইলে হেডার */
 @media (max-width: 640px) {
   .header-inner {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    justify-content: flex-start;
-    gap: 8px;
+    flex-wrap: wrap;
+    overflow: visible;
+    justify-content: center;
+    gap: 6px;
     padding: 6px 12px;
   }
   .header-inner > * {
@@ -1679,32 +1643,46 @@ function showModal(target){
   // Photo modal click handler
   setTimeout(() => _injectModalPhotoClick(m), 50);
 
-// Admin/Superadmin হলে Edit বাটন যোগ করো (subadmin নয়) — কিন্তু Admin শুধু নিজের কোম্পানিতে
-if (canCurrentUserEditMember(m)) {
-  const editBtn = document.createElement('button');
-  editBtn.textContent = '✏️ তথ্য সম্পাদনা';
-  editBtn.dataset.editRole = webUserRole || 'admin';
-  // Superadmin হলে ডিলিট বাটনের জন্য জায়গা রাখতে right বাড়ানো হয়েছে
-  const rightPos = webUserRole === 'superadmin' ? '135px' : '16px';
-  editBtn.style.cssText = `position:absolute;top:16px;right:${rightPos};background:rgba(200,169,74,0.15);border:1px solid rgba(200,169,74,0.4);color:#c8a94a;border-radius:8px;padding:6px 14px;font-family:"Rajdhani",sans-serif;font-size:0.72rem;font-weight:700;letter-spacing:1px;cursor:pointer;z-index:10`;
-  editBtn.onclick = () => openRosterEditModal(m);
-  document.querySelector('.modal')?.appendChild(editBtn);
-}
+// Admin/Superadmin হলে action bar যোগ করো — header এর নিচে, tabs এর আগে
+const canEdit = canCurrentUserEditMember(m);
+const canDelete = webCurrentUser && webUserRole === 'superadmin';
+// Action bar always shown for logged-in admin users
+if (webCurrentUser) {
+  const actionBar = document.createElement('div');
+  actionBar.id = 'memberActionBar';
+  actionBar.style.cssText = 'display:flex;gap:8px;padding:10px 16px;background:rgba(0,0,0,0.12);border-bottom:1px solid rgba(255,255,255,0.06);flex-wrap:wrap;align-items:center';
 
-  // SuperAdmin হলে Delete বাটন যোগ করো
-  if (webCurrentUser && webUserRole === 'superadmin') {
+  if (canEdit) {
+    const editBtn = document.createElement('button');
+    editBtn.textContent = '✏️ তথ্য সম্পাদনা';
+    editBtn.dataset.editRole = webUserRole || 'admin';
+    editBtn.style.cssText = 'flex:1;min-width:130px;background:rgba(200,169,74,0.15);border:1px solid rgba(200,169,74,0.4);color:#c8a94a;border-radius:8px;padding:8px 14px;font-family:"Rajdhani",sans-serif;font-size:0.75rem;font-weight:700;letter-spacing:1px;cursor:pointer;transition:all 0.2s';
+    editBtn.onclick = () => openRosterEditModal(m);
+    actionBar.appendChild(editBtn);
+  }
+
+  // Report button — always visible for any logged-in admin
+  const rptBtn = document.createElement('button');
+  rptBtn.innerHTML = '📄 রিপোর্ট';
+  rptBtn.title = 'PDF রিপোর্ট ডাউনলোড করুন';
+  rptBtn.style.cssText = 'background:rgba(56,139,253,0.12);border:1px solid rgba(56,139,253,0.35);color:#58a6ff;border-radius:8px;padding:8px 12px;font-family:"Rajdhani",sans-serif;font-size:0.75rem;font-weight:700;letter-spacing:1px;cursor:pointer;transition:all 0.2s;white-space:nowrap';
+  rptBtn.onclick = () => generateMemberReport(m);
+  actionBar.appendChild(rptBtn);
+
+  if (canDelete) {
     const delBtn = document.createElement('button');
-    delBtn.innerHTML = '🗑️';
+    delBtn.innerHTML = '🗑️ ডিলিট';
     delBtn.title = 'সদস্য ডিলিট করুন';
     delBtn.dataset.deleteRole = 'superadmin';
-    // right:80px - ক্লোজ বাটন (16px) এবং Edit বাটন (135px) এর মাঝখানে
-    delBtn.style.cssText = 'position:absolute;top:16px;right:80px;background:rgba(192,64,64,0.12);border:1px solid rgba(192,64,64,0.35);color:#c04040;border-radius:8px;padding:6px 10px;font-size:14px;cursor:pointer;z-index:10;transition:all 0.2s';
-    delBtn.onclick = (e) => {
-      e.stopPropagation();
-      openDeleteMemberModal(m);
-    };
-    document.querySelector('.modal')?.appendChild(delBtn);
+    delBtn.style.cssText = 'background:rgba(192,64,64,0.12);border:1px solid rgba(192,64,64,0.35);color:#c04040;border-radius:8px;padding:8px 12px;font-family:"Rajdhani",sans-serif;font-size:0.75rem;font-weight:700;letter-spacing:1px;cursor:pointer;transition:all 0.2s;white-space:nowrap';
+    delBtn.onclick = (e) => { e.stopPropagation(); openDeleteMemberModal(m); };
+    actionBar.appendChild(delBtn);
   }
+
+  // modal-header এর পরে, tabs এর আগে insert করো
+  const modalTabs = document.querySelector('.modal-tabs');
+  if (modalTabs) modalTabs.before(actionBar);
+}
 }
 
 function switchTab(n){
@@ -3750,13 +3728,24 @@ async function deleteRosterEditLeave() {
     const leaveId = document.getElementById('editLeaveId')?.value || '';
     if (!leaveId) { _setInlineEditResult(resElId, lang === 'bn' ? 'ডিলিট করার জন্য একটি ছুটি সিলেক্ট করুন' : 'Select a leave to delete', false); return; }
 
-    const ok = confirm(lang === 'bn' ? 'এই ছুটিটি মুছে ফেলবেন?' : 'Delete this leave?');
-    if (!ok) return;
-
-    const colRef = db.collection('members').doc(docId).collection('leaves');
-    await colRef.doc(leaveId).delete();
-    _setInlineEditResult(resElId, lang === 'bn' ? '🗑️ ছুটি মুছে ফেলা হয়েছে' : '🗑️ Leave deleted', true);
-    await initRosterEditLeaveTrainingUI(docId);
+    _rosterConfirmSimple(
+      lang === 'bn' ? 'এই ছুটিটি মুছে ফেলবেন?' : 'Delete this leave?',
+      async () => {
+        try {
+          const colRef = db.collection('members').doc(docId).collection('leaves');
+          await colRef.doc(leaveId).delete();
+          _setInlineEditResult(resElId, lang === 'bn' ? '🗑️ ছুটি মুছে ফেলা হয়েছে' : '🗑️ Leave deleted', true);
+          await initRosterEditLeaveTrainingUI(docId);
+        } catch(e) {
+          _setInlineEditResult(
+            resElId,
+            (lang === 'bn' ? '❌ ছুটি ডিলিট ব্যর্থ: ' : '❌ Failed to delete leave: ') + (e.message || e.code),
+            false
+          );
+        }
+      },
+      { danger: true, title: lang === 'bn' ? '🗑️ ছুটি মুছুন' : '🗑️ Delete Leave' }
+    );
   } catch(e) {
     _setInlineEditResult(
       resElId,
@@ -3896,14 +3885,25 @@ async function deleteRosterEditTraining() {
     const trainingId = document.getElementById('editTrainingId')?.value || '';
     if (!trainingId) { _setInlineEditResult(resElId, lang === 'bn' ? 'ডিলিট করার জন্য একটি ট্রেনিং সিলেক্ট করুন' : 'Select a training to delete', false); return; }
 
-    const ok = confirm(lang === 'bn' ? 'এই ট্রেনিং রেকর্ডটি মুছে ফেলবেন?' : 'Delete this training record?');
-    if (!ok) return;
-
-    const trainingCol = db.collection('members').doc(docId).collection('training');
-    await trainingCol.doc(trainingId).delete();
-    _setInlineEditResult(resElId, lang === 'bn' ? '🗑️ ট্রেনিং মুছে ফেলা হয়েছে' : '🗑️ Training deleted', true);
-    await initRosterEditLeaveTrainingUI(docId);
-    toggleEditTrainingFields();
+    _rosterConfirmSimple(
+      lang === 'bn' ? 'এই ট্রেনিং রেকর্ডটি মুছে ফেলবেন?' : 'Delete this training record?',
+      async () => {
+        try {
+          const trainingCol = db.collection('members').doc(docId).collection('training');
+          await trainingCol.doc(trainingId).delete();
+          _setInlineEditResult(resElId, lang === 'bn' ? '🗑️ ট্রেনিং মুছে ফেলা হয়েছে' : '🗑️ Training deleted', true);
+          await initRosterEditLeaveTrainingUI(docId);
+          toggleEditTrainingFields();
+        } catch(e) {
+          _setInlineEditResult(
+            resElId,
+            (lang === 'bn' ? '❌ ট্রেনিং ডিলিট ব্যর্থ: ' : '❌ Failed to delete training: ') + (e.message || e.code),
+            false
+          );
+        }
+      },
+      { danger: true, title: lang === 'bn' ? '🗑️ ট্রেনিং মুছুন' : '🗑️ Delete Training' }
+    );
   } catch(e) {
     _setInlineEditResult(
       resElId,
@@ -5052,6 +5052,269 @@ async function confirmFieldClear(docId, name) {
     if (btn) { btn.textContent='🗑️ নির্বাচিত ফিল্ড মুছুন'; btn.disabled=false; btn.style.opacity='1'; }
     alert('❌ মুছা ব্যর্থ: '+(e.code||e.message));
   }
+}
+
+async function generateMemberReport(m) {
+  _showAdminToast('রিপোর্ট তৈরি হচ্ছে…', 'success');
+  const lang = window.lang || 'bn';
+  const L = (bn, en) => lang === 'bn' ? bn : en;
+  const armyNo = m.no || m.armyNo || '';
+  let docId = String(armyNo).replace(/[^A-Z0-9]/gi, '');
+  if (/^\d+$/.test(docId) && docId.length <= 6) docId = docId.padStart(6, '0');
+
+  // Fetch training subcollections
+  const trainingTypes = ['ipft','ret','speedmarch','grenade','fieldfire','killhouse','cbta'];
+  const trainingLabels = { ipft:'IPFT', ret:'RET', speedmarch: L('স্পিড মার্চ','Speed March'), grenade: L('গ্রেনেড ফায়ার','Grenade Fire'), fieldfire: L('ফিল্ড ফায়ার','Field Fire'), killhouse: L('কিল হাউস','Kill House'), cbta:'CBTA' };
+  const resultMap = { Passed: L('উত্তীর্ণ','Passed'), Failed: L('অকৃতকার্য','Failed') };
+  const qualityMap = { Good: L('ভালো','Good'), 'Very Good': L('অতি উত্তম','Very Good') };
+
+  const trainingData = {};
+  const leavesData = [];
+
+  try {
+    const memberRef = db.collection('members').doc(docId);
+    const [trSnap, leavesSnap] = await Promise.all([
+      memberRef.collection('training').get().catch(() => null),
+      memberRef.collection('leaves').orderBy('fromDate','desc').get().catch(() => null)
+    ]);
+    if (trSnap && !trSnap.empty) {
+      trSnap.docs.forEach(d => {
+        const data = { id: d.id, ...d.data() };
+        const type = (data.type || data.trainingType || '').toLowerCase();
+        if (type) {
+          if (!trainingData[type]) trainingData[type] = [];
+          trainingData[type].push(data);
+        }
+      });
+    }
+    if (leavesSnap && !leavesSnap.empty) {
+      leavesSnap.docs.forEach(d => leavesData.push({ id: d.id, ...d.data() }));
+    }
+  } catch(e) { /* silently continue */ }
+
+  // Build training rows per type
+  const fmtTraining = (type, entries) => {
+    if (!entries || entries.length === 0) return '';
+    const rows = entries.map(d => {
+      let detail = '';
+      if (type === 'ipft') detail = `${d.fromDate||'—'} → ${d.toDate||'—'} | ${L('ফলাফল','Result')}: ${resultMap[d.result]||d.result||'—'}`;
+      else if (type === 'ret') detail = `${L('তারিখ','Date')}: ${d.date||'—'} | ${L('নম্বর','Marks')}: ${d.marks||'—'} | ${L('ফলাফল','Result')}: ${resultMap[d.result]||d.result||'—'}`;
+      else if (type === 'speedmarch') detail = `${L('তারিখ','Date')}: ${d.date||'—'}`;
+      else if (type === 'grenade') detail = `${L('তারিখ','Date')}: ${d.date||'—'} | ${L('অংশগ্রহণ','Participations')}: ${d.participations||'—'}`;
+      else if (type === 'fieldfire') detail = `${d.fromDate||'—'} → ${d.toDate||'—'} | ${L('অস্ত্র','Weapons')}: ${Array.isArray(d.weapons)?d.weapons.join(', '):(d.weapons||'—')}`;
+      else if (type === 'killhouse') detail = `${L('তারিখ','Date')}: ${d.date||'—'}`;
+      else if (type === 'cbta') detail = `${L('তারিখ','Date')}: ${d.date||'—'} | ${L('গুণমান','Quality')}: ${qualityMap[d.quality]||d.quality||'—'}`;
+      return `<tr><td style="padding:5px 12px;border-bottom:1px solid #eee;font-size:12px;color:#555;width:30%">${trainingLabels[type]}</td><td style="padding:5px 12px;border-bottom:1px solid #eee;font-size:12px;color:#222">${detail}</td></tr>`;
+    });
+    return rows.join('');
+  };
+
+  const allTrainingRows = trainingTypes.map(t => fmtTraining(t, trainingData[t])).join('');
+
+  // Build leave rows
+  const leaveRows = leavesData.map(d =>
+    `<tr><td style="padding:5px 12px;border-bottom:1px solid #eee;font-size:12px;color:#555">${d.leaveType||'—'}</td>` +
+    `<td style="padding:5px 12px;border-bottom:1px solid #eee;font-size:12px;color:#222">${d.fromDate||'—'} → ${d.toDate||'—'}</td>` +
+    `<td style="padding:5px 12px;border-bottom:1px solid #eee;font-size:12px;color:#222">${d.noOfDays||'—'} ${L('দিন','days')}</td>` +
+    `<td style="padding:5px 12px;border-bottom:1px solid #eee;font-size:12px;color:#555">${d.address||''}</td></tr>`
+  ).join('');
+
+  // Build course rows
+  const courseStr = lang === 'bn' ? (m.cr_bn || '') : (m.cr_en || '');
+  const courseArr = courseStr ? courseStr.split(/[,،]/).map(s => s.trim()).filter(Boolean) : [];
+  const courseResults = m.courseResults || {};
+  const gradeLabels = { alpha: L('আলফা','Alpha'), bplus: 'B+', b: 'B', bminus: 'B-' };
+  const courseRows = courseArr.map((c, i) => {
+    const res = courseResults['course_' + i] || '';
+    const pos = courseResults['pos_' + i] || '';
+    const resLabel = gradeLabels[res] || res;
+    return `<tr><td style="padding:5px 12px;border-bottom:1px solid #eee;font-size:12px;color:#222">${i+1}. ${c}</td>` +
+      `<td style="padding:5px 12px;border-bottom:1px solid #eee;font-size:12px;color:#555">${resLabel}${pos?' | '+L('স্থান','Pos')+': '+pos:''}</td></tr>`;
+  }).join('');
+
+  // Build recommendations (numbered, all courses)
+  const recItems = _computeCourseRecommendationItems(m);
+  const recRows = recItems.map((it, i) =>
+    `<tr><td style="padding:5px 12px;border-bottom:1px solid #eee;font-size:12px;color:#222;width:35%">${i+1}. ${it.courseName}</td>` +
+    `<td style="padding:5px 12px;border-bottom:1px solid #eee;font-size:12px;color:#555">${it.recText}</td></tr>`
+  ).join('');
+
+  const photoUrl = m.photoUrl || m.photo || '';
+  const rank = lang === 'bn' ? (m.rank_bn || m.r_bn || '') : (m.rank_en || m.r_en || '');
+  const name = lang === 'bn' ? (m.bn || m.name || '') : (m.en || m.name_en || '');
+  const name2 = lang === 'bn' ? (m.en || '') : (m.bn || '');
+  const company = m.co_bn || m.company || '';
+  const bloodGroup = m.bl || m.blood || '';
+  const field = (lbl, val) => val ? `<tr><td style="padding:5px 12px;font-weight:600;color:#555;width:38%;border-bottom:1px solid #eee;font-size:12px">${lbl}</td><td style="padding:5px 12px;border-bottom:1px solid #eee;font-size:12px;color:#222">${val}</td></tr>` : '';
+  const today = new Date().toLocaleDateString(lang === 'bn' ? 'bn-BD' : 'en-GB');
+
+  const htmlContent = `<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${name} — ${armyNo}</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Bengali:wght@400;600;700&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Noto Serif Bengali',serif;background:#fff;color:#222;padding:20px 28px}
+  .rh{display:flex;gap:20px;align-items:flex-start;margin-bottom:20px;padding-bottom:16px;border-bottom:3px solid #1a3a5c}
+  .rp{width:100px;height:120px;object-fit:cover;border:2px solid #1a3a5c;flex-shrink:0}
+  .rpp{width:100px;height:120px;background:#e8e8e8;display:flex;align-items:center;justify-content:center;font-size:36px;border:2px solid #1a3a5c;flex-shrink:0}
+  .rt{flex:1}
+  .rt h1{font-size:20px;color:#1a3a5c;font-weight:700;margin-bottom:2px}
+  .rt h2{font-size:13px;color:#666;margin-bottom:8px}
+  .badges{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+  .badge{padding:3px 10px;border-radius:20px;font-size:11px;font-family:'Rajdhani',sans-serif;font-weight:700;letter-spacing:1px}
+  .brank{background:#1a3a5c;color:#fff}.bblood{background:#c04040;color:#fff}.bco{background:#2a6a3a;color:#fff}
+  .sec{margin-top:14px}
+  .st{background:#1a3a5c;color:#fff;padding:5px 12px;font-family:'Rajdhani',sans-serif;font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase}
+  .st2{background:#2a5a8c;color:#fff;padding:4px 12px;font-family:'Rajdhani',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px}
+  table{width:100%;border-collapse:collapse}
+  .footer{margin-top:24px;padding-top:10px;border-top:2px solid #1a3a5c;font-size:10px;color:#888;font-family:'Rajdhani',sans-serif;display:flex;justify-content:space-between}
+  @media print{body{padding:8px}@page{margin:8mm}}
+</style>
+</head>
+<body>
+<div class="rh">
+  ${photoUrl?`<img class="rp" src="${photoUrl}" onerror="this.outerHTML='<div class=rpp>👤</div>'">`:`<div class="rpp">👤</div>`}
+  <div class="rt">
+    <h1>${name}</h1>
+    <h2>${name2}</h2>
+    <div class="badges">
+      ${rank?`<span class="badge brank">${rank}</span>`:''}
+      ${bloodGroup?`<span class="badge bblood">🩸 ${bloodGroup}</span>`:''}
+      ${company?`<span class="badge bco">${company}</span>`:''}
+    </div>
+    <div style="font-family:'Rajdhani',sans-serif;font-size:12px;color:#555">
+      ${L('সেনা নম্বর','Army No.')}: <strong style="color:#1a3a5c">${armyNo}</strong>
+      ${m.tr_bn?` &nbsp;|&nbsp; ${L('ট্রেড','Trade')}: ${m.tr_bn}`:''}
+      ${m.niyog?` &nbsp;|&nbsp; ${L('নিয়োগ','Appointment')}: ${m.niyog}`:''}
+    </div>
+  </div>
+</div>
+
+<div class="sec">
+  <div class="st">${L('ব্যক্তিগত তথ্য','Personal Information')}</div>
+  <table>
+    ${field(L('জন্ম তারিখ','Date of Birth'), fmtDateAge(m.dob))}
+    ${field(L('লিঙ্গ','Gender'), lang==='bn'?m.gn_bn:m.gn_en)}
+    ${field(L('জাতীয় পরিচয়পত্র','NID'), m.nid)}
+    ${field(L('রক্তের গ্রুপ','Blood Group'), m.bl)}
+    ${field(L('শিক্ষাগত যোগ্যতা','Education'), lang==='bn'?m.ed_bn:m.ed_en)}
+    ${field(L('মোবাইল','Mobile'), m.mb)}
+    ${field(L('NID মোবাইল','NID Mobile'), m.nm)}
+    ${field(L('হোয়াটসঅ্যাপ','WhatsApp'), m.wa)}
+    ${field(L('জরুরি যোগাযোগ','Emergency Contact'), m.em)}
+    ${field(L('স্থায়ী ঠিকানা','Permanent Address'), m.ad)}
+    ${field(L('জেলা','District'), m.di_bn||m.di_en||m.dist)}
+    ${field(L('ধর্ম','Religion'), m.religion)}
+    ${field(L('জাতীয়তা','Nationality'), m.nationality)}
+    ${field(L('পাসপোর্ট','Passport'), m.passport)}
+    ${field(L('মেডিকেল স্ট্যাটাস','Medical Status'), m.ms_bn)}
+    ${field(L('ক্রীড়া','Sport'), m.sport)}
+    ${field(L('ভাষা দক্ষতা','Language'), m.language)}
+    ${field(L('কম্পিউটার দক্ষতা','Computer'), m.computer)}
+    ${field(L('পুরস্কার','Award'), m.award)}
+    ${field(L('ব্যাংকের নাম','Bank'), m.bank_name)}
+    ${field(L('ব্যাংক একাউন্ট','Bank A/C'), m.bank_ac)}
+  </table>
+</div>
+
+<div class="sec">
+  <div class="st">${L('সামরিক তথ্য','Military Information')}</div>
+  <table>
+    ${field(L('পদবী','Rank'), lang==='bn'?m.r_bn:m.r_en)}
+    ${field(L('ট্রেড','Trade'), lang==='bn'?m.tr_bn:m.tr_en)}
+    ${field(L('কোম্পানি','Company'), m.co_bn)}
+    ${field(L('নিয়োগ','Appointment'), m.niyog)}
+    ${field(L('ভর্তির তারিখ','Joining Date'), fmtDateAge(m.jd))}
+    ${field(L('শপথের তারিখ','Oath Date'), fmtDateAge(m.od||m.oath_date))}
+    ${field(L('প্রমোশনের তারিখ','Promotion Date'), fmtDateAge(m.promo_date))}
+    ${field(L('AI ১/২০১৩ বর্ধিত','AI 1/2013 Extended'), m.ai_bn)}
+    ${field(L('বাসস্থান অবস্থান','Residence Location'), m.res_bn)}
+    ${field(L('বাসস্থান মেয়াদ','Residence Tenure'), m.rt)}
+    ${field(L('সুপারিশ','Recommendation'), m.rec)}
+    ${field(L('পূর্বের ইউনিট','Previous Unit'), m.pu||m.prev_units)}
+    ${field(L('লাইসেন্স','License'), m.li||m.license)}
+    ${field(L('সাজা','Punishment'), m.pn)}
+    ${field(L('পেনশন তারিখ','Pension Date'), fmtDateAge(m.pd, true))}
+    ${field(L('প্রমোশন পয়েন্ট ১','Promo Point 1'), m.p1)}
+    ${field(L('প্রমোশন পয়েন্ট ২','Promo Point 2'), m.p2)}
+    ${field(L('প্রমোশন পয়েন্ট ৩','Promo Point 3'), m.p3)}
+    ${field(L('প্রমোশন পয়েন্ট ৪','Promo Point 4'), m.p4)}
+    ${field(L('প্রমোশন পয়েন্ট ৫','Promo Point 5'), m.p5)}
+    ${field(L('পূর্বের ট্রেড','Prev Trade'), m.prev_trade)}
+    ${field(L('পূর্বের পদবী','Prev Rank'), m.prev_rank)}
+  </table>
+</div>
+
+<div class="sec">
+  <div class="st">${L('পারিবারিক তথ্য','Family Information')}</div>
+  <table>
+    ${field(L('বৈবাহিক অবস্থা','Marital Status'), lang==='bn'?m.ma_bn:m.ma_en)}
+    ${field(L('স্বামী/স্ত্রীর নাম','Spouse Name'), m.sp)}
+    ${field(L('স্বামী/স্ত্রীর জন্ম','Spouse DOB'), fmtDateAge(m.sd))}
+    ${field(L('বিবাহের তারিখ','Marriage Date'), fmtDateAge(m.wd))}
+    ${[1,2,3,4,5,6,7,8,9].filter(i=>m['c'+i+'n']).map(i=>
+      field(L('সন্তান '+i,'Child '+i), m['c'+i+'n'] + (m['c'+i+'d']?' ('+fmtDateAge(m['c'+i+'d'])+')':''))
+    ).join('')}
+  </table>
+</div>
+
+${courseRows ? `<div class="sec"><div class="st">${L('কোর্স ও ক্যাডার','Courses & Cadre')}</div>
+<table><thead><tr style="background:#f0f4f8"><th style="padding:5px 12px;text-align:left;font-size:12px;color:#1a3a5c">${L('কোর্সের নাম','Course Name')}</th><th style="padding:5px 12px;text-align:left;font-size:12px;color:#1a3a5c;width:20%">${L('ফলাফল','Result')}</th></tr></thead><tbody>${courseRows}</tbody></table></div>` : ''}
+
+${recRows ? `<div class="sec"><div class="st">${L('সুপারিশ','Recommendations')}</div>
+<table><thead><tr style="background:#f0f4f8"><th style="padding:5px 12px;text-align:left;font-size:12px;color:#1a3a5c;width:35%">${L('কোর্স','Course')}</th><th style="padding:5px 12px;text-align:left;font-size:12px;color:#1a3a5c">${L('সুপারিশ','Recommendation')}</th></tr></thead><tbody>${recRows}</tbody></table></div>` : ''}
+
+${allTrainingRows ? `<div class="sec"><div class="st">${L('প্রশিক্ষণ রেকর্ড','Training Records')}</div>
+<table><thead><tr style="background:#f0f4f8"><th style="padding:5px 12px;text-align:left;font-size:12px;color:#1a3a5c;width:25%">${L('ধরন','Type')}</th><th style="padding:5px 12px;text-align:left;font-size:12px;color:#1a3a5c">${L('বিস্তারিত','Details')}</th></tr></thead><tbody>${allTrainingRows}</tbody></table></div>` : ''}
+
+${leaveRows ? `<div class="sec"><div class="st">${L('ছুটির রেকর্ড','Leave Records')}</div>
+<table><thead><tr style="background:#f0f4f8"><th style="padding:5px 12px;text-align:left;font-size:12px;color:#1a3a5c">${L('ধরন','Type')}</th><th style="padding:5px 12px;text-align:left;font-size:12px;color:#1a3a5c">${L('তারিখ','Date')}</th><th style="padding:5px 12px;text-align:left;font-size:12px;color:#1a3a5c">${L('দিন','Days')}</th><th style="padding:5px 12px;text-align:left;font-size:12px;color:#1a3a5c">${L('ঠিকানা','Address')}</th></tr></thead><tbody>${leaveRows}</tbody></table></div>` : ''}
+
+<div class="footer">
+  <span>৪ ইঞ্জিনিয়ার ব্যাটালিয়ন — ${L('সদস্য প্রোফাইল রিপোর্ট','Member Profile Report')}</span>
+  <span>${today}</span>
+</div>
+</body>
+</html>`;
+
+  const printWin = window.open('', '_blank', 'width=820,height=980');
+  if (!printWin) { _showAdminToast('পপআপ ব্লক হয়েছে — ব্রাউজার পপআপ অনুমতি দিন', 'error'); return; }
+  printWin.document.write(htmlContent);
+  printWin.document.close();
+  printWin.onload = () => { printWin.focus(); printWin.print(); };
+}
+
+function _rosterConfirmSimple(message, onConfirm, { danger = false, title = 'নিশ্চিত করুন', icon = '' } = {}) {
+  const existing = document.getElementById('_rosterSimpleConfirm');
+  if (existing) existing.remove();
+  const overlay = document.createElement('div');
+  overlay.id = '_rosterSimpleConfirm';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(6px);z-index:99999;display:flex;align-items:center;justify-content:center;padding:24px';
+  const accent = danger ? '#f85149' : '#c8a94a';
+  const confirmBg = danger ? 'rgba(248,81,73,0.15)' : 'rgba(200,169,74,0.15)';
+  const confirmBorder = danger ? 'rgba(248,81,73,0.4)' : 'rgba(200,169,74,0.4)';
+  const defaultIcon = danger ? '🗑️' : '⚠️';
+  const displayIcon = icon || defaultIcon;
+  overlay.innerHTML = `
+    <div style="background:#161b22;border:1px solid rgba(255,255,255,0.08);border-radius:20px;width:100%;max-width:320px;padding:28px 24px 20px;text-align:center;box-shadow:0 16px 48px rgba(0,0,0,0.6)">
+      <div style="font-size:2.4rem;margin-bottom:12px;line-height:1">${displayIcon}</div>
+      <div style="font-family:'Rajdhani',sans-serif;font-size:1rem;font-weight:700;color:#e6e6e6;margin-bottom:8px;letter-spacing:0.5px">${title}</div>
+      <div style="font-size:0.85rem;color:rgba(255,255,255,0.55);margin-bottom:22px;line-height:1.5">${message}</div>
+      <div style="display:flex;gap:10px">
+        <button onclick="document.getElementById('_rosterSimpleConfirm').remove()"
+          style="flex:1;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.6);border-radius:10px;padding:10px 16px;font-family:'Rajdhani',sans-serif;font-size:0.88rem;font-weight:700;cursor:pointer;letter-spacing:0.5px">বাতিল</button>
+        <button id="_rosterConfirmOkBtn"
+          style="flex:1;background:${confirmBg};border:1px solid ${confirmBorder};color:${accent};border-radius:10px;padding:10px 16px;font-family:'Rajdhani',sans-serif;font-size:0.88rem;font-weight:700;cursor:pointer;letter-spacing:0.5px">নিশ্চিত</button>
+      </div>
+    </div>`;
+  overlay.querySelector('#_rosterConfirmOkBtn').onclick = () => { overlay.remove(); onConfirm(); };
+  // close on overlay click (outside card)
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
 }
 
 function _showAdminToast(msg, type='success') {
