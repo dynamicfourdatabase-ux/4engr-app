@@ -4400,6 +4400,7 @@ let adminSelectedMember = null;
 // Admin search এর জন্য সব member cache করে রাখি
 let _adminMemberCache = null;
 let _adminMemberCacheTime = 0;
+let _adminCompany = ''; // admin এর নিজ কোম্পানী — একবার fetch করে সব জায়গায় ব্যবহার
 
 async function getAdminMemberCache() {
   const now = Date.now();
@@ -4408,7 +4409,12 @@ async function getAdminMemberCache() {
     return _adminMemberCache;
   }
   const snap = await db.collection('members').get();
-  _adminMemberCache = snap.docs.map(d => {
+  let docs = snap.docs;
+  // Admin শুধু নিজের কোম্পানীর সদস্য cache করবে
+  if (userRole === 'admin' && _adminCompany) {
+    docs = docs.filter(d => (d.data().co_bn || '') === _adminCompany);
+  }
+  _adminMemberCache = docs.map(d => {
     const data = d.data();
     return {
       id: d.id,
@@ -5922,6 +5928,12 @@ async function showStatDetail(type) {
       const snap = await db.collection('members').get();
       if (snap.empty) { body.innerHTML = noData(); return; }
 
+      // Admin এর কোম্পানী নিশ্চিত করো
+      if (userRole === 'admin' && !_adminCompany) {
+        const ap = await db.collection('adminProfiles').doc(currentUser.uid).get();
+        _adminCompany = ap.exists ? ap.data().co_bn || '' : '';
+      }
+
       // পদবী priority ফাংশন
       function getRankP(r) {
         if (!r) return 99;
@@ -5938,7 +5950,11 @@ async function showStatDetail(type) {
       }
 
       // সব সদস্য লোড করে পদবী → সেনা নম্বর অনুযায়ী সাজাও
-      let allMembers = snap.docs.map(d => d.data());
+      let allMemberDocs = snap.docs;
+      if (userRole === 'admin' && _adminCompany) {
+        allMemberDocs = allMemberDocs.filter(d => (d.data().co_bn || '') === _adminCompany);
+      }
+      let allMembers = allMemberDocs.map(d => d.data());
       allMembers.sort((a, b) => {
         const rDiff = getRankP(a.r_bn) - getRankP(b.r_bn);
         if (rDiff !== 0) return rDiff;
@@ -6160,11 +6176,23 @@ async function showStatDetail(type) {
       const snap = await db.collection('editRequests')
         .where('createdAt', '>=', today)
         .orderBy('createdAt', 'desc').get();
-      if (snap.empty) { body.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text2);font-size:0.85rem">আজ কোনো এডিট হয়নি</div>'; return; }
+
+      // Admin এর কোম্পানী নিশ্চিত করো
+      if (userRole === 'admin' && !_adminCompany) {
+        const ap = await db.collection('adminProfiles').doc(currentUser.uid).get();
+        _adminCompany = ap.exists ? ap.data().co_bn || '' : '';
+      }
+
+      let todayDocs = snap.docs;
+      if (userRole === 'admin' && _adminCompany) {
+        todayDocs = todayDocs.filter(d => (d.data().memberCompany || '') === _adminCompany);
+      }
+
+      if (!todayDocs.length) { body.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text2);font-size:0.85rem">আজ কোনো এডিট হয়নি</div>'; return; }
 
       const statusIcon = { pending:'⏳', approved:'✅', rejected:'❌' };
       const statusCls = { pending:'warn', approved:'success', rejected:'danger' };
-      body.innerHTML = snap.docs.map(d => {
+      body.innerHTML = todayDocs.map(d => {
         const r = d.data();
         const dt = r.createdAt?.toDate ? r.createdAt.toDate().toLocaleTimeString('bn-BD') : '—';
         const ini = (r.memberName||'?')[0].toUpperCase();
@@ -6206,13 +6234,24 @@ async function loadAdminData() {
   if (userRole !== 'admin' && userRole !== 'superadmin' && userRole !== 'subadmin') return;
   try {
     // Super Admin সব দেখে, Admin শুধু নিজের কোম্পানী, SubAdmin সব দেখে (read-only)
+    // Admin এর কোম্পানী একবার fetch করো — সব জায়গায় _adminCompany ব্যবহার
+    if (userRole === 'admin') {
+      if (!_adminCompany) {
+        const adminProfile = await db.collection('adminProfiles').doc(currentUser.uid).get();
+        _adminCompany = adminProfile.exists ? adminProfile.data().co_bn || '' : '';
+        // company সেট হলে cache invalidate করো যাতে ফিল্টার হয়
+        _adminMemberCache = null;
+        _adminMemberCacheTime = 0;
+      }
+    } else {
+      _adminCompany = '';
+    }
+
     // সব pending fetch করো — compound query index এর ঝামেলা এড়াতে client-side filter
     const allPendingSnap = await db.collection('editRequests').where('status', '==', 'pending').get();
     let pendingDocs = allPendingSnap.docs;
-    if (userRole === 'admin') {
-      const adminProfile = await db.collection('adminProfiles').doc(currentUser.uid).get();
-      const adminCompany = adminProfile.exists ? adminProfile.data().co_bn || '' : '';
-      if (adminCompany) pendingDocs = pendingDocs.filter(d => (d.data().memberCompany || '') === adminCompany);
+    if (userRole === 'admin' && _adminCompany) {
+      pendingDocs = pendingDocs.filter(d => (d.data().memberCompany || '') === _adminCompany);
     }
 
     const [members, admins] = await Promise.all([
@@ -6222,22 +6261,22 @@ async function loadAdminData() {
 
     // Admin: শুধু নিজের কোম্পানির সদস্য count করবে
     let totalCount = members.size;
-    if (userRole === 'admin') {
-      const adminProfile = await db.collection('adminProfiles').doc(currentUser.uid).get();
-      const adminCompany = adminProfile.exists ? adminProfile.data().co_bn || '' : '';
-      if (adminCompany) {
-        totalCount = members.docs.filter(d => (d.data().co_bn || '') === adminCompany).length;
-      }
+    if (userRole === 'admin' && _adminCompany) {
+      totalCount = members.docs.filter(d => (d.data().co_bn || '') === _adminCompany).length;
     }
     document.getElementById('st-total').textContent = totalCount;
     document.getElementById('st-pending').textContent = pendingDocs.length;
     document.getElementById('st-admins').textContent = admins.size;
 
-    // Today's edits
+    // Today's edits — Admin শুধু নিজের কোম্পানীর
     const today = new Date(); today.setHours(0,0,0,0);
-    const todayEdits = await db.collection('editRequests')
+    const todayEditsSnap = await db.collection('editRequests')
       .where('createdAt', '>=', today).get();
-    document.getElementById('st-today').textContent = todayEdits.size;
+    let todayCount = todayEditsSnap.size;
+    if (userRole === 'admin' && _adminCompany) {
+      todayCount = todayEditsSnap.docs.filter(d => (d.data().memberCompany || '') === _adminCompany).length;
+    }
+    document.getElementById('st-today').textContent = todayCount;
 
     // Notif dot
     document.getElementById('notifDot').style.display = pendingDocs.length > 0 ? 'inline-block' : 'none';
@@ -6307,11 +6346,11 @@ function renderPendingList(docs) {
           <div style="font-size:0.72rem;color:var(--text2);font-family:'Rajdhani',sans-serif"># ${grp.no} · ${grp.company}</div>
         </div>
         <div style="display:flex;gap:6px">
-          <button onclick="approveGroup(${JSON.stringify(groupIds)})"
+          <button onclick="approveGroup(${JSON.stringify(groupIds).replace(/"/g,'&quot;')})"
             style="padding:5px 12px;background:rgba(63,185,80,0.15);border:1px solid rgba(63,185,80,0.4);border-radius:8px;color:var(--success);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:0.75rem;cursor:pointer;white-space:nowrap">
             ✓ সব (<span class="grp-count">${grp.items.length}</span>)
           </button>
-          <button onclick="rejectGroup(${JSON.stringify(groupIds)})"
+          <button onclick="rejectGroup(${JSON.stringify(groupIds).replace(/"/g,'&quot;')})"
             style="padding:5px 10px;background:rgba(224,85,85,0.1);border:1px solid rgba(224,85,85,0.3);border-radius:8px;color:var(--danger);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:0.75rem;cursor:pointer">
             ✗
           </button>
