@@ -369,7 +369,6 @@ select:focus { border-color: var(--accent); }
   .stat-group #totalCount {
     font-size: 0.8rem !important;
   }
-}
 
 /* ছোট মোবাইল (max-width: 480px) */
 @media (max-width: 480px) {
@@ -5195,6 +5194,35 @@ async function generateMemberReport(m) {
 </div>
 
 <div class="sec">
+  <div class="st">${L('সামরিক তথ্য','Military Information')}</div>
+  <table>
+    ${field(L('সেনা নম্বর','Army No.'), armyNo)}
+    ${field(L('পদবী','Rank'), lang==='bn'?m.r_bn:m.r_en)}
+    ${field(L('ট্রেড','Trade'), lang==='bn'?m.tr_bn:m.tr_en)}
+    ${field(L('কোম্পানি','Company'), m.co_bn)}
+    ${field(L('নিয়োগ','Appointment'), m.niyog)}
+    ${field(L('ভর্তির তারিখ','Joining Date'), fmtDateAge(m.jd))}
+    ${field(L('শপথের তারিখ','Oath Date'), fmtDateAge(m.od||m.oath_date))}
+    ${field(L('ল্যান্স কর্পোরাল','Lance Corporal'), m.p1)}
+    ${field(L('কর্পোরাল','Corporal'), m.p2)}
+    ${field(L('সার্জেন্ট','Sergeant'), m.p3)}
+    ${field(L('ওয়ারেন্ট অফিসার','Warrant Officer'), m.p4)}
+    ${field(L('সিনি: ওয়া: অফি:','Sr. WO'), m.p5)}
+    ${field(L('মা: ওয়া: অফি:','MWO'), m.promo_date)}
+    ${field(L('পেনশন তারিখ','Pension Date'), fmtDateAge(m.pd, true))}
+    ${field(L('AI ১/২০১৩ বর্ধিত','AI 1/2013 Extended'), m.ai_bn)}
+    ${field(L('বাসস্থান অবস্থান','Residence Location'), m.res_bn)}
+    ${field(L('বাসস্থান মেয়াদ','Residence Tenure'), m.rt)}
+    ${field(L('সুপারিশ','Recommendation'), m.rec)}
+    ${field(L('পূর্বের ইউনিট','Previous Unit'), m.pu||m.prev_units)}
+    ${field(L('লাইসেন্স','License'), m.li||m.license)}
+    ${field(L('সাজা','Punishment'), m.pn)}
+    ${field(L('পূর্বের ট্রেড','Prev Trade'), m.prev_trade)}
+    ${field(L('পূর্বের পদবী','Prev Rank'), m.prev_rank)}
+  </table>
+</div>
+
+<div class="sec">
   <div class="st">${L('ব্যক্তিগত তথ্য','Personal Information')}</div>
   <table>
     ${field(L('জন্ম তারিখ','Date of Birth'), fmtDateAge(m.dob))}
@@ -5203,7 +5231,6 @@ async function generateMemberReport(m) {
     ${field(L('রক্তের গ্রুপ','Blood Group'), m.bl)}
     ${field(L('শিক্ষাগত যোগ্যতা','Education'), lang==='bn'?m.ed_bn:m.ed_en)}
     ${field(L('মোবাইল','Mobile'), m.mb)}
-    ${field(L('NID মোবাইল','NID Mobile'), m.nm)}
     ${field(L('হোয়াটসঅ্যাপ','WhatsApp'), m.wa)}
     ${field(L('জরুরি যোগাযোগ','Emergency Contact'), m.em)}
     ${field(L('স্থায়ী ঠিকানা','Permanent Address'), m.ad)}
@@ -5221,33 +5248,17 @@ async function generateMemberReport(m) {
   </table>
 </div>
 
-<div class="sec">
-  <div class="st">${L('সামরিক তথ্য','Military Information')}</div>
-  <table>
-    ${field(L('পদবী','Rank'), lang==='bn'?m.r_bn:m.r_en)}
-    ${field(L('ট্রেড','Trade'), lang==='bn'?m.tr_bn:m.tr_en)}
-    ${field(L('কোম্পানি','Company'), m.co_bn)}
-    ${field(L('নিয়োগ','Appointment'), m.niyog)}
-    ${field(L('ভর্তির তারিখ','Joining Date'), fmtDateAge(m.jd))}
-    ${field(L('শপথের তারিখ','Oath Date'), fmtDateAge(m.od||m.oath_date))}
-    ${field(L('প্রমোশনের তারিখ','Promotion Date'), fmtDateAge(m.promo_date))}
-    ${field(L('AI ১/২০১৩ বর্ধিত','AI 1/2013 Extended'), m.ai_bn)}
-    ${field(L('বাসস্থান অবস্থান','Residence Location'), m.res_bn)}
-    ${field(L('বাসস্থান মেয়াদ','Residence Tenure'), m.rt)}
-    ${field(L('সুপারিশ','Recommendation'), m.rec)}
-    ${field(L('পূর্বের ইউনিট','Previous Unit'), m.pu||m.prev_units)}
-    ${field(L('লাইসেন্স','License'), m.li||m.license)}
-    ${field(L('সাজা','Punishment'), m.pn)}
-    ${field(L('পেনশন তারিখ','Pension Date'), fmtDateAge(m.pd, true))}
-    ${field(L('প্রমোশন পয়েন্ট ১','Promo Point 1'), m.p1)}
-    ${field(L('প্রমোশন পয়েন্ট ২','Promo Point 2'), m.p2)}
-    ${field(L('প্রমোশন পয়েন্ট ৩','Promo Point 3'), m.p3)}
-    ${field(L('প্রমোশন পয়েন্ট ৪','Promo Point 4'), m.p4)}
-    ${field(L('প্রমোশন পয়েন্ট ৫','Promo Point 5'), m.p5)}
-    ${field(L('পূর্বের ট্রেড','Prev Trade'), m.prev_trade)}
-    ${field(L('পূর্বের পদবী','Prev Rank'), m.prev_rank)}
-  </table>
-</div>
+${courseRows ? `<div class="sec"><div class="st">${L('কোর্স ও ক্যাডার','Courses & Cadre')}</div>
+<table style="table-layout:fixed"><thead><tr style="background:#f0f4f8"><th style="padding:5px 12px;text-align:left;font-size:12px;color:#1a3a5c;width:65%">${L('কোর্সের নাম','Course Name')}</th><th style="padding:5px 12px;text-align:left;font-size:12px;color:#1a3a5c;width:35%">${L('ফলাফল','Result')}</th></tr></thead><tbody>${courseRows}</tbody></table></div>` : ''}
+
+${recRows ? `<div class="sec"><div class="st">${L('সুপারিশ','Recommendations')}</div>
+<table><thead><tr style="background:#f0f4f8"><th style="padding:5px 12px;text-align:left;font-size:12px;color:#1a3a5c;width:35%">${L('কোর্স','Course')}</th><th style="padding:5px 12px;text-align:left;font-size:12px;color:#1a3a5c">${L('সুপারিশ','Recommendation')}</th></tr></thead><tbody>${recRows}</tbody></table></div>` : ''}
+
+${allTrainingRows ? `<div class="sec"><div class="st">${L('প্রশিক্ষণ রেকর্ড','Training Records')}</div>
+<table><thead><tr style="background:#f0f4f8"><th style="padding:5px 12px;text-align:left;font-size:12px;color:#1a3a5c;width:25%">${L('ধরন','Type')}</th><th style="padding:5px 12px;text-align:left;font-size:12px;color:#1a3a5c">${L('বিস্তারিত','Details')}</th></tr></thead><tbody>${allTrainingRows}</tbody></table></div>` : ''}
+
+${leaveRows ? `<div class="sec"><div class="st">${L('ছুটির রেকর্ড','Leave Records')}</div>
+<table><thead><tr style="background:#f0f4f8"><th style="padding:5px 12px;text-align:left;font-size:12px;color:#1a3a5c">${L('ধরন','Type')}</th><th style="padding:5px 12px;text-align:left;font-size:12px;color:#1a3a5c">${L('তারিখ','Date')}</th><th style="padding:5px 12px;text-align:left;font-size:12px;color:#1a3a5c">${L('দিন','Days')}</th><th style="padding:5px 12px;text-align:left;font-size:12px;color:#1a3a5c">${L('ঠিকানা','Address')}</th></tr></thead><tbody>${leaveRows}</tbody></table></div>` : ''}
 
 <div class="sec">
   <div class="st">${L('পারিবারিক তথ্য','Family Information')}</div>
@@ -5261,18 +5272,6 @@ async function generateMemberReport(m) {
     ).join('')}
   </table>
 </div>
-
-${courseRows ? `<div class="sec"><div class="st">${L('কোর্স ও ক্যাডার','Courses & Cadre')}</div>
-<table><thead><tr style="background:#f0f4f8"><th style="padding:5px 12px;text-align:left;font-size:12px;color:#1a3a5c">${L('কোর্সের নাম','Course Name')}</th><th style="padding:5px 12px;text-align:left;font-size:12px;color:#1a3a5c;width:20%">${L('ফলাফল','Result')}</th></tr></thead><tbody>${courseRows}</tbody></table></div>` : ''}
-
-${recRows ? `<div class="sec"><div class="st">${L('সুপারিশ','Recommendations')}</div>
-<table><thead><tr style="background:#f0f4f8"><th style="padding:5px 12px;text-align:left;font-size:12px;color:#1a3a5c;width:35%">${L('কোর্স','Course')}</th><th style="padding:5px 12px;text-align:left;font-size:12px;color:#1a3a5c">${L('সুপারিশ','Recommendation')}</th></tr></thead><tbody>${recRows}</tbody></table></div>` : ''}
-
-${allTrainingRows ? `<div class="sec"><div class="st">${L('প্রশিক্ষণ রেকর্ড','Training Records')}</div>
-<table><thead><tr style="background:#f0f4f8"><th style="padding:5px 12px;text-align:left;font-size:12px;color:#1a3a5c;width:25%">${L('ধরন','Type')}</th><th style="padding:5px 12px;text-align:left;font-size:12px;color:#1a3a5c">${L('বিস্তারিত','Details')}</th></tr></thead><tbody>${allTrainingRows}</tbody></table></div>` : ''}
-
-${leaveRows ? `<div class="sec"><div class="st">${L('ছুটির রেকর্ড','Leave Records')}</div>
-<table><thead><tr style="background:#f0f4f8"><th style="padding:5px 12px;text-align:left;font-size:12px;color:#1a3a5c">${L('ধরন','Type')}</th><th style="padding:5px 12px;text-align:left;font-size:12px;color:#1a3a5c">${L('তারিখ','Date')}</th><th style="padding:5px 12px;text-align:left;font-size:12px;color:#1a3a5c">${L('দিন','Days')}</th><th style="padding:5px 12px;text-align:left;font-size:12px;color:#1a3a5c">${L('ঠিকানা','Address')}</th></tr></thead><tbody>${leaveRows}</tbody></table></div>` : ''}
 
 <div class="footer">
   <span>৪ ইঞ্জিনিয়ার ব্যাটালিয়ন — ${L('সদস্য প্রোফাইল রিপোর্ট','Member Profile Report')}</span>
