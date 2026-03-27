@@ -5074,7 +5074,7 @@ async function generateMemberReport(m) {
     const memberRef = db.collection('members').doc(docId);
     const [trSnap, leavesSnap] = await Promise.all([
       memberRef.collection('training').get().catch(() => null),
-      memberRef.collection('leaves').orderBy('fromDate','desc').get().catch(() => null)
+      memberRef.collection('leaves').get().catch(() => null)
     ]);
     if (trSnap && !trSnap.empty) {
       trSnap.docs.forEach(d => {
@@ -5088,6 +5088,7 @@ async function generateMemberReport(m) {
     }
     if (leavesSnap && !leavesSnap.empty) {
       leavesSnap.docs.forEach(d => leavesData.push({ id: d.id, ...d.data() }));
+      leavesData.sort((a, b) => (b.fromDate || '').localeCompare(a.fromDate || ''));
     }
   } catch(e) { /* silently continue */ }
 
@@ -5127,8 +5128,8 @@ async function generateMemberReport(m) {
     const res = courseResults['course_' + i] || '';
     const pos = courseResults['pos_' + i] || '';
     const resLabel = gradeLabels[res] || res;
-    return `<tr><td style="padding:5px 12px;border-bottom:1px solid #eee;font-size:12px;color:#222">${i+1}. ${c}</td>` +
-      `<td style="padding:5px 12px;border-bottom:1px solid #eee;font-size:12px;color:#555">${resLabel}${pos?' | '+L('স্থান','Pos')+': '+pos:''}</td></tr>`;
+    return `<tr><td style="padding:5px 12px;border-bottom:1px solid #eee;font-size:12px;color:#222;width:65%">${i+1}. ${c}</td>` +
+      `<td style="padding:5px 12px;border-bottom:1px solid #eee;font-size:12px;color:#555;width:35%">${resLabel}${pos?' | '+L('স্থান','Pos')+': '+pos:''}</td></tr>`;
   }).join('');
 
   // Build recommendations (numbered, all courses)
@@ -5165,7 +5166,7 @@ async function generateMemberReport(m) {
   .rt h2{font-size:13px;color:#666;margin-bottom:8px}
   .badges{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
   .badge{padding:3px 10px;border-radius:20px;font-size:11px;font-family:'Rajdhani',sans-serif;font-weight:700;letter-spacing:1px}
-  .brank{background:#1a3a5c;color:#fff}.bblood{background:#c04040;color:#fff}.bco{background:#2a6a3a;color:#fff}
+  .brank{background:#1a3a5c;color:#fff}.bblood{background:#555;color:#fff}.bco{background:#2a6a3a;color:#fff}
   .sec{margin-top:14px}
   .st{background:#1a3a5c;color:#fff;padding:5px 12px;font-family:'Rajdhani',sans-serif;font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase}
   .st2{background:#2a5a8c;color:#fff;padding:4px 12px;font-family:'Rajdhani',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px}
@@ -5213,7 +5214,6 @@ async function generateMemberReport(m) {
     ${field(L('AI ১/২০১৩ বর্ধিত','AI 1/2013 Extended'), m.ai_bn)}
     ${field(L('বাসস্থান অবস্থান','Residence Location'), m.res_bn)}
     ${field(L('বাসস্থান মেয়াদ','Residence Tenure'), m.rt)}
-    ${field(L('সুপারিশ','Recommendation'), m.rec)}
     ${field(L('পূর্বের ইউনিট','Previous Unit'), m.pu||m.prev_units)}
     ${field(L('লাইসেন্স','License'), m.li||m.license)}
     ${field(L('সাজা','Punishment'), m.pn)}

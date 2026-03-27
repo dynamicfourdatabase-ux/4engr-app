@@ -6301,8 +6301,14 @@ async function loadAdminData() {
 /* ══════════════════════════════════════════
    PENDING LIST — সদস্য অনুযায়ী গ্রুপ করে দেখাও
 ══════════════════════════════════════════ */
+// গ্রুপের IDs গুলো এখানে cache করো — onclick থেকে সরাসরি array পাস করার বদলে
+const _pendingGroupCache = {};
+
 function renderPendingList(docs) {
   const box = document.getElementById('pendingList');
+  // পুরনো cache clear করো
+  Object.keys(_pendingGroupCache).forEach(k => delete _pendingGroupCache[k]);
+
   if (!docs || !docs.length) {
     box.innerHTML = '<div style="color:var(--text2);text-align:center;padding:20px;font-size:0.85rem;">✅ কোনো অপেক্ষমাণ অনুরোধ নেই</div>';
     return;
@@ -6336,6 +6342,9 @@ function renderPendingList(docs) {
   Object.entries(groups).forEach(([key, grp]) => {
     const ini = (grp.name || '?')[0].toUpperCase();
     const groupIds = grp.items.map(it => it.id);
+    // IDs cache এ রাখো — onclick থেকে সরাসরি array পাস করলে encoding সমস্যা হয়
+    const cacheKey = 'grp_' + key.replace(/[^a-zA-Z0-9]/g, '_');
+    _pendingGroupCache[cacheKey] = groupIds;
     html += `
     <div class="pending-group" style="background:var(--bg2);border:1px solid var(--border2);border-radius:12px;margin-bottom:12px;overflow:hidden;transition:opacity 0.2s,transform 0.2s">
       <!-- সদস্যের হেডার -->
@@ -6346,11 +6355,11 @@ function renderPendingList(docs) {
           <div style="font-size:0.72rem;color:var(--text2);font-family:'Rajdhani',sans-serif"># ${grp.no} · ${grp.company}</div>
         </div>
         <div style="display:flex;gap:6px">
-          <button onclick="approveGroup(${JSON.stringify(groupIds).replace(/"/g,'&quot;')})"
+          <button onclick="approveGroupByKey('${cacheKey}')"
             style="padding:5px 12px;background:rgba(63,185,80,0.15);border:1px solid rgba(63,185,80,0.4);border-radius:8px;color:var(--success);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:0.75rem;cursor:pointer;white-space:nowrap">
             ✓ সব (<span class="grp-count">${grp.items.length}</span>)
           </button>
-          <button onclick="rejectGroup(${JSON.stringify(groupIds).replace(/"/g,'&quot;')})"
+          <button onclick="rejectGroupByKey('${cacheKey}')"
             style="padding:5px 10px;background:rgba(224,85,85,0.1);border:1px solid rgba(224,85,85,0.3);border-radius:8px;color:var(--danger);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:0.75rem;cursor:pointer">
             ✗
           </button>
@@ -6813,6 +6822,18 @@ async function approveCourseGroup(courseRequests) {
 }
 
 /* সদস্য অনুযায়ী group করে bulk approve করো */
+function approveGroupByKey(key) {
+  const ids = _pendingGroupCache[key];
+  if (!ids || !ids.length) { showToast('গ্রুপ খুঁজে পাওয়া যায়নি', 'error'); return; }
+  approveGroup(ids);
+}
+
+function rejectGroupByKey(key) {
+  const ids = _pendingGroupCache[key];
+  if (!ids || !ids.length) { showToast('গ্রুপ খুঁজে পাওয়া যায়নি', 'error'); return; }
+  rejectGroup(ids);
+}
+
 async function approveGroup(ids) {
   if (!ids || !ids.length) return;
   if (!await confirmAsync(`${ids.length}টি অনুরোধ অনুমোদন করবেন?`, {icon:'✅',title:'গ্রুপ অনুমোদন',okLabel:'অনুমোদন করুন'})) return;
