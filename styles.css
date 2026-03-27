@@ -360,6 +360,17 @@ select.form-input { cursor: pointer; }
   overflow-y: auto;
 }
 
+/* User dropdown menu — mobile fix */
+@media (max-width: 640px) {
+  #userDropdownMenu {
+    position: fixed !important;
+    top: 56px !important;
+    right: 8px !important;
+    z-index: 9999 !important;
+    min-width: 180px !important;
+  }
+}
+
 .page { display: none; }
 .page.active { display: block; }
 

@@ -408,14 +408,14 @@
 
   <!-- Top Bar -->
   <div class="topbar">
-    <div class="topbar-avatar" id="topbarAvatar" onclick="navTo('profile')">
+    <div class="topbar-avatar" id="topbarAvatar" onclick="navTo('profile')" style="cursor:pointer">
       <span id="topbarInitials">?</span>
     </div>
     <div class="topbar-info">
       <div class="topbar-name" id="topbarName">লোড হচ্ছে...</div>
       <div class="topbar-role" id="topbarRole">সৈনিক</div>
     </div>
-    <div class="topbar-btns">
+    <div class="topbar-btns" style="position:relative">
       <button id="langToggleBtn" onclick="toggleAppLang()" title="Switch Language"
         style="background:rgba(200,169,74,0.12);border:1px solid rgba(200,169,74,0.3);border-radius:8px;padding:5px 10px;color:var(--gold);cursor:pointer;font-family:'Rajdhani',sans-serif;font-size:0.72rem;font-weight:700;letter-spacing:1px;transition:all 0.2s">
         EN
@@ -423,18 +423,21 @@
       <button class="icon-btn" onclick="navTo('notifications')" title="বিজ্ঞপ্তি">
         🔔<span class="notif-dot" id="notifDot" style="display:none"></span>
       </button>
-      <button onclick="doLogout()" style="
-  background:linear-gradient(135deg,rgba(224,85,85,0.2),rgba(192,40,40,0.15));
-  border:1px solid rgba(224,85,85,0.4);border-radius:8px;
-  padding:6px 14px;color:#e05555;cursor:pointer;
-  font-family:'Rajdhani',sans-serif;font-size:0.75rem;
-  font-weight:700;letter-spacing:1px;text-transform:uppercase;
-  transition:all 0.2s;white-space:nowrap;
-  display:flex;align-items:center;gap:5px"
-  onmouseover="this.style.background='rgba(224,85,85,0.3)'"
-  onmouseout="this.style.background='linear-gradient(135deg,rgba(224,85,85,0.2),rgba(192,40,40,0.15))'">
-  <span style="font-size:14px">🚪</span> লগআউট
-</button>
+      <button class="icon-btn" id="userMenuBtn" onclick="toggleUserMenu(event)" ontouchstart="toggleUserMenu(event)" title="মেনু" style="font-size:16px;position:relative;touch-action:manipulation">
+        ⋮
+      </button>
+      <!-- User dropdown menu -->
+      <div id="userDropdownMenu" style="display:none;position:absolute;top:44px;right:0;background:var(--bg2);border:1px solid var(--border2);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,0.4);z-index:1000;min-width:160px;overflow:hidden">
+        <button onclick="navTo('profile');closeUserMenu()" style="width:100%;text-align:left;padding:12px 16px;background:transparent;border:none;color:var(--text);cursor:pointer;font-family:'Rajdhani',sans-serif;font-size:0.85rem;font-weight:600;border-bottom:1px solid var(--border2);display:flex;align-items:center;gap:8px">
+          👤 প্রোফাইল
+        </button>
+        <button onclick="navTo('settings');closeUserMenu()" style="width:100%;text-align:left;padding:12px 16px;background:transparent;border:none;color:var(--text);cursor:pointer;font-family:'Rajdhani',sans-serif;font-size:0.85rem;font-weight:600;border-bottom:1px solid var(--border2);display:flex;align-items:center;gap:8px">
+          ⚙️ সেটিংস
+        </button>
+        <button onclick="doLogout()" style="width:100%;text-align:left;padding:12px 16px;background:transparent;border:none;color:var(--danger);cursor:pointer;font-family:'Rajdhani',sans-serif;font-size:0.85rem;font-weight:600;display:flex;align-items:center;gap:8px">
+          🚪 লগআউট
+        </button>
+      </div>
     </div>
   </div>
 
@@ -550,12 +553,17 @@
           </div>
           <!-- ========== ট্রেনিং সেকশন ========== -->
         <div style="margin-top: 24px;">
+          <!-- Training Section Header -->
+          <div class="card-header" style="margin-bottom:12px;padding:10px 14px;background:var(--dark3);border-radius:10px;border:1px solid var(--border2)">
+            <span class="card-header-icon">🎯</span>
+            <span class="card-header-title" data-bn="প্রশিক্ষণ রেকর্ড" data-en="Training Records">প্রশিক্ষণ রেকর্ড</span>
+            <button class="field-edit-btn" style="margin-left:auto" onclick="openAddTrainingSelect()">+ যোগ করুন</button>
+          </div>
           <!-- IPFT কার্ড -->
           <div class="card" style="margin-bottom: 16px;">
             <div class="card-header">
               <span class="card-header-icon">🏃</span>
               <span class="card-header-title">IPFT রেকর্ড</span>
-              <button class="field-edit-btn" style="margin-left:auto" onclick="openAddTraining('ipft')">+ যোগ করুন</button>
             </div>
             <div class="card-body" id="ipftList" style="padding: 12px;">
               <div style="color:var(--text2);text-align:center;padding:20px;font-size:0.85rem">লোড হচ্ছে...</div>
@@ -567,7 +575,6 @@
             <div class="card-header">
               <span class="card-header-icon">📝</span>
               <span class="card-header-title">RET রেকর্ড</span>
-              <button class="field-edit-btn" style="margin-left:auto" onclick="openAddTraining('ret')">+ যোগ করুন</button>
             </div>
             <div class="card-body" id="retList" style="padding: 12px;">
               <div style="color:var(--text2);text-align:center;padding:20px;font-size:0.85rem">লোড হচ্ছে...</div>
@@ -579,7 +586,6 @@
             <div class="card-header">
               <span class="card-header-icon">⚡</span>
               <span class="card-header-title">Speed March রেকর্ড</span>
-              <button class="field-edit-btn" style="margin-left:auto" onclick="openAddTraining('speedmarch')">+ যোগ করুন</button>
             </div>
             <div class="card-body" id="speedmarchList" style="padding: 12px;">
               <div style="color:var(--text2);text-align:center;padding:20px;font-size:0.85rem">লোড হচ্ছে...</div>
@@ -591,7 +597,6 @@
             <div class="card-header">
               <span class="card-header-icon">💣</span>
               <span class="card-header-title">Grenade Fire রেকর্ড</span>
-              <button class="field-edit-btn" style="margin-left:auto" onclick="openAddTraining('grenade')">+ যোগ করুন</button>
             </div>
             <div class="card-body" id="grenadeList" style="padding: 12px;">
               <div style="color:var(--text2);text-align:center;padding:20px;font-size:0.85rem">লোড হচ্ছে...</div>
@@ -603,7 +608,6 @@
             <div class="card-header">
               <span class="card-header-icon">🔫</span>
               <span class="card-header-title">Field Fire রেকর্ড</span>
-              <button class="field-edit-btn" style="margin-left:auto" onclick="openAddTraining('fieldfire')">+ যোগ করুন</button>
             </div>
             <div class="card-body" id="fieldfireList" style="padding: 12px;">
               <div style="color:var(--text2);text-align:center;padding:20px;font-size:0.85rem">লোড হচ্ছে...</div>
@@ -615,7 +619,6 @@
             <div class="card-header">
               <span class="card-header-icon">🏠</span>
               <span class="card-header-title">Kill House Fire রেকর্ড</span>
-              <button class="field-edit-btn" style="margin-left:auto" onclick="openAddTraining('killhouse')">+ যোগ করুন</button>
             </div>
             <div class="card-body" id="killhouseList" style="padding: 12px;">
               <div style="color:var(--text2);text-align:center;padding:20px;font-size:0.85rem">লোড হচ্ছে...</div>
@@ -627,7 +630,6 @@
             <div class="card-header">
               <span class="card-header-icon">⭐</span>
               <span class="card-header-title">CBTA রেকর্ড</span>
-              <button class="field-edit-btn" style="margin-left:auto" onclick="openAddTraining('cbta')">+ যোগ করুন</button>
             </div>
             <div class="card-body" id="cbtaList" style="padding: 12px;">
               <div style="color:var(--text2);text-align:center;padding:20px;font-size:0.85rem">লোড হচ্ছে...</div>

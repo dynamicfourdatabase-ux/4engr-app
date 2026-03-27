@@ -1315,6 +1315,31 @@ async function doLogin() {
   }
 }
 
+let _userMenuLastToggleTs = 0;
+function toggleUserMenu(event) {
+  if (event) event.stopPropagation();
+  const now = Date.now();
+  if (now - _userMenuLastToggleTs < 300) return; // debounce for mobile double-fire
+  _userMenuLastToggleTs = now;
+  const menu = document.getElementById('userDropdownMenu');
+  if (!menu) return;
+  const isOpen = menu.style.display === 'block';
+  if (isOpen) {
+    menu.style.display = 'none';
+  } else {
+    menu.style.display = 'block';
+    setTimeout(() => {
+      document.addEventListener('click', closeUserMenu, { once: true });
+      document.addEventListener('touchstart', closeUserMenu, { once: true, passive: true });
+    }, 50);
+  }
+}
+
+function closeUserMenu() {
+  const menu = document.getElementById('userDropdownMenu');
+  if (menu) menu.style.display = 'none';
+}
+
 function doLogout() {
   showConfirm('লগআউট করবেন?', () => { stopPendingListener(); auth.signOut(); });
 }
@@ -1692,6 +1717,7 @@ function renderProfile() {
   const COMPANIES = ['৪৮ ফিল্ড কোম্পানী','৪৯ ফিল্ড কোম্পানী','৫০ ফিল্ড কোম্পানী','প্লান্ট কোম্পানী','ব্রীজ কোম্পানী','সদর কোম্পানী','ইএমই'];
   const DISTRICTS = ['ঢাকা','চট্টগ্রাম','সিলেট','রাজশাহী','খুলনা','বরিশাল','রংপুর','ময়মনসিংহ','কুমিল্লা','নোয়াখালী','ফেনী','লক্ষ্মীপুর','চাঁদপুর','ব্রাহ্মণবাড়িয়া','হবিগঞ্জ','মৌলভীবাজার','সুনামগঞ্জ','কিশোরগঞ্জ','নেত্রকোণা','ময়মনসিংহ','জামালপুর','শেরপুর','টাঙ্গাইল','গাজীপুর','নারায়ণগঞ্জ','মুন্সিগঞ্জ','মানিকগঞ্জ','ফরিদপুর','মাদারীপুর','শরীয়তপুর','রাজবাড়ী','গোপালগঞ্জ','নরসিংদী','বগুড়া','রাজশাহী','চাঁপাইনবাবগঞ্জ','নওগাঁ','নাটোর','সিরাজগঞ্জ','পাবনা','জয়পুরহাট','কুষ্টিয়া','মেহেরপুর','চুয়াডাঙ্গা','ঝিনাইদহ','মাগুরা','নড়াইল','যশোর','সাতক্ষীরা','খুলনা','বাগেরহাট','পিরোজপুর','বরিশাল','ভোলা','পটুয়াখালী','বরগুনা','ঝালকাঠি','দিনাজপুর','ঠাকুরগাঁও','পঞ্চগড়','নীলফামারী','লালমনিরহাট','কুড়িগ্রাম','গাইবান্ধা','রংপুর','কক্সবাজার','বান্দরবান','রাঙ্গামাটি','খাগড়াছড়ি'];
   const EDUCATIONS = ['প্রাথমিক (৫ম শ্রেণি)','জুনিয়র স্কুল সার্টিফিকেট (জেএসসি)','মাধ্যমিক (এসএসসি)','উচ্চ মাধ্যমিক (এইচএসসি)','ডিপ্লোমা','ডিগ্রী/অনার্স','মাস্টার্স','অন্যান্য'];
+  const NIYOG_OPTIONS = ['প্রধান করনিক','কিউআইসি','এ শাখা আইসি','জি শাখা আইসি','হিসাব শাখা আইসি','কোম্পানি করণিক','কোম্পানি ডেইলি এনসিও','ব্যাটালিয়ান ডেইলি এনসিও','সিএসএস','সিকিউএমএস','বিএসএম','বিকিউএমএস','প্রাইভেট স্টোরম্যান','টিএনটি স্টোরম্যান','বিডি স্টোরম্যান','দুর্যোগ স্টোরম্যান','এমিনেশন এনসিও','কোত এনসিও','এমটি সার্জেন্ট','প্লান্ট সার্জেন্ট','জেকিউএম','এসএম','কোম্পানি সিনিঃ জেসিও','এ্যাডজুটেন্ট','কিউএম','এস ও টুপি','কোম্পানি কমান্ডার','কোম্পানির রেকি অফিসার','উপ অধিনায়ক','অধিনায়ক'];
   const VEHICLES   = ['মোটর সাইকেল','জীপ','পিকআপ','৩টন লরী','বাস','মাইক্রো','পন্টুন','এ্যাম্বুলেন্স','ফুয়েল ট্যাংকার','ট্রাক ট্রান্সপোর্ট','ডাম্পার','এক্সকাভেটর','রোলার','ট্রাক লোডার','হুইল লোডার','মোটর গ্রেডার','ক্রেন','লাইটিং টাওয়ার','ডোজার','ফ্রক লিফটার','মিক্সার মেশিন','ফুয়েল ব্রাউজার','ওয়াটার ব্রাউজার','এয়ার কম্প্রেশার','হিটার বিটুমিন ডিস্ট্রিবিউটর','অ্যাসফল্ট পেভার মেশিন','কোস্টার','অন্যান্য'];
 
   // Personal fields — keys match roster.html Firestore fields
@@ -1732,7 +1758,7 @@ function renderProfile() {
     { key: 'r_bn',       label: t('পদবী'),                  editable: true, type: 'select', opts: RANKS },
     { key: 'tr_bn',      label: t('ট্রেড'),                 editable: true, type: 'select', opts: TRADES },
     { key: 'co_bn',      label: t('কোম্পানী'),              editable: true },
-    { key: 'niyog',      label: t('নিয়োগ'),                editable: true },
+    { key: 'niyog',      label: t('নিয়োগ'),                editable: true, type: 'select', opts: NIYOG_OPTIONS },
     { key: 'jd',         label: t('ভর্তির তারিখ'),          editable: true },
     { key: 'od',         label: t('শপথের তারিখ'),           editable: true },
     { key: 'promo_date', label: t('প্রমোশনের তারিখ'),       editable: true },
@@ -1749,7 +1775,7 @@ function renderProfile() {
     { key: 'r_bn',       label: t('পদবী'),                   editable: true,  type: 'promotion' },
     { key: 'tr_bn',      label: t('ট্রেড'),                  editable: true,  type: 'select', opts: TRADES },
     { key: 'co_bn',      label: t('কোম্পানী'),               editable: true,  type: 'select', opts: COMPANIES },
-    { key: 'niyog',      label: t('নিয়োগ'),                 editable: true },
+    { key: 'niyog',      label: t('নিয়োগ'),                 editable: true, type: 'select', opts: NIYOG_OPTIONS },
     { key: 'jd',         label: t('ভর্তির তারিখ'),           editable: true },
     { key: 'od',         label: t('শপথের তারিখ'),            editable: true },
     { key: 'promo_date', label: t('প্রমোশনের তারিখ'),        editable: true },
@@ -2119,18 +2145,45 @@ async function saveModal() {
     const trDocId = currentEditField.trainingId;
     const result = handleSaveTraining(type);
     if (typeof result === 'string') { showToast(result, 'error'); btn.textContent=t('সংরক্ষণ করুন'); btn.disabled=false; return; }
-    if (userRole !== 'admin' && userRole !== 'superadmin') { showToast(t('শুধুমাত্র Admin সম্পাদনা করতে পারবেন'), 'error'); btn.textContent=t('সংরক্ষণ করুন'); btn.disabled=false; return; }
-    const docId = currentMemberData.id || String(currentMemberData.no || '').replace(/[^A-Z0-9]/gi, '');
+    let docId = String(currentMemberData.no || currentMemberData.armyNo || currentMemberData.id || '').replace(/[^A-Z0-9]/gi, '');
+    if (/^\d+$/.test(docId) && docId.length <= 6) docId = docId.padStart(6, '0');
+    const isAdmin = userRole === 'admin' || userRole === 'superadmin';
     try {
-      await db.collection('members').doc(docId).collection('training').doc(trDocId).update({
-        ...result,
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-        updatedBy: currentUser.uid,
-      });
-      if (window._trCache) window._trCache[trDocId] = { ...result };
-      closeModal();
-      showToast('✅ ' + t('রেকর্ড আপডেট হয়েছে'), 'success');
-      loadTraining(type);
+      if (isAdmin) {
+        await db.collection('members').doc(docId).collection('training').doc(trDocId).update({
+          ...result,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          updatedBy: currentUser.uid,
+        });
+        if (window._trCache) window._trCache[trDocId] = { ...result };
+        closeModal();
+        showToast('✅ ' + t('রেকর্ড আপডেট হয়েছে'), 'success');
+        loadTraining(type);
+      } else {
+        // Non-admin — submit edit request
+        const oldData = (window._trCache && window._trCache[trDocId]) || {};
+        const cleanResult = { ...(result || {}) };
+        delete cleanResult.updatedAt;
+        await db.collection('editRequests').add({
+          memberId: docId,
+          memberNo: currentMemberData.no || currentMemberData.armyNo || '',
+          memberName: currentMemberData.bn || currentMemberData.en || currentMemberData.armyNo || '',
+          memberCompany: currentMemberData.co_bn || '',
+          field: 'training_edit_' + trDocId,
+          fieldLabel: t('প্রশিক্ষণ সংশোধন') + ': ' + type.toUpperCase(),
+          oldValue: JSON.stringify(oldData),
+          newValue: JSON.stringify(cleanResult),
+          requestType: 'editTraining',
+          trainingType: type,
+          trainingDocId: trDocId,
+          requestedBy: currentUser.uid,
+          status: 'pending',
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+        closeModal();
+        showToast('⏳ ' + t('প্রশিক্ষণ সংশোধনের অনুরোধ জমা হয়েছে — Admin অনুমোদনের অপেক্ষায়'), 'success');
+        checkPendingStatus();
+      }
     } catch(e) { showToast('ব্যর্থ: ' + e.message, 'error'); }
     btn.textContent=t('সংরক্ষণ করুন'); btn.disabled=false; return;
   }
@@ -2798,22 +2851,60 @@ async function loadPendingPage() {
       else if (r.requestType === 'editCourse' && r.courseEditExtra) {
         dispVal = r.courseEditExtra.nameBn || dispVal.split(',').pop().trim();
       }
-      
-      if (dispVal && dispVal.length > 50) {
-        dispVal = dispVal.substring(0, 50) + '...';
+      // ========== ট্রেনিং রেকর্ডের জন্য আলাদা ডিসপ্লে ==========
+      else if ((typeof r.field === 'string' && r.field.startsWith('training_')) || r.requestType === 'editTraining' || r.requestType === 'addTraining') {
+        const isBn = appLang !== 'en';
+        const qualityMap = { Good: isBn ? 'ভালো' : 'Good', 'Very Good': isBn ? 'অতি উত্তম' : 'Very Good' };
+        const resultMap = { Passed: isBn ? 'উত্তীর্ণ' : 'Passed', Failed: isBn ? 'অকৃতকার্য' : 'Failed' };
+        const VALID_TR = new Set(['ipft','ret','speedmarch','grenade','fieldfire','killhouse','cbta']);
+        const rawType = r.trainingType || (r.field||'').replace('training_edit_','').replace('training_add_','').replace('training_','');
+        const trainingType = VALID_TR.has(rawType) ? rawType : null;
+        const fmtTrain = (raw, tp) => {
+          try {
+            const d = typeof raw === 'string' ? JSON.parse(raw || '{}') : (raw || {});
+            // always use JSON's own type as primary — tp is only fallback
+            const t = d.type || (tp && VALID_TR.has(tp) ? tp : null) || '';
+            if (t === 'ipft')       return `${d.fromDate||'—'} → ${d.toDate||'—'} | ${isBn?'ফলাফল':'Result'}: ${resultMap[d.result]||d.result||'—'}`;
+            if (t === 'ret')        return `${isBn?'তারিখ':'Date'}: ${d.date||'—'} | ${isBn?'নম্বর':'Marks'}: ${d.marks||'—'} | ${isBn?'ফলাফল':'Result'}: ${resultMap[d.result]||d.result||'—'}`;
+            if (t === 'speedmarch') return `${isBn?'তারিখ':'Date'}: ${d.date||'—'}`;
+            if (t === 'grenade')    return `${isBn?'তারিখ':'Date'}: ${d.date||'—'} | ${isBn?'অংশগ্রহণ':'Parts'}: ${d.participations||'—'}`;
+            if (t === 'fieldfire')  return `${d.fromDate||'—'} → ${d.toDate||'—'} | ${isBn?'অস্ত্র':'Weapons'}: ${Array.isArray(d.weapons)?d.weapons.join(', '):(d.weapons||'—')}`;
+            if (t === 'killhouse')  return `${isBn?'তারিখ':'Date'}: ${d.date||'—'}`;
+            if (t === 'cbta')       return `${isBn?'তারিখ':'Date'}: ${d.date||'—'} | ${isBn?'গুণমান':'Quality'}: ${qualityMap[d.quality]||d.quality||'—'}`;
+            return null;
+          } catch(_) { return null; }
+        };
+        const fmtNew = fmtTrain(r.newValue, trainingType);
+        if (fmtNew !== null) dispVal = fmtNew;
+        if (r.oldValue) {
+          const fmtOld = fmtTrain(r.oldValue, trainingType);
+          if (fmtOld !== null) {
+            oldVal = fmtOld;
+            oldValueHtml = `<div style="font-size:0.75rem;color:var(--text3);text-decoration:line-through;margin-bottom:6px;padding:4px 6px;background:rgba(224,85,85,0.08);border-radius:6px">${fmtOld}</div>`;
+          }
+        }
       }
-      if (oldVal && oldVal.length > 50) oldVal = oldVal.substring(0, 50) + '...';
+
+      if (typeof dispVal === 'string' && dispVal.length > 80) {
+        dispVal = dispVal.substring(0, 80) + '...';
+      }
+      if (typeof oldVal === 'string' && oldVal.length > 80) oldVal = oldVal.substring(0, 80) + '...';
 
       const badgeColor  = isEdit || r.requestType === 'courseResult' ? 'var(--info)' : 'var(--warn)';
       const badgeBg     = isEdit || r.requestType === 'courseResult' ? 'rgba(56,139,253,0.12)' : 'rgba(210,153,34,0.12)';
       const badgeBorder = isEdit || r.requestType === 'courseResult' ? 'rgba(56,139,253,0.35)' : 'rgba(210,153,34,0.35)';
       let badgeText   = isEdit ? '✏️ সম্পাদনা' : r.requestType === 'courseResult' ? '📊 ফলাফল/অবস্থান' : '⏳ নতুন';
       if (r.requestType === 'editLeave') badgeText = '✏️ ছুটি সংশোধন';
+      if (r.requestType === 'editTraining') badgeText = '✏️ ট্রেনিং সংশোধন';
+      if (r.requestType === 'addTraining') badgeText = '⏳ নতুন ট্রেনিং';
 
       html += `<div style="background:var(--bg2);border:1px solid var(--border2);border-left:3px solid ${badgeColor};border-radius:var(--radius-sm);padding:13px 14px;margin-bottom:10px">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px">
           <div style="font-size:0.88rem;font-weight:700;color:var(--text)">${fieldName}</div>
-          <span style="font-size:0.62rem;background:${badgeBg};border:1px solid ${badgeBorder};color:${badgeColor};border-radius:10px;padding:2px 8px;font-family:'Rajdhani',sans-serif;font-weight:700;white-space:nowrap">${badgeText}</span>
+          <div style="display:flex;align-items:center;gap:5px;flex-shrink:0">
+            <span style="font-size:0.62rem;background:${badgeBg};border:1px solid ${badgeBorder};color:${badgeColor};border-radius:10px;padding:2px 8px;font-family:'Rajdhani',sans-serif;font-weight:700;white-space:nowrap">${badgeText}</span>
+            <button onclick="cancelPendingRequest('${d.id}')" style="padding:2px 8px;background:rgba(224,85,85,0.1);border:1px solid rgba(224,85,85,0.35);border-radius:8px;color:var(--danger);font-size:0.6rem;font-family:'Rajdhani',sans-serif;font-weight:700;cursor:pointer;white-space:nowrap;line-height:1.6" title="অনুরোধ প্রত্যাহার">✕</button>
+          </div>
         </div>
         ${oldValueHtml || (oldVal ? `<div style="font-size:0.78rem;color:var(--text3);text-decoration:line-through;margin-bottom:3px">${oldVal}</div>` : '')}
         <div style="font-size:0.88rem;color:var(--gold);font-weight:600">${dispVal}</div>
@@ -2826,6 +2917,19 @@ async function loadPendingPage() {
 
   } catch(e) {
     box.innerHTML = `<div style="color:var(--danger);padding:20px;font-size:0.82rem">লোড ব্যর্থ: ${e.message}</div>`;
+  }
+}
+
+async function cancelPendingRequest(docId) {
+  const ok = await confirmAsync('এই অনুরোধটি প্রত্যাহার করবেন?', { danger: true, icon: '🗑️', title: 'অনুরোধ বাতিল' });
+  if (!ok) return;
+  try {
+    await db.collection('editRequests').doc(docId).delete();
+    showToast('✅ অনুরোধ প্রত্যাহার হয়েছে', 'success');
+    checkPendingStatus();
+    if (document.getElementById('page-pending')?.classList.contains('active')) loadPendingPage();
+  } catch(e) {
+    showToast('প্রত্যাহার ব্যর্থ: ' + (e.message || e.code), 'error');
   }
 }
 
@@ -3238,7 +3342,7 @@ function editCourseByIdx(idx) {
     </div>
     <div class="form-group">
       <label class="form-label">${isBn ? 'ফলাফল' : 'Result'}</label>
-      <select class="form-input" id="editCourseResult" style="background:var(--dark3)">
+      <select class="form-input" id="editCourseResult" style="background:var(--bg3)">
         <option value="">— ${isBn ? 'নির্বাচন করুন' : 'Select'} —</option>
         <option value="pass" ${curRes==='pass'?'selected':''} >${isBn?'পাস':'Pass'}</option>
         <option value="alpha" ${curRes==='alpha'?'selected':''}>Alpha</option>
@@ -3281,7 +3385,7 @@ function openAddCourse() {
     </div>
     <div class="form-group">
       <label class="form-label">${isBn ? 'ফলাফল' : 'Result'}</label>
-      <select class="form-input" id="newCourseResult" style="background:var(--dark3)">
+      <select class="form-input" id="newCourseResult" style="background:var(--bg3)">
         <option value="">— ${isBn ? 'নির্বাচন করুন' : 'Select'} —</option>
         <option value="pass">${isBn ? 'পাস' : 'Pass'}</option>
         <option value="alpha">Alpha</option>
@@ -3790,21 +3894,48 @@ function renderTrainingCard(type, data, id, isAdmin) {
     </div>`;
   }
 
-  return `<div style="background:var(--dark3);border:1px solid var(--border2);border-radius:12px;padding:12px 14px;margin-bottom:10px">
+  return `<div style="background:var(--bg3);border:1px solid var(--border2);border-radius:12px;padding:12px 14px;margin-bottom:10px">
     <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
       <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">${resultBadge}</div>
-      ${isAdmin ? `<div style="display:flex;gap:5px;flex-shrink:0">
+      <div style="display:flex;gap:5px;flex-shrink:0">
         <button onclick="openEditTraining('${type}','${id}')"
           style="background:rgba(63,185,80,0.1);border:1px solid rgba(63,185,80,0.3);color:var(--success);cursor:pointer;font-size:0.7rem;padding:3px 10px;border-radius:6px;font-family:'Rajdhani',sans-serif;font-weight:700;white-space:nowrap">
           ✏️ ${tr('সম্পাদনা','Edit')}</button>
-        <button onclick="deleteTraining('${type}','${id}')"
+        ${isAdmin ? `<button onclick="deleteTraining('${type}','${id}')"
           style="background:rgba(224,85,85,0.1);border:1px solid rgba(224,85,85,0.3);color:var(--danger);cursor:pointer;font-size:0.7rem;padding:3px 10px;border-radius:6px;font-family:'Rajdhani',sans-serif;font-weight:700;white-space:nowrap">
-          🗑️ ${tr('মুছুন','Delete')}</button>
-      </div>` : ''}
+          🗑️ ${tr('মুছুন','Delete')}</button>` : ''}
+      </div>
     </div>
     <div style="height:1px;background:linear-gradient(90deg,transparent,rgba(200,169,74,0.3),transparent);margin:10px 0 0 0"></div>
     ${infoGrid}
   </div>`;
+}
+
+function openAddTrainingSelect() {
+  const isBn = appLang !== 'en';
+  const types = [
+    { key: 'ipft', icon: '🏃', label: 'IPFT' },
+    { key: 'ret', icon: '📝', label: 'RET' },
+    { key: 'speedmarch', icon: '⚡', label: isBn ? 'স্পিড মার্চ' : 'Speed March' },
+    { key: 'grenade', icon: '💣', label: isBn ? 'গ্রেনেড ফায়ার' : 'Grenade Fire' },
+    { key: 'fieldfire', icon: '🔫', label: isBn ? 'ফিল্ড ফায়ার' : 'Field Fire' },
+    { key: 'killhouse', icon: '🏠', label: isBn ? 'কিল হাউস ফায়ার' : 'Kill House Fire' },
+    { key: 'cbta', icon: '⭐', label: 'CBTA' },
+  ];
+  document.getElementById('modalTitle').textContent = isBn ? 'প্রশিক্ষণ যোগ করুন' : 'Add Training';
+  document.getElementById('modalBody').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:4px 0">
+      ${types.map(tp => `
+        <button onclick="closeModal();setTimeout(()=>openAddTraining('${tp.key}'),80)"
+          style="background:var(--bg3);border:1px solid var(--border2);border-radius:10px;padding:14px 10px;cursor:pointer;text-align:center;transition:all 0.2s;color:var(--text)"
+          onmouseover="this.style.borderColor='rgba(200,169,74,0.5)';this.style.background='rgba(200,169,74,0.08)'"
+          onmouseout="this.style.borderColor='var(--border2)';this.style.background='var(--dark3)'">
+          <div style="font-size:1.4rem;margin-bottom:6px">${tp.icon}</div>
+          <div style="font-family:'Rajdhani',sans-serif;font-size:0.78rem;font-weight:700;letter-spacing:1px;color:var(--gold)">${tp.label}</div>
+        </button>`).join('')}
+    </div>`;
+  currentEditField = { key: '_selectTrainingType' };
+  document.getElementById('editModal').classList.add('open');
 }
 
 function openAddTraining(type) {
@@ -3825,16 +3956,16 @@ function openAddTraining(type) {
     html = `<div class="form-group">
       <div class="form-group">
         <label class="form-label">${t('হইতে তারিখ')}</label>
-        <input type="text" class="form-input" id="trFromDate" placeholder="${t('01/01/2025')}" style="background:var(--dark3)">
+        <input type="text" class="form-input" id="trFromDate" placeholder="${t('01/01/2025')}" style="background:var(--bg3)">
       </div>
       <div class="form-group">
         <label class="form-label">${t('পর্যন্ত তারিখ')}</label>
-        <input type="text" class="form-input" id="trToDate" placeholder="${t('07/01/2025')}" style="background:var(--dark3)">
+        <input type="text" class="form-input" id="trToDate" placeholder="${t('07/01/2025')}" style="background:var(--bg3)">
       </div>
     </div>
     <div class="form-group">
       <label class="form-label">${t('ফলাফল')}</label>
-      <select class="form-input" id="trResult" style="background:var(--dark3)" onchange="toggleIpftFails(this.value)">
+      <select class="form-input" id="trResult" style="background:var(--bg3)" onchange="toggleIpftFails(this.value)">
         <option value="Passed">${t('উত্তীর্ণ')}</option>
         <option value="Failed">${t('অকৃতকার্য')}</option>
       </select>
@@ -3842,7 +3973,7 @@ function openAddTraining(type) {
     <div id="ipftFailSection" style="display:none;margin-top:10px">
       <label class="form-label" style="color:var(--danger)">${t('যেসব বিষয়ে অকৃতকার্য (সব নির্বাচন করুন):')}</label>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px">
-        ${IPFT_SUBJECTS.map((s, i) => `<label style="display:flex;align-items:center;gap:6px;font-size:0.82rem;cursor:pointer;padding:6px 8px;background:var(--dark3);border-radius:6px;border:1px solid var(--border2)">
+        ${IPFT_SUBJECTS.map((s, i) => `<label style="display:flex;align-items:center;gap:6px;font-size:0.82rem;cursor:pointer;padding:6px 8px;background:var(--bg3);border-radius:6px;border:1px solid var(--border2)">
           <input type="checkbox" id="fail_${i}" value="${s}"> ${ipftSubjLabels[s] || s}
         </label>`).join('')}
       </div>
@@ -3850,15 +3981,15 @@ function openAddTraining(type) {
   } else if (type === 'ret') {
     html = `<div class="form-group">
       <label class="form-label">${t('তারিখ (DD/MM/YYYY)')}</label>
-      <input type="text" class="form-input" id="trDate" placeholder="${t('01/01/2025')}" style="background:var(--dark3)">
+      <input type="text" class="form-input" id="trDate" placeholder="${t('01/01/2025')}" style="background:var(--bg3)">
     </div>
     <div class="form-group">
       <label class="form-label">${t('প্রাপ্ত নম্বর')}</label>
-      <input type="number" class="form-input" id="trMarks" placeholder="${t('যেমন ৪৫')}" style="background:var(--dark3)">
+      <input type="number" class="form-input" id="trMarks" placeholder="${t('যেমন ৪৫')}" style="background:var(--bg3)">
     </div>
     <div class="form-group">
       <label class="form-label">${t('ফলাফল')}</label>
-      <select class="form-input" id="trResult" style="background:var(--dark3)">
+      <select class="form-input" id="trResult" style="background:var(--bg3)">
         <option value="Passed">${t('উত্তীর্ণ')}</option>
         <option value="Failed">${t('অকৃতকার্য')}</option>
       </select>
@@ -3866,32 +3997,32 @@ function openAddTraining(type) {
   } else if (type === 'speedmarch') {
     html = `<div class="form-group">
       <label class="form-label">${t('অংশগ্রহণের তারিখ (DD/MM/YYYY)')}</label>
-      <input type="text" class="form-input" id="trDate" placeholder="${t('01/01/2025')}" style="background:var(--dark3)">
+      <input type="text" class="form-input" id="trDate" placeholder="${t('01/01/2025')}" style="background:var(--bg3)">
     </div>`;
   } else if (type === 'grenade') {
     html = `<div class="form-group">
       <label class="form-label">${t('তারিখ (DD/MM/YYYY)')}</label>
-      <input type="text" class="form-input" id="trDate" placeholder="${t('01/01/2025')}" style="background:var(--dark3)">
+      <input type="text" class="form-input" id="trDate" placeholder="${t('01/01/2025')}" style="background:var(--bg3)">
     </div>
     <div class="form-group">
       <label class="form-label">${t('অংশগ্রহণের সংখ্যা')}</label>
-      <input type="number" class="form-input" id="trParticipations" placeholder="${t('যেমন ৫')}" min="1" style="background:var(--dark3)">
+      <input type="number" class="form-input" id="trParticipations" placeholder="${t('যেমন ৫')}" min="1" style="background:var(--bg3)">
     </div>`;
   } else if (type === 'fieldfire') {
     html = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
       <div class="form-group">
         <label class="form-label">${t('হইতে তারিখ')}</label>
-        <input type="text" class="form-input" id="trFromDate" placeholder="${t('01/01/2025')}" style="background:var(--dark3)">
+        <input type="text" class="form-input" id="trFromDate" placeholder="${t('01/01/2025')}" style="background:var(--bg3)">
       </div>
       <div class="form-group">
         <label class="form-label">${t('পর্যন্ত তারিখ')}</label>
-        <input type="text" class="form-input" id="trToDate" placeholder="${t('07/01/2025')}" style="background:var(--dark3)">
+        <input type="text" class="form-input" id="trToDate" placeholder="${t('07/01/2025')}" style="background:var(--bg3)">
       </div>
     </div>
     <div class="form-group">
       <label class="form-label">${t('ব্যবহৃত অস্ত্র (সব নির্বাচন করুন):')}</label>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px">
-        ${WEAPONS.map(w => `<label style="display:flex;align-items:center;gap:6px;font-size:0.82rem;cursor:pointer;padding:6px 8px;background:var(--dark3);border-radius:6px;border:1px solid var(--border2)">
+        ${WEAPONS.map(w => `<label style="display:flex;align-items:center;gap:6px;font-size:0.82rem;cursor:pointer;padding:6px 8px;background:var(--bg3);border-radius:6px;border:1px solid var(--border2)">
           <input type="checkbox" id="wpn_${w}" value="${w}"> ${w}
         </label>`).join('')}
       </div>
@@ -3899,16 +4030,16 @@ function openAddTraining(type) {
   } else if (type === 'killhouse') {
     html = `<div class="form-group">
       <label class="form-label">${t('তারিখ (DD/MM/YYYY)')}</label>
-      <input type="text" class="form-input" id="trDate" placeholder="${t('01/01/2025')}" style="background:var(--dark3)">
+      <input type="text" class="form-input" id="trDate" placeholder="${t('01/01/2025')}" style="background:var(--bg3)">
     </div>`;
   } else if (type === 'cbta') {
     html = `<div class="form-group">
       <label class="form-label">${t('তারিখ (DD/MM/YYYY)')}</label>
-      <input type="text" class="form-input" id="trDate" placeholder="${t('01/01/2025')}" style="background:var(--dark3)">
+      <input type="text" class="form-input" id="trDate" placeholder="${t('01/01/2025')}" style="background:var(--bg3)">
     </div>
     <div class="form-group">
       <label class="form-label">${t('গুণমান')}</label>
-      <select class="form-input" id="trQuality" style="background:var(--dark3)">
+      <select class="form-input" id="trQuality" style="background:var(--bg3)">
         <option value="">-- ${t('নির্বাচন করুন')} --</option>
         <option value="Good">${t('ভালো')}</option>
         <option value="Very Good">${t('অতি উত্তম')}</option>
@@ -3943,6 +4074,18 @@ function openEditTraining(type, id) {
         .replace('যোগ করুন', 'সম্পাদনা করুন')
         .replace('Add', 'Edit');
     }
+        // Non-admin info banner
+        const isAdm = userRole === 'admin' || userRole === 'superadmin';
+        const existingBanner = document.querySelector('#modalBody .tr-edit-info-banner');
+        if (!isAdm && !existingBanner) {
+          const isBn = appLang !== 'en';
+          const bannerDiv = document.createElement('div');
+          bannerDiv.className = 'tr-edit-info-banner';
+          bannerDiv.style.cssText = 'background:rgba(56,139,253,0.08);border:1px solid rgba(56,139,253,0.2);border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:0.78rem;color:var(--info)';
+          bannerDiv.textContent = 'ℹ️ ' + (isBn ? 'সংশোধনের পর Admin অনুমোদন লাগবে।' : 'Approval required after edit.');
+          const modalBody = document.getElementById('modalBody');
+          if (modalBody) modalBody.prepend(bannerDiv);
+        }
     // Pre-fill fields
     const sv = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
     if (type === 'ipft') {
@@ -4115,48 +4258,59 @@ async function loadNotifications() {
       const renderItem = (r, statusColor, statusBg, icon, statusText) => {
         const dt = r.createdAt?.toDate ? r.createdAt.toDate().toLocaleDateString('bn-BD') : '—';
         const approvedDt = r.approvedAt?.toDate ? r.approvedAt.toDate().toLocaleDateString('bn-BD') : '';
-        // display value
-        let dispVal = r.newValue || '—';
-        if (r.requestType === 'addCourse' && r.courseExtra) {
-          dispVal = r.courseExtra.nameBn || r.courseExtra.nameEn || dispVal.split(',').pop().trim();
-      } else if (typeof r.field === 'string' && r.field.startsWith('training_') && r.newValue) {
-        try {
-          const bn = appLang !== 'en';
-          const type = r.field.replace('training_', '');
-          const data = typeof r.newValue === 'string' ? JSON.parse(r.newValue || '{}') : (r.newValue || {});
-          const qualityMap = { Good: bn ? 'ভালো' : 'Good', 'Very Good': bn ? 'অতি উত্তম' : 'Very Good' };
-          const resultMap = { Passed: bn ? 'উত্তীর্ণ' : 'Passed', Failed: bn ? 'অকৃতকার্য' : 'Failed' };
+        const bn = appLang !== 'en';
+        const qualityMap = { Good: bn ? 'ভালো' : 'Good', 'Very Good': bn ? 'অতি উত্তম' : 'Very Good' };
+        const resultMap = { Passed: bn ? 'উত্তীর্ণ' : 'Passed', Failed: bn ? 'অকৃতকার্য' : 'Failed' };
 
-          if (type === 'ipft') {
-            const res = resultMap[data.result] || (data.result || '—');
-            dispVal = `${data.fromDate || '—'} → ${data.toDate || '—'} | ${bn ? 'ফলাফল' : 'Result'}: ${res}`;
-          } else if (type === 'ret') {
-            const res = resultMap[data.result] || (data.result || '—');
-            dispVal = `${bn ? 'তারিখ' : 'Date'}: ${data.date || '—'} | ${bn ? 'নম্বর' : 'Marks'}: ${data.marks || '—'} | ${bn ? 'ফলাফল' : 'Result'}: ${res}`;
-          } else if (type === 'speedmarch') {
-            dispVal = `${bn ? 'তারিখ' : 'Date'}: ${data.date || '—'}`;
-          } else if (type === 'grenade') {
-            dispVal = `${bn ? 'তারিখ' : 'Date'}: ${data.date || '—'} | ${bn ? 'অংশগ্রহণ' : 'Participations'}: ${data.participations || '—'}`;
-          } else if (type === 'fieldfire') {
-            const weapons = Array.isArray(data.weapons) ? data.weapons.join(', ') : (data.weapons || '—');
-            dispVal = `${data.fromDate || '—'} → ${data.toDate || '—'} | ${bn ? 'অস্ত্র' : 'Weapons'}: ${weapons}`;
-          } else if (type === 'killhouse') {
-            dispVal = `${bn ? 'তারিখ' : 'Date'}: ${data.date || '—'}`;
-          } else if (type === 'cbta') {
-            const qTxt = qualityMap[data.quality] || (data.quality || '—');
-            dispVal = `${bn ? 'তারিখ' : 'Date'}: ${data.date || '—'} | ${bn ? 'গুণমান' : 'Quality'}: ${qTxt}`;
-          } else {
-            dispVal = bn ? JSON.stringify(data) : JSON.stringify(data);
+        const _VALID_TR2 = new Set(['ipft','ret','speedmarch','grenade','fieldfire','killhouse','cbta']);
+        const fmtTrainingData = (raw, type) => {
+          try {
+            const d = typeof raw === 'string' ? JSON.parse(raw || '{}') : (raw || {});
+            const t2 = d.type || (type && _VALID_TR2.has(type) ? type : null) || '';
+            if (t2 === 'ipft') return `${d.fromDate||'—'} → ${d.toDate||'—'} | ${bn?'ফলাফল':'Result'}: ${resultMap[d.result]||d.result||'—'}`;
+            if (t2 === 'ret') return `${bn?'তারিখ':'Date'}: ${d.date||'—'} | ${bn?'নম্বর':'Marks'}: ${d.marks||'—'} | ${bn?'ফলাফল':'Result'}: ${resultMap[d.result]||d.result||'—'}`;
+            if (t2 === 'speedmarch') return `${bn?'তারিখ':'Date'}: ${d.date||'—'}`;
+            if (t2 === 'grenade') return `${bn?'তারিখ':'Date'}: ${d.date||'—'} | ${bn?'অংশগ্রহণ':'Parts'}: ${d.participations||'—'}`;
+            if (t2 === 'fieldfire') return `${d.fromDate||'—'} → ${d.toDate||'—'} | ${bn?'অস্ত্র':'Weapons'}: ${Array.isArray(d.weapons)?d.weapons.join(', '):(d.weapons||'—')}`;
+            if (t2 === 'killhouse') return `${bn?'তারিখ':'Date'}: ${d.date||'—'}`;
+            if (t2 === 'cbta') return `${bn?'তারিখ':'Date'}: ${d.date||'—'} | ${bn?'গুণমান':'Quality'}: ${qualityMap[d.quality]||d.quality||'—'}`;
+            return null;
+          } catch(_) { return null; }
+        };
+
+        // display value + optional old value
+        let dispVal = r.newValue || '—';
+        let oldDispVal = '';
+        let isTraining = false;
+
+        if (r.requestType === 'addCourse' && r.courseExtra) {
+          dispVal = r.courseExtra.nameBn || r.courseExtra.nameEn || String(r.newValue||'').split(',').pop().trim();
+        } else if ((typeof r.field === 'string' && r.field.startsWith('training_')) || r.requestType === 'editTraining') {
+          isTraining = true;
+          const trainingType = r.trainingType || (r.field||'').replace('training_edit_','').replace('training_','');
+          const fmtNew = fmtTrainingData(r.newValue, trainingType);
+          if (fmtNew !== null) dispVal = fmtNew;
+          if (r.oldValue) {
+            const fmtOld = fmtTrainingData(r.oldValue, trainingType);
+            if (fmtOld !== null) oldDispVal = fmtOld;
           }
-        } catch(_) {}
-        } else if (dispVal.length > 50) { dispVal = dispVal.substring(0, 50) + '...'; }
-        return `<div style="background:var(--dark3);border:1px solid ${statusBg};border-left:3px solid ${statusColor};border-radius:10px;padding:11px 14px;margin-bottom:8px">`
+        } else {
+          // regular field — show old value crossed out if available
+          if (r.oldValue && String(r.oldValue).trim()) oldDispVal = String(r.oldValue).trim();
+          if (String(dispVal).length > 80) dispVal = String(dispVal).substring(0, 80) + '…';
+        }
+
+        const oldValHtml = oldDispVal
+          ? `<div style="font-size:0.78rem;color:var(--text3);text-decoration:line-through;margin-bottom:3px">${oldDispVal}</div>`
+          : '';
+        return `<div style="background:var(--bg3);border:1px solid ${statusBg};border-left:3px solid ${statusColor};border-radius:10px;padding:11px 14px;margin-bottom:8px">`
           + `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px">`
           + `<div style="font-size:0.85rem;font-weight:600;color:var(--text)">${r.fieldLabel || r.field || '—'}</div>`
           + `<span style="font-size:0.65rem;background:${statusBg};color:${statusColor};border-radius:10px;padding:2px 8px;font-family:'Rajdhani',sans-serif;font-weight:700;white-space:nowrap">${icon} ${statusText}</span>`
           + `</div>`
-          + `<div style="font-size:0.8rem;color:var(--text2)">নতুন মান: <span style="color:var(--text);font-weight:600">${dispVal}</span></div>`
-          + (approvedDt ? `<div style="font-size:0.68rem;color:var(--text3);margin-top:4px">অনুমোদন: ${approvedDt}</div>` : `<div style="font-size:0.68rem;color:var(--text3);margin-top:4px">আবেদন: ${dt}</div>`)
+          + oldValHtml
+          + `<div style="font-size:0.82rem;color:var(--text);font-weight:600">${dispVal}</div>`
+          + (approvedDt ? `<div style="font-size:0.68rem;color:var(--text3);margin-top:4px">অনুমোদন: ${approvedDt}</div>` : `<div style="font-size:0.68rem;color:var(--text3);margin-top:5px">আবেদন: ${dt}</div>`)
           + `</div>`;
       };
 
@@ -5568,7 +5722,7 @@ function buildAdminFieldsHTML(fields) {
         ${input}
       </div>`;
     } else if (f.type === 'select') {
-      input = `<select class="admin-field-input" id="afield_${f.key}" style="background:var(--dark3)">
+      input = `<select class="admin-field-input" id="afield_${f.key}" style="background:var(--bg3)">
         ${f.opts.map(o => `<option value="${o}" ${val===o?'selected':''}>${o}</option>`).join('')}
       </select>`;
     } else if (f.type === 'textarea') {
@@ -5617,7 +5771,7 @@ function renderAdminCourseFields() {
   document.getElementById('adminCoursesFields').innerHTML = courses.map((course, i) => {
     const currentResult = results['course_' + i] || '';
     const currentPos = results['pos_' + i] || '';
-    return `<div style="background:var(--dark3);border:1px solid var(--border2);border-radius:10px;padding:12px;margin-bottom:10px">
+    return `<div style="background:var(--bg3);border:1px solid var(--border2);border-radius:10px;padding:12px;margin-bottom:10px">
       <div style="font-size:0.88rem;font-weight:600;margin-bottom:8px">📋 ${course}</div>
       <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:8px">
         <span style="font-size:0.72rem;color:var(--text2);font-family:'Rajdhani',sans-serif;letter-spacing:1px">ফলাফল:</span>
@@ -6066,7 +6220,16 @@ async function loadAdminData() {
       db.collection('users').where('role', 'in', ['admin','superadmin','subadmin']).get(),
     ]);
 
-    document.getElementById('st-total').textContent = members.size;
+    // Admin: শুধু নিজের কোম্পানির সদস্য count করবে
+    let totalCount = members.size;
+    if (userRole === 'admin') {
+      const adminProfile = await db.collection('adminProfiles').doc(currentUser.uid).get();
+      const adminCompany = adminProfile.exists ? adminProfile.data().co_bn || '' : '';
+      if (adminCompany) {
+        totalCount = members.docs.filter(d => (d.data().co_bn || '') === adminCompany).length;
+      }
+    }
+    document.getElementById('st-total').textContent = totalCount;
     document.getElementById('st-pending').textContent = pendingDocs.length;
     document.getElementById('st-admins').textContent = admins.size;
 
@@ -6191,11 +6354,16 @@ function renderPendingList(docs) {
       console.warn('Parse leave data error:', e);
     }
   } else {
-    // Training add request — ugly JSON দেখাবে না
-    if (typeof it.field === 'string' && it.field.startsWith('training_') && it.newValue) {
+    // Training request — ugly JSON দেখাবে না (addTraining, editTraining, field starts with training_)
+    const isTrainingReq = (typeof it.field === 'string' && it.field.startsWith('training_'))
+      || it.requestType === 'editTraining' || it.requestType === 'addTraining';
+    if (isTrainingReq && it.newValue) {
       try {
-        const type = it.field.replace('training_', '');
         const data = JSON.parse(it.newValue || '{}');
+        // type: always prefer JSON's own type field, then trainingType, then field suffix
+        const VALID_TR = new Set(['ipft','ret','speedmarch','grenade','fieldfire','killhouse','cbta']);
+        const rawType = it.trainingType || (it.field||'').replace('training_edit_','').replace('training_add_','').replace('training_','');
+        const type = data.type || (VALID_TR.has(rawType) ? rawType : '') || '';
         const bn = appLang !== 'en';
 
         const qualityMap = { Good: bn ? 'ভালো' : 'Good', 'Very Good': bn ? 'অতি উত্তম' : 'Very Good' };
@@ -6244,8 +6412,24 @@ function renderPendingList(docs) {
               <div><span style="color:var(--text2)">${bn?'তারিখ':'Date'}:</span> <strong>${data.date || '—'}</strong></div>
               <div><span style="color:var(--text2)">${bn?'গুণমান':'Quality'}:</span> <strong>${qTxt}</strong></div>
             </div>`;
-        } else {
-          displayVal = data ? (bn ? JSON.stringify(data) : JSON.stringify(data)) : it.newValue;
+        } else if (type) {
+          // known type but unhandled — show key fields
+          displayVal = `<span style="font-size:0.85rem">${type.toUpperCase()}</span>`;
+        }
+        // old value formatting for editTraining
+        if (it.oldValue && it.requestType === 'editTraining') {
+          try {
+            const od = JSON.parse(it.oldValue || '{}');
+            const otype = od.type || type || '';
+            let oldFmt = '';
+            if (otype === 'ipft') oldFmt = `${od.fromDate||'—'} → ${od.toDate||'—'} | ${resultMap[od.result]||od.result||'—'}`;
+            else if (otype === 'ret') oldFmt = `${od.date||'—'} | ${od.marks||'—'}`;
+            else if (otype === 'speedmarch' || otype === 'killhouse') oldFmt = od.date||'—';
+            else if (otype === 'grenade') oldFmt = `${od.date||'—'} | ${od.participations||'—'}`;
+            else if (otype === 'fieldfire') oldFmt = `${od.fromDate||'—'} → ${od.toDate||'—'}`;
+            else if (otype === 'cbta') oldFmt = `${od.date||'—'} | ${qualityMap[od.quality]||od.quality||'—'}`;
+            if (oldFmt) oldValueHtml = `<div style="font-size:0.75rem;color:var(--text3);text-decoration:line-through;margin-bottom:4px;padding:3px 6px;background:rgba(224,85,85,0.07);border-radius:5px">${oldFmt}</div>`;
+          } catch(_) {}
         }
       } catch(e) {
         displayVal = it.newValue;
@@ -6269,7 +6453,7 @@ function renderPendingList(docs) {
     <div id="pitem_${it.id}" style="background:var(--bg2);border:1px solid var(--border2);border-radius:10px;padding:11px 13px;display:flex;align-items:flex-start;gap:10px;transition:all 0.2s">
       <div style="flex:1;min-width:0">
         <div style="font-size:0.78rem;color:var(--text2);font-family:'Rajdhani',sans-serif;letter-spacing:0.5px;margin-bottom:3px">${it.fieldLabel || it.field || '—'}</div>
-        ${oldValueHtml || (it.oldValue && it.requestType !== 'editLeave' ? `<div style="font-size:0.75rem;color:var(--text3);text-decoration:line-through;margin-bottom:2px">${it.oldValue.length>40?it.oldValue.substring(0,40)+'...':it.oldValue}</div>` : '')}
+        ${oldValueHtml || (it.oldValue && it.requestType !== 'editLeave' && it.requestType !== 'editTraining' && !(typeof it.field === 'string' && it.field.startsWith('training_')) ? `<div style="font-size:0.75rem;color:var(--text3);text-decoration:line-through;margin-bottom:2px">${it.oldValue.length>40?it.oldValue.substring(0,40)+'...':it.oldValue}</div>` : '')}
         <div style="font-size:0.9rem;font-weight:600;color:var(--text)">${displayVal}</div>
         ${extraBadges}
       </div>
@@ -7016,7 +7200,7 @@ function _pickCompanyApp() {
   return new Promise(resolve => {
     const ov = document.createElement('div');
     ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
-    ov.innerHTML = `<div style="background:var(--dark3);border:1px solid rgba(200,169,74,0.3);border-radius:16px;padding:24px;width:100%;max-width:320px;box-shadow:0 20px 60px rgba(0,0,0,0.6)">
+    ov.innerHTML = `<div style="background:var(--bg3);border:1px solid rgba(200,169,74,0.3);border-radius:16px;padding:24px;width:100%;max-width:320px;box-shadow:0 20px 60px rgba(0,0,0,0.6)">
       <div style="font-family:'Rajdhani',sans-serif;font-weight:700;color:var(--gold);font-size:1.05rem;margin-bottom:4px">🏢 কোম্পানি নির্বাচন</div>
       <div style="font-size:0.8rem;color:var(--text2);margin-bottom:14px">Admin এর দায়িত্বপ্রাপ্ত কোম্পানি বেছে নিন</div>
       <select id="_appCoPick" style="width:100%;background:var(--dark);border:1px solid var(--border2);border-radius:8px;padding:10px 12px;color:var(--text);font-family:'Noto Serif Bengali',serif;font-size:0.88rem;outline:none;margin-bottom:14px;cursor:pointer">
@@ -7173,7 +7357,7 @@ function openPromotionEdit() {
     </div>
     <div class="form-group">
       <label class="form-label">নতুন পদবী *</label>
-      <select class="form-input" id="editInput" style="background:var(--dark3)">
+      <select class="form-input" id="editInput" style="background:var(--bg3)">
         <option value="">নির্বাচন করুন</option>
         ${RANKS.map(r => `<option value="${r}"${r===currentRank?' selected':''}>${r}</option>`).join('')}
       </select>
@@ -7496,7 +7680,7 @@ function openEdit(key, label, type = 'text', optsStr = '') {
     `).join('')}
   </div>`;
 } else if (type === 'select') {
-  input = `<select class="form-input" id="editInput" style="background:var(--dark3)">
+  input = `<select class="form-input" id="editInput" style="background:var(--bg3)">
     ${currentEditField.opts.map(o => `<option value="${o}" ${val === o ? 'selected' : ''}>${o}</option>`).join('')}
   </select>`;
 } else if (type === 'textarea') {
@@ -7669,19 +7853,19 @@ function openAddressEdit() {
     <div style="display:flex;flex-direction:column;gap:10px">
       <div class="form-group">
         <label class="form-label">বিভাগ</label>
-        <select class="form-input" id="ea_division" style="background:var(--dark3)" onchange="editAddrUpdateDistrict(); handleCustomSelect('ea_division','ea_division_custom')">${divOpts}</select>
+        <select class="form-input" id="ea_division" style="background:var(--bg3)" onchange="editAddrUpdateDistrict(); handleCustomSelect('ea_division','ea_division_custom')">${divOpts}</select>
       </div>
       <div class="form-group">
         <label class="form-label">জেলা</label>
-        <select class="form-input" id="ea_di" style="background:var(--dark3)" onchange="editAddrUpdateUpazila(); handleCustomSelect('ea_di','ea_di_custom')" ${!oldDiv ? 'disabled' : ''}>${distOpts}</select>
+        <select class="form-input" id="ea_di" style="background:var(--bg3)" onchange="editAddrUpdateUpazila(); handleCustomSelect('ea_di','ea_di_custom')" ${!oldDiv ? 'disabled' : ''}>${distOpts}</select>
       </div>
       <div class="form-group">
         <label class="form-label">থানা / উপজেলা</label>
-        <select class="form-input" id="ea_upz" style="background:var(--dark3)" onchange="editAddrUpdateUnion(); handleCustomSelect('ea_upz','ea_upz_custom')" ${!oldDi ? 'disabled' : ''}>${upzOpts}</select>
+        <select class="form-input" id="ea_upz" style="background:var(--bg3)" onchange="editAddrUpdateUnion(); handleCustomSelect('ea_upz','ea_upz_custom')" ${!oldDi ? 'disabled' : ''}>${upzOpts}</select>
       </div>
       <div class="form-group">
         <label class="form-label">ইউনিয়ন / পৌরসভা</label>
-        <select class="form-input" id="ea_upu" style="background:var(--dark3)" onchange="handleCustomSelect('ea_upu','ea_upu_custom')" ${!oldUpz ? 'disabled' : ''}>${upuOpts}</select>
+        <select class="form-input" id="ea_upu" style="background:var(--bg3)" onchange="handleCustomSelect('ea_upu','ea_upu_custom')" ${!oldUpz ? 'disabled' : ''}>${upuOpts}</select>
       </div>
       <div class="form-group">
         <label class="form-label">গ্রাম / ওয়ার্ড / মহল্লা</label>
