@@ -2113,6 +2113,28 @@ async function saveModal() {
     btn.textContent='সংরক্ষণ করুন'; btn.disabled=false; return;
   }
 
+  // ── Training edit ──
+  if (currentEditField.key === '_editTraining') {
+    const type = currentEditField.trainingType;
+    const trDocId = currentEditField.trainingId;
+    const result = handleSaveTraining(type);
+    if (typeof result === 'string') { showToast(result, 'error'); btn.textContent=t('সংরক্ষণ করুন'); btn.disabled=false; return; }
+    if (userRole !== 'admin' && userRole !== 'superadmin') { showToast(t('শুধুমাত্র Admin সম্পাদনা করতে পারবেন'), 'error'); btn.textContent=t('সংরক্ষণ করুন'); btn.disabled=false; return; }
+    const docId = currentMemberData.id || String(currentMemberData.no || '').replace(/[^A-Z0-9]/gi, '');
+    try {
+      await db.collection('members').doc(docId).collection('training').doc(trDocId).update({
+        ...result,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        updatedBy: currentUser.uid,
+      });
+      if (window._trCache) window._trCache[trDocId] = { ...result };
+      closeModal();
+      showToast('✅ ' + t('রেকর্ড আপডেট হয়েছে'), 'success');
+      loadTraining(type);
+    } catch(e) { showToast('ব্যর্থ: ' + e.message, 'error'); }
+    btn.textContent=t('সংরক্ষণ করুন'); btn.disabled=false; return;
+  }
+
   // ── Training records ──
   if (currentEditField.key === '_addTraining') {
     const type = currentEditField.trainingType;
@@ -3673,9 +3695,11 @@ async function loadTraining(type) {
       return;
     }
     const isAdmin = userRole === 'admin' || userRole === 'superadmin';
+    if (!window._trCache) window._trCache = {};
     let html = '';
     snap.docs.forEach(d => {
       const docData = d.data();
+      window._trCache[d.id] = docData; // edit এর জন্য cache
       html += renderTrainingCard(type, docData, d.id, isAdmin);
     });
     box.innerHTML = html;
@@ -3769,9 +3793,14 @@ function renderTrainingCard(type, data, id, isAdmin) {
   return `<div style="background:var(--dark3);border:1px solid var(--border2);border-radius:12px;padding:12px 14px;margin-bottom:10px">
     <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
       <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">${resultBadge}</div>
-      ${isAdmin ? `<button onclick="deleteTraining('${type}','${id}')"
-        style="background:rgba(224,85,85,0.1);border:1px solid rgba(224,85,85,0.3);color:var(--danger);cursor:pointer;font-size:0.7rem;padding:3px 10px;border-radius:6px;font-family:'Rajdhani',sans-serif;font-weight:700;white-space:nowrap">
-        🗑️ ${tr('মুছুন','Delete')}</button>` : ''}
+      ${isAdmin ? `<div style="display:flex;gap:5px;flex-shrink:0">
+        <button onclick="openEditTraining('${type}','${id}')"
+          style="background:rgba(63,185,80,0.1);border:1px solid rgba(63,185,80,0.3);color:var(--success);cursor:pointer;font-size:0.7rem;padding:3px 10px;border-radius:6px;font-family:'Rajdhani',sans-serif;font-weight:700;white-space:nowrap">
+          ✏️ ${tr('সম্পাদনা','Edit')}</button>
+        <button onclick="deleteTraining('${type}','${id}')"
+          style="background:rgba(224,85,85,0.1);border:1px solid rgba(224,85,85,0.3);color:var(--danger);cursor:pointer;font-size:0.7rem;padding:3px 10px;border-radius:6px;font-family:'Rajdhani',sans-serif;font-weight:700;white-space:nowrap">
+          🗑️ ${tr('মুছুন','Delete')}</button>
+      </div>` : ''}
     </div>
     <div style="height:1px;background:linear-gradient(90deg,transparent,rgba(200,169,74,0.3),transparent);margin:10px 0 0 0"></div>
     ${infoGrid}
@@ -3900,6 +3929,49 @@ function openAddTraining(type) {
   document.getElementById('modalBody').innerHTML = html;
   currentEditField = { key: '_addTraining', trainingType: type };
   document.getElementById('editModal').classList.add('open');
+}
+
+function openEditTraining(type, id) {
+  const data = (window._trCache && window._trCache[id]) || {};
+  // Add form খোলো
+  openAddTraining(type);
+  // Modal title ও fields আপডেট
+  requestAnimationFrame(() => {
+    const titleEl = document.getElementById('modalTitle');
+    if (titleEl) {
+      titleEl.textContent = titleEl.textContent
+        .replace('যোগ করুন', 'সম্পাদনা করুন')
+        .replace('Add', 'Edit');
+    }
+    // Pre-fill fields
+    const sv = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
+    if (type === 'ipft') {
+      sv('trFromDate', data.fromDate); sv('trToDate', data.toDate);
+      sv('trResult', data.result || 'Passed');
+      toggleIpftFails(data.result || 'Passed');
+      if (data.result === 'Failed' && Array.isArray(data.failedSubjects)) {
+        IPFT_SUBJECTS.forEach((s, i) => {
+          const cb = document.getElementById('fail_' + i);
+          if (cb) cb.checked = data.failedSubjects.includes(s);
+        });
+      }
+    } else if (type === 'ret') {
+      sv('trDate', data.date); sv('trMarks', data.marks); sv('trResult', data.result || 'Passed');
+    } else if (type === 'speedmarch' || type === 'killhouse') {
+      sv('trDate', data.date);
+    } else if (type === 'grenade') {
+      sv('trDate', data.date); sv('trParticipations', data.participations);
+    } else if (type === 'fieldfire') {
+      sv('trFromDate', data.fromDate); sv('trToDate', data.toDate);
+      if (Array.isArray(data.weapons)) {
+        WEAPONS.forEach(w => { const cb = document.getElementById('wpn_' + w); if (cb) cb.checked = data.weapons.includes(w); });
+      }
+    } else if (type === 'cbta') {
+      sv('trDate', data.date); sv('trQuality', data.quality);
+    }
+    // Edit mode flag
+    currentEditField = { key: '_editTraining', trainingType: type, trainingId: id };
+  });
 }
 
 function toggleIpftFails(val) {
