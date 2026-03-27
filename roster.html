@@ -5139,7 +5139,7 @@ async function generateMemberReport(m) {
     `<td style="padding:5px 12px;border-bottom:1px solid #eee;font-size:12px;color:#555">${it.recText}</td></tr>`
   ).join('');
 
-  const photoUrl = m.photoUrl || m.photo || '';
+  const photoUrl = m.ph || m.photoUrl || m.photo || '';
   const rank = lang === 'bn' ? (m.rank_bn || m.r_bn || '') : (m.rank_en || m.r_en || '');
   const name = lang === 'bn' ? (m.bn || m.name || '') : (m.en || m.name_en || '');
   const name2 = lang === 'bn' ? (m.en || '') : (m.bn || '');
@@ -5285,7 +5285,16 @@ ${leaveRows ? `<div class="sec"><div class="st">${L('ছুটির রেক�
   if (!printWin) { _showAdminToast('পপআপ ব্লক হয়েছে — ব্রাউজার পপআপ অনুমতি দিন', 'error'); return; }
   printWin.document.write(htmlContent);
   printWin.document.close();
-  printWin.onload = () => { printWin.focus(); printWin.print(); };
+  printWin.onload = () => {
+    const imgs = printWin.document.images;
+    if (!imgs.length) { printWin.focus(); printWin.print(); return; }
+    let loaded = 0;
+    const tryPrint = () => { if (++loaded >= imgs.length) { printWin.focus(); printWin.print(); } };
+    Array.from(imgs).forEach(img => {
+      if (img.complete) { tryPrint(); }
+      else { img.onload = tryPrint; img.onerror = tryPrint; }
+    });
+  };
 }
 
 function _rosterConfirmSimple(message, onConfirm, { danger = false, title = 'নিশ্চিত করুন', icon = '' } = {}) {
