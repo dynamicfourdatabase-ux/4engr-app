@@ -1617,8 +1617,8 @@ async function loadMemberData(uid) {
     // ══ Step 4: ডেটা পাওয়া গেলে — প্রোফাইল দেখাও ══
     if (memberData) {
       currentMemberData = { id: memberId, armyNo, no: armyNo, ...memberData };
-      // photo fallback: members doc এ না থাকলে users doc থেকে নাও
-      if (!currentMemberData.ph && userDoc.data()?.ph) {
+      // photo: users doc এ সর্বশেষ আপলোড থাকে — সবসময় সেটা দেখাও
+      if (userDoc.data()?.ph) {
         currentMemberData.ph = userDoc.data().ph;
       }
       // memberDocId না থাকলে save করো — photo permission এর জন্য দরকার
@@ -7220,7 +7220,7 @@ async function uploadPhoto(input) {
       // ── Fallback 1: users/{uid} এ save — সবসময় কাজ করে ──
       await db.collection('users').doc(currentUser.uid).update({ ph: base64, updatedAt: ts });
 
-      // ── Fallback 2: members/{docId} এ save — permission থাকলে হবে, না হলে silent ──
+      // ── Step 2: members/{docId} এ save — roster.html আপডেটের জন্য দরকার ──
       try {
         let docId = currentMemberData.id
           || String(currentMemberData.no || currentMemberData.armyNo || '')
@@ -7228,9 +7228,10 @@ async function uploadPhoto(input) {
         if (!currentMemberData.id && /^\d+$/.test(docId) && docId.length <= 6) docId = docId.padStart(6, '0');
         if (docId) {
           const docRef = db.collection('members').doc(docId);
-          await docRef.update({ ph: base64, updatedAt: ts });
+          // শুধু ph field আপডেট করো (updatedAt ছাড়া) — Firestore rule compatible
+          await docRef.update({ ph: base64 });
         }
-      } catch(_) { /* silent — users collection এ save হয়েছে */ }
+      } catch(e2) { console.warn('members photo sync failed:', e2.code); }
     }
 
     currentMemberData.ph = base64;
