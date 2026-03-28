@@ -7203,49 +7203,85 @@ async function uploadPhoto(input) {
 
   showLoading('ছবি প্রক্রিয়া হচ্ছে...');
   try {
-    // ছবি compress করে base64 এ রূপান্তর করো
     const base64 = await compressImage(file, 400, 0.7);
-
+    const ts = firebase.firestore.FieldValue.serverTimestamp();
     const isAdmin = userRole === 'admin' || userRole === 'superadmin';
 
-    if (isAdmin) {
-      await db.collection('adminProfiles').doc(currentUser.uid).set({
-        ph: base64,
-        armyNo: currentMemberData.armyNo || currentMemberData.no,
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-      }, { merge: true });
-    } else {
-      const ts = firebase.firestore.FieldValue.serverTimestamp();
-
-      // ── Fallback 1: users/{uid} এ save — সবসময় কাজ করে ──
+    // ── Fallback A: users/{uid} — সবসময় আপডেট করো ──
+    try {
       await db.collection('users').doc(currentUser.uid).update({ ph: base64, updatedAt: ts });
+    } catch(_) {}
 
-      // ── Step 2: members/{docId} এ save — roster.html আপডেটের জন্য দরকার ──
+    // ── Fallback B: adminProfiles — admin/superadmin হলে ──
+    if (isAdmin) {
       try {
-        let docId = currentMemberData.id
-          || String(currentMemberData.no || currentMemberData.armyNo || '')
-              .replace(/[^A-Z0-9]/gi, '');
-        if (!currentMemberData.id && /^\d+$/.test(docId) && docId.length <= 6) docId = docId.padStart(6, '0');
-        if (docId) {
-          const docRef = db.collection('members').doc(docId);
-          // শুধু ph field আপডেট করো (updatedAt ছাড়া) — Firestore rule compatible
-          await docRef.update({ ph: base64 });
+        await db.collection('adminProfiles').doc(currentUser.uid).set({
+          ph: base64,
+          armyNo: currentMemberData.armyNo || currentMemberData.no,
+          updatedAt: ts,
+        }, { merge: true });
+      } catch(_) {}
+    }
+
+    // ── Fallback C: members collection — roster sync এর জন্য সবার জন্যই করো ──
+    // Strategy 1: currentMemberData.id (সবচেয়ে নির্ভরযোগ্য)
+    // Strategy 2: armyNo/no থেকে docId বের করো
+    // Strategy 3: users doc এ save করা memberDocId ব্যবহার করো
+    // Strategy 4: armyNo দিয়ে query করো
+    let memberSynced = false;
+    const armyNoRaw = currentMemberData.armyNo || currentMemberData.no || '';
+    const armyNoClean = String(armyNoRaw).replace(/[^A-Z0-9]/gi, '');
+
+    const memberDocCandidates = [
+      currentMemberData.id,
+      armyNoClean,
+      armyNoClean && /^\d+$/.test(armyNoClean) && armyNoClean.length <= 6 ? armyNoClean.padStart(6, '0') : null,
+    ].filter(Boolean);
+
+    for (const docId of [...new Set(memberDocCandidates)]) {
+      if (memberSynced) break;
+      try {
+        const docRef = db.collection('members').doc(docId);
+        const snap = await docRef.get();
+        if (snap.exists) {
+          await docRef.update({ ph: base64, updatedAt: ts });
+          memberSynced = true;
         }
-      } catch(e2) { console.warn('members photo sync failed:', e2.code); }
+      } catch(_) {}
+    }
+
+    // Strategy 4: query fallback
+    if (!memberSynced && armyNoRaw) {
+      try {
+        const q = await db.collection('members').where('no', '==', armyNoRaw).limit(1).get();
+        if (!q.empty) { await q.docs[0].ref.update({ ph: base64, updatedAt: ts }); memberSynced = true; }
+      } catch(_) {}
+    }
+
+    // Strategy 5: users doc এ memberDocId save থাকলে ব্যবহার করো
+    if (!memberSynced) {
+      try {
+        const uSnap = await db.collection('users').doc(currentUser.uid).get();
+        const savedDocId = uSnap.data()?.memberDocId;
+        if (savedDocId) {
+          await db.collection('members').doc(savedDocId).update({ ph: base64, updatedAt: ts });
+          memberSynced = true;
+        }
+      } catch(_) {}
     }
 
     currentMemberData.ph = base64;
 
     // Topbar avatar আপডেট
     const av1 = document.getElementById('topbarAvatar');
-    av1.innerHTML = `<img src="${base64}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
+    if (av1) av1.innerHTML = `<img src="${base64}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
 
     // Big avatar আপডেট
     const av2 = document.getElementById('bigAvatar');
-    av2.innerHTML = `<img src="${base64}" alt="" style="width:100%;height:100%;object-fit:cover">
+    if (av2) av2.innerHTML = `<img src="${base64}" alt="" style="width:100%;height:100%;object-fit:cover">
       <div class="photo-overlay">ছবি পরিবর্তন</div>`;
 
-    showToast('✅ ছবি আপডেট হয়েছে', 'success');
+    showToast(memberSynced ? '✅ ছবি আপডেট হয়েছে ও রোস্টারে sync হয়েছে' : '✅ ছবি আপডেট হয়েছে', 'success');
   } catch(e) {
     console.error('Photo upload error:', e);
     showToast('আপলোড ব্যর্থ: ' + (e.code || e.message), 'error');
@@ -7381,18 +7417,87 @@ async function promoteUser(uid, newRole, name, armyNo) {
 async function deleteUser(uid, name) {
   if (userRole !== 'superadmin') { showToast('অনুমতি নেই', 'error'); return; }
   if (!await confirmAsync(`"${name}" এর প্রোফাইল সম্পূর্ণ মুছে দেবেন?\n\n⚠️ এই কাজ পূর্বাবস্থায় ফেরানো যাবে না!`, {danger:true,icon:'🗑️',title:'ইউজার ডিলিট',okLabel:'স্থায়ীভাবে মুছুন'})) return;
-  // double confirm removed - single is enough
 
   showLoading('ডিলিট হচ্ছে...');
-  try {
-    const batch = db.batch();
-    batch.delete(db.collection('users').doc(uid));
-    const adminProfileRef = db.collection('adminProfiles').doc(uid);
-    const apSnap = await adminProfileRef.get();
-    if (apSnap.exists) batch.delete(adminProfileRef);
-    await batch.commit();
+  const errors = [];
 
-    showToast(`✅ "${name}" ডিলিট হয়েছে`, 'success');
+  try {
+    // ── Step 1: users doc পড়ো (memberDocId, armyNo বের করতে) — delete করার আগেই ──
+    let memberDocId = null;
+    let armyNo = null;
+    try {
+      const userSnap = await db.collection('users').doc(uid).get();
+      if (userSnap.exists) {
+        const d = userSnap.data();
+        memberDocId = d.memberDocId || null;
+        armyNo = d.armyNo || d.no || null;
+      }
+    } catch(e) { errors.push('users read: ' + e.code); }
+
+    // ── Step 2: users doc delete ──
+    try {
+      await db.collection('users').doc(uid).delete();
+    } catch(e) { errors.push('users delete: ' + e.code); }
+
+    // ── Step 3: adminProfiles doc delete ──
+    try {
+      const apSnap = await db.collection('adminProfiles').doc(uid).get();
+      if (apSnap.exists) await db.collection('adminProfiles').doc(uid).delete();
+    } catch(e) { /* adminProfiles নাও থাকতে পারে — silent */ }
+
+    // ── Step 4: members doc delete — সব strategy তে চেষ্টা করো ──
+    const memberDocIdCandidates = [];
+    if (memberDocId) memberDocIdCandidates.push(memberDocId);
+    if (armyNo) {
+      const clean = String(armyNo).replace(/[^A-Z0-9]/gi, '');
+      if (clean) memberDocIdCandidates.push(clean);
+      if (/^\d+$/.test(clean) && clean.length <= 6) memberDocIdCandidates.push(clean.padStart(6, '0'));
+    }
+
+    let memberDeleted = false;
+    for (const docId of [...new Set(memberDocIdCandidates)]) {
+      try {
+        const mSnap = await db.collection('members').doc(docId).get();
+        if (mSnap.exists) {
+          // subcollections (training, leaves) delete
+          for (const sub of ['training', 'leaves', 'records']) {
+            try {
+              const subSnap = await db.collection('members').doc(docId).collection(sub).get();
+              for (const sd of subSnap.docs) {
+                await sd.ref.delete();
+              }
+            } catch(_) {}
+          }
+          await db.collection('members').doc(docId).delete();
+          memberDeleted = true;
+          break;
+        }
+      } catch(e) { errors.push('members delete (' + docId + '): ' + e.code); }
+    }
+
+    // ── Step 5: armyNo query দিয়ে members খোঁজো (docId match না হলে) ──
+    if (!memberDeleted && armyNo) {
+      try {
+        const q = await db.collection('members').where('no', '==', armyNo).limit(1).get();
+        if (!q.empty) { await q.docs[0].ref.delete(); memberDeleted = true; }
+      } catch(e) { errors.push('members query delete: ' + e.code); }
+    }
+
+    // ── Step 6: registrations, notifications, roleChangeSignals cleanup ──
+    // notifications: uid field দিয়ে query; registrations/roleChangeSignals: doc ID = uid
+    try {
+      const notifSnap = await db.collection('notifications').where('uid', '==', uid).limit(20).get();
+      for (const d of notifSnap.docs) { await d.ref.delete(); }
+    } catch(_) {}
+    for (const col of ['registrations', 'roleChangeSignals']) {
+      try {
+        const docSnap = await db.collection(col).doc(uid).get();
+        if (docSnap.exists) await docSnap.ref.delete();
+      } catch(_) {}
+    }
+
+    const errMsg = errors.length ? ` (কিছু অংশ: ${errors.join(', ')})` : '';
+    showToast(`✅ "${name}" সম্পূর্ণ ডিলিট হয়েছে${errMsg}`, errors.length ? 'warning' : 'success');
     setTimeout(() => loadSuperAdminList(), 800);
   } catch(e) {
     showToast('ডিলিট ব্যর্থ: ' + (e.code || e.message), 'error');
