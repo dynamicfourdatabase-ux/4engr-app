@@ -902,6 +902,7 @@ async function doRegister() {
   const email = docId.toLowerCase() + '@4engr.bd';
   let member  = null;
 
+  let memberDocId = docId; // actual Firestore doc ID যেটা পাওয়া গেছে
   try {
     // ── ধাপ ১: members collection থেকে সদস্য যাচাই ──
     // members collection এ memberId = armyNo, তাই auth ছাড়াও পড়া যায়
@@ -909,12 +910,13 @@ async function doRegister() {
       const snap = await db.collection('members').doc(docId).get();
       if (snap.exists) {
         member = snap.data();
+        memberDocId = docId;
       } else {
         // padded docId দিয়ে try করো (যেমন 12345 → 012345)
         const padded = docId.padStart(6, '0');
         if (padded !== docId) {
           const snap2 = await db.collection('members').doc(padded).get();
-          if (snap2.exists) member = snap2.data();
+          if (snap2.exists) { member = snap2.data(); memberDocId = padded; }
         }
       }
     } catch(readErr) {
@@ -953,6 +955,7 @@ async function doRegister() {
     showLoading('তথ্য সংরক্ষণ হচ্ছে...');
     await db.collection('users').doc(cred.user.uid).set({
       armyNo,
+      memberDocId, // actual Firestore doc ID — photo permission verify করতে ব্যবহার হবে
       name:      member.bn || member.en || armyNo,
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
       // role সেট করা হচ্ছে না — Firestore Rules শুধু superadmin-কে role সেট করতে দেয়
@@ -1614,6 +1617,14 @@ async function loadMemberData(uid) {
     // ══ Step 4: ডেটা পাওয়া গেলে — প্রোফাইল দেখাও ══
     if (memberData) {
       currentMemberData = { id: memberId, armyNo, no: armyNo, ...memberData };
+      // photo fallback: members doc এ না থাকলে users doc থেকে নাও
+      if (!currentMemberData.ph && userDoc.data()?.ph) {
+        currentMemberData.ph = userDoc.data().ph;
+      }
+      // memberDocId না থাকলে save করো — photo permission এর জন্য দরকার
+      if (!userDoc.data()?.memberDocId) {
+        db.collection('users').doc(uid).update({ memberDocId: memberId }).catch(() => {});
+      }
       renderProfile();
       // নতুন user (bn নেই) — Setup Screen দেখাও, নইলে app দেখাও
       const isNew = !memberData.bn && !memberData.en;
@@ -3533,7 +3544,10 @@ const LEAVE_TYPES = [
   'সুযোগী ছুটি',
   'চিত্তবিনোদন ছুটি',
   'চিকিৎসা ছুটি',
-  'অন্যান্য'
+  'ঈদ উল ফিতর ছুটি',
+  'ঈদুল আযহা',
+  'উৎসবের ছুটি',
+  'মাতৃত্বকালীন ছুটি',
 ];
 const LEAVE_TYPES_EN = {
   'সাপ্তাহিক ছুটি':    'Weekly Leave',
@@ -3541,7 +3555,10 @@ const LEAVE_TYPES_EN = {
   'সুযোগী ছুটি':       'Privilege Leave',
   'চিত্তবিনোদন ছুটি':  'Recreation Leave',
   'চিকিৎসা ছুটি':      'Medical Leave',
-  'অন্যান্য':          'Others'
+  'ঈদ উল ফিতর ছুটি': 'Eid ul Fitr Leave',
+  'ঈদুল আযহা': 'Eid ul Adha Leave',
+  'উৎসবের ছুটি': 'Festival Leave',
+  'মাতৃত্বকালীন ছুটি': 'Maternity Leave',
 };
 const LEAVE_TYPE_COLOR = {
   'সাপ্তাহিক ছুটি':   'color:#8b7cf8;border-color:rgba(139,124,248,0.4);background:rgba(139,124,248,0.08)',
@@ -3549,7 +3566,10 @@ const LEAVE_TYPE_COLOR = {
   'সুযোগী ছুটি':      'color:var(--info);border-color:rgba(56,139,253,0.4);background:rgba(56,139,253,0.08)',
   'চিত্তবিনোদন ছুটি': 'color:var(--gold);border-color:rgba(200,169,74,0.4);background:rgba(200,169,74,0.08)',
   'চিকিৎসা ছুটি':     'color:#e05555;border-color:rgba(224,85,85,0.4);background:rgba(224,85,85,0.08)',
-  'অন্যান্য':         'color:var(--text2);border-color:var(--border2);background:transparent'
+  'ঈদ উল ফিতর ছুটি': 'color:#f39c12;border-color:rgba(243,156,18,0.4);background:rgba(243,156,18,0.08)',
+  'ঈদুল আযহা':        'color:#d35400;border-color:rgba(211,84,0,0.4);background:rgba(211,84,0,0.08)',
+  'উৎসবের ছুটি':      'color:#27ae60;border-color:rgba(39,174,96,0.4);background:rgba(39,174,96,0.08)',
+  'মাতৃত্বকালীন ছুটি': 'color:#c0392b;border-color:rgba(192,57,43,0.4);background:rgba(192,57,43,0.08)',
 };
 
 async function loadLeave() {
@@ -7195,17 +7215,22 @@ async function uploadPhoto(input) {
         updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
       }, { merge: true });
     } else {
-      let docId = String(currentMemberData.no || currentMemberData.armyNo || currentMemberData.id || '')
-        .replace(/[^A-Z0-9]/gi, '');
-      if (/^\d+$/.test(docId) && docId.length <= 6) docId = docId.padStart(6, '0');
-      if (!docId) { showToast('সদস্য ID পাওয়া যায়নি', 'error'); hideLoading(); return; }
-      const docRef = db.collection('members').doc(docId);
-      const snap = await docRef.get();
-      if (snap.exists) {
-        await docRef.update({ ph: base64, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
-      } else {
-        await docRef.set({ ph: base64, no: currentMemberData.no }, { merge: true });
-      }
+      const ts = firebase.firestore.FieldValue.serverTimestamp();
+
+      // ── Fallback 1: users/{uid} এ save — সবসময় কাজ করে ──
+      await db.collection('users').doc(currentUser.uid).update({ ph: base64, updatedAt: ts });
+
+      // ── Fallback 2: members/{docId} এ save — permission থাকলে হবে, না হলে silent ──
+      try {
+        let docId = currentMemberData.id
+          || String(currentMemberData.no || currentMemberData.armyNo || '')
+              .replace(/[^A-Z0-9]/gi, '');
+        if (!currentMemberData.id && /^\d+$/.test(docId) && docId.length <= 6) docId = docId.padStart(6, '0');
+        if (docId) {
+          const docRef = db.collection('members').doc(docId);
+          await docRef.update({ ph: base64, updatedAt: ts });
+        }
+      } catch(_) { /* silent — users collection এ save হয়েছে */ }
     }
 
     currentMemberData.ph = base64;
@@ -8386,9 +8411,12 @@ const TRANSLATIONS = {
   'সাপ্তাহিক ছুটি': 'Weekly Leave',
   'সাময়িক ছুটি': 'Casual Leave',
   'সুযোগী ছুটি': 'Privilege Leave',
+  'মাতৃত্বকালীন ছুটি': 'Maternity Leave',
   'চিত্তবিনোদন ছুটি': 'Recreation Leave',
   'চিকিৎসা ছুটি': 'Medical Leave',
-  'অন্যান্য': 'Others',
+  'ঈদ উল ফিতর ছুটি': 'Eid ul Fitr Leave',
+  'ঈদুল আযহা': 'Eid ul Adha Leave',
+  'উৎসবের ছুটি': 'Festival ',
   'ছুটির প্রকার': 'Leave Type',
   'হইতে তারিখ': 'From Date',
   'পর্যন্ত তারিখ': 'To Date',

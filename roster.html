@@ -3197,6 +3197,9 @@ function openRosterEditModal(m) {
               <option value="সুযোগী ছুটি">${lang==='bn'?'সুযোগী ছুটি':'Privilege Leave'}</option>
               <option value="চিত্তবিনোদন ছুটি">${lang==='bn'?'চিত্তবিনোদন ছুটি':'Recreation Leave'}</option>
               <option value="চিকিৎসা ছুটি">${lang==='bn'?'চিকিৎসা ছুটি':'Medical Leave'}</option>
+              <option value="ঈদ উল ফিতর ছুটি">${lang==='bn'?'ঈদ উল ফিতর ছুটি':'Eid al-Fitr Leave'}</option>
+              <option value="ঈদুল আযহা">${lang==='bn'?'ঈদুল আযহা':'Eid al-Adha Leave'}</option>
+              <option value="উৎসবের ছুটি">${lang==='bn'?'উৎসবের ছুটি':'Festival Leave'}</option>
               <option value="মাতৃত্বকালীন ছুটি">${lang==='bn'?'মাতৃত্বকালীন ছুটি':'Maternity Leave'}</option>
             </select>
           </div>
@@ -3394,6 +3397,9 @@ async function initRosterEditLeaveTrainingUI(docId) {
       'সুযোগী ছুটি',
       'চিত্তবিনোদন ছুটি',
       'চিকিৎসা ছুটি',
+      'ঈদ উল ফিতর ছুটি',
+      'ঈদুল আযহা',
+      'উৎসবের ছুটি',
       'মাতৃত্বকালীন ছুটি'
     ];
 
@@ -3662,6 +3668,9 @@ async function saveRosterEditLeave() {
       'সুযোগী ছুটি',
       'চিত্তবিনোদন ছুটি',
       'চিকিৎসা ছুটি',
+      'ঈদ উল ফিতর ছুটি',
+      'ঈদুল আযহা',
+      'উৎসবের ছুটি',
       'মাতৃত্বকালীন ছুটি'
     ];
 
@@ -4370,12 +4379,15 @@ async function loadRosterLeave(docId) {
     // --- Leaves ---
     const leaves = (Array.isArray(_rosterLatestLeaves) ? _rosterLatestLeaves : [])
       .filter(l => [
-        'সাপ্তাহিক ছুটি',
-        'সাময়িক ছুটি',
-        'সুযোগী ছুটি',
-        'চিত্তবিনোদন ছুটি',
-        'চিকিৎসা ছুটি',
-        'মাতৃত্বকালীন ছুটি'
+          'সাপ্তাহিক ছুটি',
+          'সাময়িক ছুটি',
+          'সুযোগী ছুটি',
+          'চিত্তবিনোদন ছুটি',
+          'চিকিৎসা ছুটি',
+          'ঈদ উল ফিতর ছুটি',
+          'ঈদুল আযহা',
+          'উৎসবের ছুটি',
+          'মাতৃত্বকালীন ছুটি'
       ].includes(l.leave_type));
     leaves.sort((a, b) => (b.from_date || '').localeCompare(a.from_date || ''));
 
@@ -4386,6 +4398,9 @@ async function loadRosterLeave(docId) {
       'সুযোগী ছুটি': '#388bfd',
       'চিত্তবিনোদন ছুটি': 'var(--gold)',
       'চিকিৎসা ছুটি': 'var(--danger)',
+      'ঈদ উল ফিতর ছুটি': 'var(--success)', // Green
+      'ঈদুল আযহা': 'var(--success)', // Green
+      'উৎসবের ছুটি': 'var(--accent)', // Accent color
       'মাতৃত্বকালীন ছুটি': 'var(--accent)',
     };
 
@@ -5058,8 +5073,9 @@ async function generateMemberReport(m) {
   const lang = window.lang || 'bn';
   const L = (bn, en) => lang === 'bn' ? bn : en;
   const armyNo = m.no || m.armyNo || '';
-  let docId = String(armyNo).replace(/[^A-Z0-9]/gi, '');
-  if (/^\d+$/.test(docId) && docId.length <= 6) docId = docId.padStart(6, '0');
+  // m._id = actual Firestore document ID, সরাসরি ব্যবহার করো
+  let docId = m._id || String(armyNo).replace(/[^A-Z0-9]/gi, '');
+  if (!m._id && /^\d+$/.test(docId) && docId.length <= 6) docId = docId.padStart(6, '0');
 
   // Fetch training subcollections
   const trainingTypes = ['ipft','ret','speedmarch','grenade','fieldfire','killhouse','cbta'];
@@ -5104,7 +5120,7 @@ async function generateMemberReport(m) {
       else if (type === 'fieldfire') detail = `${d.fromDate||'—'} → ${d.toDate||'—'} | ${L('অস্ত্র','Weapons')}: ${Array.isArray(d.weapons)?d.weapons.join(', '):(d.weapons||'—')}`;
       else if (type === 'killhouse') detail = `${L('তারিখ','Date')}: ${d.date||'—'}`;
       else if (type === 'cbta') detail = `${L('তারিখ','Date')}: ${d.date||'—'} | ${L('গুণমান','Quality')}: ${qualityMap[d.quality]||d.quality||'—'}`;
-      return `<tr><td style="padding:5px 12px;border-bottom:1px solid #eee;font-size:12px;color:#555;width:30%">${trainingLabels[type]}</td><td style="padding:5px 12px;border-bottom:1px solid #eee;font-size:12px;color:#222">${detail}</td></tr>`;
+      return `<tr><td style="padding:5px 10px;border-bottom:1px solid #eee;font-size:11.5px;color:#555;vertical-align:top">${trainingLabels[type]}</td><td style="padding:5px 10px;border-bottom:1px solid #eee;font-size:11.5px;color:#222;word-break:break-word;vertical-align:top">${detail}</td></tr>`;
     });
     return rows.join('');
   };
@@ -5113,10 +5129,10 @@ async function generateMemberReport(m) {
 
   // Build leave rows
   const leaveRows = leavesData.map(d =>
-    `<tr><td style="padding:5px 12px;border-bottom:1px solid #eee;font-size:12px;color:#555">${d.leaveType||'—'}</td>` +
-    `<td style="padding:5px 12px;border-bottom:1px solid #eee;font-size:12px;color:#222">${d.fromDate||'—'} → ${d.toDate||'—'}</td>` +
-    `<td style="padding:5px 12px;border-bottom:1px solid #eee;font-size:12px;color:#222">${d.noOfDays||'—'} ${L('দিন','days')}</td>` +
-    `<td style="padding:5px 12px;border-bottom:1px solid #eee;font-size:12px;color:#555">${d.address||''}</td></tr>`
+    `<tr><td style="padding:5px 10px;border-bottom:1px solid #eee;font-size:11.5px;color:#555;vertical-align:top">${d.leave_type||d.leaveType||'—'}</td>` +
+    `<td style="padding:5px 10px;border-bottom:1px solid #eee;font-size:11.5px;color:#222;vertical-align:top">${d.from_date||d.fromDate||'—'} → ${d.to_date||d.toDate||'—'}</td>` +
+    `<td style="padding:5px 10px;border-bottom:1px solid #eee;font-size:11.5px;color:#222;vertical-align:top">${d.total_days||d.noOfDays||'—'}</td>` +
+    `<td style="padding:5px 10px;border-bottom:1px solid #eee;font-size:11.5px;color:#555;word-break:break-word;vertical-align:top">${d.address||''}</td></tr>`
   ).join('');
 
   // Build course rows
@@ -5128,15 +5144,17 @@ async function generateMemberReport(m) {
     const res = courseResults['course_' + i] || '';
     const pos = courseResults['pos_' + i] || '';
     const resLabel = gradeLabels[res] || res;
-    return `<tr><td style="padding:5px 12px;border-bottom:1px solid #eee;font-size:12px;color:#222;width:65%">${i+1}. ${c}</td>` +
-      `<td style="padding:5px 12px;border-bottom:1px solid #eee;font-size:12px;color:#555;width:35%">${resLabel}${pos?' | '+L('স্থান','Pos')+': '+pos:''}</td></tr>`;
+    return `<tr>` +
+      `<td width="40%" style="width:40%;max-width:40%;padding:5px 10px;border-bottom:1px solid #eee;font-size:11.5px;color:#222;word-break:break-word;vertical-align:top">${i+1}. ${c}</td>` +
+      `<td width="60%" style="width:60%;max-width:60%;padding:5px 10px;border-bottom:1px solid #eee;font-size:11.5px;color:#555;white-space:nowrap;vertical-align:top">${resLabel}${pos?' | স্থান: '+pos:''}</td>` +
+      `</tr>`;
   }).join('');
 
   // Build recommendations (numbered, all courses)
   const recItems = _computeCourseRecommendationItems(m);
   const recRows = recItems.map((it, i) =>
-    `<tr><td style="padding:5px 12px;border-bottom:1px solid #eee;font-size:12px;color:#222;width:35%">${i+1}. ${it.courseName}</td>` +
-    `<td style="padding:5px 12px;border-bottom:1px solid #eee;font-size:12px;color:#555">${it.recText}</td></tr>`
+    `<tr><td style="padding:5px 10px;border-bottom:1px solid #eee;font-size:11.5px;color:#222;vertical-align:top;word-break:break-word">${i+1}. ${it.courseName}</td>` +
+    `<td style="padding:5px 10px;border-bottom:1px solid #eee;font-size:11.5px;color:#555;vertical-align:top;word-break:break-word">${it.recText}</td></tr>`
   ).join('');
 
   const photoUrl = m.ph || m.photoUrl || m.photo || '';
@@ -5145,7 +5163,8 @@ async function generateMemberReport(m) {
   const name2 = lang === 'bn' ? (m.en || '') : (m.bn || '');
   const company = m.co_bn || m.company || '';
   const bloodGroup = m.bl || m.blood || '';
-  const field = (lbl, val) => val ? `<tr><td style="padding:5px 12px;font-weight:600;color:#555;width:38%;border-bottom:1px solid #eee;font-size:12px">${lbl}</td><td style="padding:5px 12px;border-bottom:1px solid #eee;font-size:12px;color:#222">${val}</td></tr>` : '';
+  const field = (lbl, val) => val ? `<tr><td style="padding:5px 10px;font-weight:600;color:#444;font-size:11.5px;border-bottom:1px solid #eee;vertical-align:top;line-height:1.5">${lbl}</td><td style="padding:5px 10px;font-size:11.5px;color:#111;border-bottom:1px solid #eee;word-break:break-word;vertical-align:top;line-height:1.5">${val}</td></tr>` : '';
+  const infoTable = (rows) => `<table style="table-layout:fixed;width:100%;border-collapse:collapse"><colgroup><col style="width:38%"><col style="width:62%"></colgroup><tbody>${rows}</tbody></table>`;
   const today = new Date().toLocaleDateString(lang === 'bn' ? 'bn-BD' : 'en-GB');
 
   const htmlContent = `<!DOCTYPE html>
@@ -5170,7 +5189,8 @@ async function generateMemberReport(m) {
   .sec{margin-top:14px}
   .st{background:#1a3a5c;color:#fff;padding:5px 12px;font-family:'Rajdhani',sans-serif;font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase}
   .st2{background:#2a5a8c;color:#fff;padding:4px 12px;font-family:'Rajdhani',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px}
-  table{width:100%;border-collapse:collapse}
+  table{width:100%;border-collapse:collapse;table-layout:fixed}
+  td,th{overflow:hidden}
   .footer{margin-top:24px;padding-top:10px;border-top:2px solid #1a3a5c;font-size:10px;color:#888;font-family:'Rajdhani',sans-serif;display:flex;justify-content:space-between}
   @media print{body{padding:8px}@page{margin:8mm}}
 </style>
@@ -5196,7 +5216,7 @@ async function generateMemberReport(m) {
 
 <div class="sec">
   <div class="st">${L('সামরিক তথ্য','Military Information')}</div>
-  <table>
+  ${infoTable(`
     ${field(L('সেনা নম্বর','Army No.'), armyNo)}
     ${field(L('পদবী','Rank'), lang==='bn'?m.r_bn:m.r_en)}
     ${field(L('ট্রেড','Trade'), lang==='bn'?m.tr_bn:m.tr_en)}
@@ -5219,12 +5239,12 @@ async function generateMemberReport(m) {
     ${field(L('সাজা','Punishment'), m.pn)}
     ${field(L('পূর্বের ট্রেড','Prev Trade'), m.prev_trade)}
     ${field(L('পূর্বের পদবী','Prev Rank'), m.prev_rank)}
-  </table>
+  `)}
 </div>
 
 <div class="sec">
   <div class="st">${L('ব্যক্তিগত তথ্য','Personal Information')}</div>
-  <table>
+  ${infoTable(`
     ${field(L('জন্ম তারিখ','Date of Birth'), fmtDateAge(m.dob))}
     ${field(L('লিঙ্গ','Gender'), lang==='bn'?m.gn_bn:m.gn_en)}
     ${field(L('জাতীয় পরিচয়পত্র','NID'), m.nid)}
@@ -5245,24 +5265,24 @@ async function generateMemberReport(m) {
     ${field(L('পুরস্কার','Award'), m.award)}
     ${field(L('ব্যাংকের নাম','Bank'), m.bank_name)}
     ${field(L('ব্যাংক একাউন্ট','Bank A/C'), m.bank_ac)}
-  </table>
+  `)}
 </div>
 
 ${courseRows ? `<div class="sec"><div class="st">${L('কোর্স ও ক্যাডার','Courses & Cadre')}</div>
-<table style="table-layout:fixed"><thead><tr style="background:#f0f4f8"><th style="padding:5px 12px;text-align:left;font-size:12px;color:#1a3a5c;width:65%">${L('কোর্সের নাম','Course Name')}</th><th style="padding:5px 12px;text-align:left;font-size:12px;color:#1a3a5c;width:35%">${L('ফলাফল','Result')}</th></tr></thead><tbody>${courseRows}</tbody></table></div>` : ''}
+<table style="table-layout:fixed;width:100%;border-collapse:collapse"><colgroup><col width="40%" style="width:40%"><col width="60%" style="width:60%"></colgroup><thead><tr style="background:#f0f4f8"><th width="40%" style="width:40%;padding:5px 10px;text-align:left;font-size:11.5px;color:#1a3a5c;font-weight:700">${L('কোর্সের নাম','Course Name')}</th><th width="60%" style="width:60%;padding:5px 10px;text-align:left;font-size:11.5px;color:#1a3a5c;font-weight:700">${L('ফলাফল','Result')}</th></tr></thead><tbody>${courseRows}</tbody></table></div>` : ''}
 
 ${recRows ? `<div class="sec"><div class="st">${L('সুপারিশ','Recommendations')}</div>
-<table><thead><tr style="background:#f0f4f8"><th style="padding:5px 12px;text-align:left;font-size:12px;color:#1a3a5c;width:35%">${L('কোর্স','Course')}</th><th style="padding:5px 12px;text-align:left;font-size:12px;color:#1a3a5c">${L('সুপারিশ','Recommendation')}</th></tr></thead><tbody>${recRows}</tbody></table></div>` : ''}
+<table style="table-layout:fixed;width:100%;border-collapse:collapse"><colgroup><col style="width:40%"><col style="width:60%"></colgroup><thead><tr style="background:#f0f4f8"><th style="padding:5px 10px;text-align:left;font-size:11.5px;color:#1a3a5c">${L('কোর্স','Course')}</th><th style="padding:5px 10px;text-align:left;font-size:11.5px;color:#1a3a5c">${L('সুপারিশ','Recommendation')}</th></tr></thead><tbody>${recRows}</tbody></table></div>` : ''}
 
 ${allTrainingRows ? `<div class="sec"><div class="st">${L('প্রশিক্ষণ রেকর্ড','Training Records')}</div>
-<table><thead><tr style="background:#f0f4f8"><th style="padding:5px 12px;text-align:left;font-size:12px;color:#1a3a5c;width:25%">${L('ধরন','Type')}</th><th style="padding:5px 12px;text-align:left;font-size:12px;color:#1a3a5c">${L('বিস্তারিত','Details')}</th></tr></thead><tbody>${allTrainingRows}</tbody></table></div>` : ''}
+<table style="table-layout:fixed;width:100%;border-collapse:collapse"><colgroup><col style="width:20%"><col style="width:80%"></colgroup><thead><tr style="background:#f0f4f8"><th style="padding:5px 10px;text-align:left;font-size:11.5px;color:#1a3a5c">${L('ধরন','Type')}</th><th style="padding:5px 10px;text-align:left;font-size:11.5px;color:#1a3a5c">${L('বিস্তারিত','Details')}</th></tr></thead><tbody>${allTrainingRows}</tbody></table></div>` : ''}
 
 ${leaveRows ? `<div class="sec"><div class="st">${L('ছুটির রেকর্ড','Leave Records')}</div>
-<table><thead><tr style="background:#f0f4f8"><th style="padding:5px 12px;text-align:left;font-size:12px;color:#1a3a5c">${L('ধরন','Type')}</th><th style="padding:5px 12px;text-align:left;font-size:12px;color:#1a3a5c">${L('তারিখ','Date')}</th><th style="padding:5px 12px;text-align:left;font-size:12px;color:#1a3a5c">${L('দিন','Days')}</th><th style="padding:5px 12px;text-align:left;font-size:12px;color:#1a3a5c">${L('ঠিকানা','Address')}</th></tr></thead><tbody>${leaveRows}</tbody></table></div>` : ''}
+<table style="table-layout:fixed;width:100%;border-collapse:collapse"><colgroup><col style="width:22%"><col style="width:30%"><col style="width:10%"><col style="width:38%"></colgroup><thead><tr style="background:#f0f4f8"><th style="padding:5px 10px;text-align:left;font-size:11.5px;color:#1a3a5c">${L('ধরন','Type')}</th><th style="padding:5px 10px;text-align:left;font-size:11.5px;color:#1a3a5c">${L('তারিখ','Date')}</th><th style="padding:5px 10px;text-align:left;font-size:11.5px;color:#1a3a5c">${L('দিন','Days')}</th><th style="padding:5px 10px;text-align:left;font-size:11.5px;color:#1a3a5c">${L('ঠিকানা','Address')}</th></tr></thead><tbody>${leaveRows}</tbody></table></div>` : ''}
 
 <div class="sec">
   <div class="st">${L('পারিবারিক তথ্য','Family Information')}</div>
-  <table>
+  ${infoTable(`
     ${field(L('বৈবাহিক অবস্থা','Marital Status'), lang==='bn'?m.ma_bn:m.ma_en)}
     ${field(L('স্বামী/স্ত্রীর নাম','Spouse Name'), m.sp)}
     ${field(L('স্বামী/স্ত্রীর জন্ম','Spouse DOB'), fmtDateAge(m.sd))}
@@ -5270,7 +5290,7 @@ ${leaveRows ? `<div class="sec"><div class="st">${L('ছুটির রেক�
     ${[1,2,3,4,5,6,7,8,9].filter(i=>m['c'+i+'n']).map(i=>
       field(L('সন্তান '+i,'Child '+i), m['c'+i+'n'] + (m['c'+i+'d']?' ('+fmtDateAge(m['c'+i+'d'])+')':''))
     ).join('')}
-  </table>
+  `)}
 </div>
 
 <div class="footer">
