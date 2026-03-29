@@ -836,7 +836,7 @@ select:focus { border-color: var(--accent); }
     <div style="display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap;">
       <a href="index.html" style="display:flex;align-items:center;gap:5px;padding:6px 12px;background:rgba(200,169,74,0.15);border:1px solid rgba(200,169,74,0.35);border-radius:8px;color:#c8a94a;font-family:'Rajdhani',sans-serif;font-size:0.7rem;font-weight:700;letter-spacing:1px;text-decoration:none;">📱 অ্যাপ</a>
       
-      <div class="stat-group" style="display: flex; align-items: center; gap: 6px;">
+      <div class="stat-group" style="display: flex; align-items: center; gap: 6px; border:1px solid rgba(200,169,74,0.3); border-radius:7px; padding:5px 10px; background:rgba(200,169,74,0.08);">
         <span style="font-family:'Rajdhani',sans-serif;font-size:0.7rem;color:rgba(255,255,255,0.5);">👥</span>
         <span id="totalCount" style="font-family:'Rajdhani',sans-serif;font-size:1rem;font-weight:700;color:#c8a94a;">0</span>
         <span style="font-family:'Rajdhani',sans-serif;font-size:0.7rem;color:rgba(255,255,255,0.5);">জন</span>
@@ -893,7 +893,7 @@ select:focus { border-color: var(--accent); }
 <div class="controls-wrap">
   <div class="controls">
     <div class="search-wrap" style="flex:2;min-width:200px;">
-      <input type="text" id="searchInput" oninput="debounceSearch()" placeholder="নাম, সেনা নম্বর, ট্রেড, কোর্স, জেলা, NID...">
+      <input type="text" id="searchInput" oninput="debounceSearch()" placeholder="নাম, সেনা নং, পদবী, কোর্স, সুপারিশ, জেলা, শাস্তি, NID, মোবাইল...">
     </div>
     <select id="companyFilter"><option value="">সব কোম্পানী</option></select>
     <select id="rankFilter"><option value="">সব পদবী</option></select>
@@ -1040,18 +1040,24 @@ function fmtTags(str,cls=''){
     .map(s=>`<span class="tag ${cls}">${s}</span>`).join('');
 }
 
+const _GRADE_BN_R = { pass:'পাস', alpha:'আলপা', bplusyplus:'বি+ওয়াই+', bplusy:'বি+ওয়াই', byplus:'বিওয়াই+', by:'বিওয়াই', bplus:'বি+', b:'বি', bminus:'বি মাইনাস', fail:'ফেল' };
+const _GRADE_EN_R = { pass:'Pass', alpha:'Alpha', bplusyplus:'B+Y+', bplusy:'B+Y', byplus:'BY+', by:'BY', bplus:'B+', b:'B', bminus:'B-', fail:'Fail' };
+function gradeLabel(id) {
+  return (lang !== 'en' ? _GRADE_BN_R[id] : _GRADE_EN_R[id]) || id || '';
+}
+
 function fmtCoursesWithResults(str, results, superadminDocId='') {
   if(!str) return '';
-  const grades = { alpha:'Alpha', bplus:'B+', b:'B', bminus:'B-' };
-  const gradeColor = { alpha:'#3fb950', bplus:'#388bfd', b:'#c8a94a', bminus:'#d29922' };
+  const grades = { pass:1, alpha:1, bplusyplus:1, bplusy:1, byplus:1, by:1, bplus:1, b:1, bminus:1, fail:1 };
+  const gradeColor = { pass:'#3fb950', alpha:'#3fb950', bplusyplus:'#388bfd', bplusy:'#388bfd', byplus:'#c8a94a', by:'#c8a94a', bplus:'#388bfd', b:'#c8a94a', bminus:'#d29922', fail:'#e05555' };
   const courses = str.split(/[,،]/).map(s=>s.trim()).filter(s=>s&&s.toLowerCase()!=='no'&&s!=='নাই'&&s!=='না');
   return `<div style="display:flex;flex-direction:column;gap:8px">` +
     courses.map((course, i) => {
       const result = results['course_' + i] || '';
       const pos = results['pos_' + i] || '';
       const rec = results['rec_' + i] || '';
-      const resultLabel = grades[result] || '';
-      const resultColor = gradeColor[result] || '';
+      const resultLabel = result ? gradeLabel(result) : '';
+      const resultColor = gradeColor[result] || '#8b949e';
 
       const safeCourse = _escapeHtml(course);
       const safeRec = _escapeHtml(String(rec).trim());
@@ -1108,23 +1114,21 @@ function _computeCourseRecommendationItems(m) {
 
 function computeProfileRecommendationHtml(m) {
   const items = _computeCourseRecommendationItems(m);
-  if (!items.length) return '';
   const noRec = lang === 'bn' ? 'কোন সুপারিশ নাই' : 'No recommendation';
-  const anyHasRec = items.some(it => it.hasRec);
-  if (!anyHasRec) return `<span style="color:var(--text3);font-style:italic">${noRec}</span>`;
-  return items.map((it, i) =>
-    `${i + 1}. ${_escapeHtml(it.courseName)}: <span style="color:${it.hasRec?'var(--accent3)':'var(--text3);font-style:italic'}">${it.hasRec ? _escapeHtml(it.recText) : noRec}</span>`
+  const withRec = items.filter(it => it.hasRec);
+  if (!withRec.length) return `<span style="color:var(--text3);font-style:italic">${noRec}</span>`;
+  return withRec.map((it, i) =>
+    `${i + 1}. ${_escapeHtml(it.courseName)}: <span style="color:var(--accent3)">${_escapeHtml(it.recText)}</span>`
   ).join('<br>');
 }
 
 function computeProfileRecommendationText(m) {
   const items = _computeCourseRecommendationItems(m);
-  if (!items.length) return '';
   const noRec = lang === 'bn' ? 'কোন সুপারিশ নাই' : 'No recommendation';
-  const anyHasRec = items.some(it => it.hasRec);
-  if (!anyHasRec) return noRec;
-  return items.map((it, i) =>
-    `${i + 1}. ${it.courseName}: ${it.hasRec ? it.recText : noRec}`
+  const withRec = items.filter(it => it.hasRec);
+  if (!withRec.length) return noRec;
+  return withRec.map((it, i) =>
+    `${i + 1}. ${it.courseName}: ${it.recText}`
   ).join('\n');
 }
 
@@ -1194,8 +1198,8 @@ function setLang(l){
 
   // Update filter placeholders & labels
   document.getElementById('searchInput').placeholder = l==='bn'
-    ? 'নাম, সেনা নম্বর, ট্রেড, কোর্স, জেলা, NID...'
-    : 'Name, Army No, Trade, Course, District, NID...';
+    ? 'নাম, সেনা নং, পদবী, কোর্স, সুপারিশ, জেলা, শাস্তি, NID, মোবাইল...'
+    : 'Name, Army No, Rank, Course, Recommendation, District, NID, Mobile...';
 
   // Update select options text
   ['companyFilter','rankFilter','districtFilter','tradeFilter'].forEach(id=>{
@@ -1257,6 +1261,37 @@ function applyFilters(){
 
     // Full-text search — সব field এ বাংলা ও ইংরেজি উভয় ভাষায়
     if (q) {
+      const cr = (m.courseResults && typeof m.courseResults === 'object') ? m.courseResults : {};
+      // display এর মতো একই লজিক — _computeCourseRecommendationItems দিয়ে hasRec নির্ধারণ
+      const _recItems = _computeCourseRecommendationItems(m);
+      const hasRec = _recItems.some(it => it.hasRec);
+      // সার্চযোগ্য rec টেক্সট — শুধু যাদের সত্যিকারের rec আছে
+      const recValues = _recItems.filter(it => it.hasRec).map(it => it.recText).join(' ');
+      // সব course_ ও pos_ ভ্যালু একত্রে
+      const courseValues = Object.entries(cr)
+        .filter(([k]) => k.startsWith('course_'))
+        .map(([,v]) => String(v || '')).join(' ');
+      const posValues = Object.entries(cr)
+        .filter(([k]) => k.startsWith('pos_'))
+        .map(([,v]) => String(v || '')).join(' ');
+      const hasCourse = !!(m.cr_bn || m.cr_en);
+      const hasPunish = !!(m.pn && m.pn.length > 2 && !['nil','no','nai','n/a','0'].includes((m.pn||'').toLowerCase()));
+      const hasAi = !!(m.ai_bn || m.ai_en || m.ai);
+      // স্পেশাল কীওয়ার্ড — সরাসরি boolean চেক, substring match নয়
+      const specialMap = {
+        'সুপারিশ': hasRec, 'recommendation': hasRec,
+        'কোর্স': hasCourse, 'course': hasCourse,
+        'শাস্তি': hasPunish, 'punishment': hasPunish,
+        'ai': hasAi, 'এআই': hasAi,
+      };
+      const words = q.split(/\s+/).filter(Boolean);
+      // যদি কোনো শব্দ specialMap এ থাকে, সেটার boolean মান ব্যবহার করো
+      for (const w of words) {
+        if (w in specialMap) { if (!specialMap[w]) return false; continue; }
+        // specialMap এ নেই — নিচে parts এ খুঁজবে
+      }
+      const nonSpecialWords = words.filter(w => !(w in specialMap));
+
       const parts = [
         m.bn, m.en,
         String(m.no || ''),
@@ -1269,19 +1304,20 @@ function applyFilters(){
         m.dc_bn, m.dc_en,
         m.gn_bn, m.gn_en,
         m.ma_bn, m.ma_en,
-        m.ai_bn, m.ai_en,
+        m.ai_bn, m.ai_en, m.ai,
         m.res_bn,m.res_en,
         m.li, m.rec, m.pn,
-        m.sp, m.nid, m.mb, m.nm, m.em, m.wa,
+        m.sp, m.sn, m.nid, m.mb, m.nm, m.em, m.wa,
         m.ad, m.rt, m.pu, m.niyog, m.promo_date,
+        m.p1, m.p2, m.p3, m.p4, m.p5,
         m.c1n, m.c2n, m.c3n, m.c4n, m.c5n,
-        m.dob, m.jd,  m.od,  m.pd,
+        m.c1d, m.c2d, m.c3d, m.c4d,
+        m.dob, m.jd, m.od, m.pd, m.sd,
         m.bl,
+        recValues, courseValues, posValues,
       ].map(v => (v === null || v === undefined) ? '' : String(v)).join(' ').toLowerCase();
 
-      // Space-separated multi-word search — সব শব্দ থাকলেই দেখাবে
-      const words = q.split(/\s+/).filter(Boolean);
-      if (!words.every(w => parts.includes(w))) return false;
+      if (!nonSpecialWords.every(w => parts.includes(w))) return false;
     }
 
     return true;
@@ -1593,17 +1629,12 @@ function showModal(target){
               ? (() => {
                   const recItems = _computeCourseRecommendationItems(m);
                   const noRec = lang==='bn' ? 'কোন সুপারিশ নাই' : 'No recommendation';
-                  const anyHasRec = recItems.some(it => it.hasRec);
-                  if (!anyHasRec) return `<span style="color:var(--text3);font-style:italic">${noRec}</span>`;
-                  return recItems.map((it, i) => {
+                  const withRec = recItems.filter(it => it.hasRec);
+                  if (!withRec.length) return `<span style="color:var(--text3);font-style:italic">${noRec}</span>`;
+                  return withRec.map((it, i) => {
                     const k = it.recKey;
-                    const delBtn = it.hasRec
-                      ? `<button onclick="event.stopPropagation();_superadminDeleteRec('${profileDocId}','${k}');this.closest('[id^=pdi_rec_]').querySelector('span').textContent='${noRec}';this.remove()" style="background:rgba(192,64,64,0.1);border:1px solid rgba(192,64,64,0.3);color:#e05555;border-radius:4px;padding:1px 7px;font-size:0.58rem;font-family:'Rajdhani',sans-serif;font-weight:700;cursor:pointer;flex-shrink:0">🗑️</button>`
-                      : '';
-                    const recDisplay = it.hasRec
-                      ? `<span style="color:var(--accent3)">${_escapeHtml(it.recText)}</span>`
-                      : `<span style="color:var(--text3);font-style:italic">${noRec}</span>`;
-                    return `<div style="display:flex;align-items:flex-start;gap:6px;margin-bottom:4px" id="pdi_rec_${k}"><span style="flex:1;color:var(--text)">${i+1}. <b>${_escapeHtml(it.courseName)}:</b> ${recDisplay}</span>${delBtn}</div>`;
+                    const delBtn = `<button onclick="event.stopPropagation();_superadminDeleteRec('${profileDocId}','${k}');document.getElementById('pdi_rec_${k}')?.remove()" style="background:rgba(192,64,64,0.1);border:1px solid rgba(192,64,64,0.3);color:#e05555;border-radius:4px;padding:1px 7px;font-size:0.58rem;font-family:'Rajdhani',sans-serif;font-weight:700;cursor:pointer;flex-shrink:0">🗑️</button>`;
+                    return `<div style="display:flex;align-items:flex-start;gap:6px;margin-bottom:4px" id="pdi_rec_${k}"><span style="flex:1;color:var(--text)">${i+1}. <b>${_escapeHtml(it.courseName)}:</b> <span style="color:var(--accent3)">${_escapeHtml(it.recText)}</span></span>${delBtn}</div>`;
                   }).join('');
                 })()
               : profileRecHtml
@@ -4072,11 +4103,10 @@ function _renderSuperadminRecItems() {
   if (!m || !m.courseResults) { el.innerHTML = ''; return; }
   // _computeCourseRecommendationItems ব্যবহার করি যাতে সঠিক কোর্সের নাম আসে
   const recItems = _computeCourseRecommendationItems(m);
-  if (!recItems.length) { el.innerHTML = ''; return; }
   const docId = _getRosterEditMemberDocId();
   const noRec = lang === 'bn' ? 'কোন সুপারিশ নাই' : 'No recommendation';
-  const anyHasRec = recItems.some(it => it.hasRec);
-  if (!anyHasRec) {
+  const withRec = recItems.filter(it => it.hasRec);
+  if (!withRec.length) {
     el.innerHTML = `<div style="border:1px solid rgba(192,64,64,0.25);border-radius:8px;overflow:hidden;margin-bottom:4px">
       <div style="font-family:'Rajdhani',sans-serif;font-size:0.62rem;letter-spacing:1px;color:#e05555;text-transform:uppercase;padding:5px 10px;background:rgba(192,64,64,0.07)">🗑️ সুপারিশ তালিকা — সুপার অ্যাডমিন ডিলিট</div>
       <div style="padding:8px 10px;font-size:0.77rem;color:#484f58;font-style:italic">${noRec}</div>
@@ -4085,18 +4115,15 @@ function _renderSuperadminRecItems() {
   }
   el.innerHTML = `<div style="border:1px solid rgba(192,64,64,0.25);border-radius:8px;overflow:hidden;margin-bottom:4px">
     <div style="font-family:'Rajdhani',sans-serif;font-size:0.62rem;letter-spacing:1px;color:#e05555;text-transform:uppercase;padding:5px 10px;background:rgba(192,64,64,0.07)">🗑️ সুপারিশ তালিকা — সুপার অ্যাডমিন ডিলিট</div>
-    ${recItems.map(it => {
+    ${withRec.map(it => {
       const k = it.recKey;
-      const courseName = it.courseName;
       return `
         <div style="display:flex;align-items:flex-start;gap:8px;padding:6px 10px;border-top:1px solid rgba(255,255,255,0.05)">
           <div style="flex:1;font-size:0.77rem;color:#e6e6e6">
-            <span style="color:#8b949e;font-size:0.68rem">${_escapeHtml(courseName)}:</span>
-            ${it.hasRec
-              ? ` <span style="color:#e6e6e6">${_escapeHtml(it.recText)}</span>`
-              : ` <span style="color:#484f58;font-style:italic">${noRec}</span>`}
+            <span style="color:#8b949e;font-size:0.68rem">${_escapeHtml(it.courseName)}:</span>
+            <span style="color:#e6e6e6">${_escapeHtml(it.recText)}</span>
           </div>
-          ${it.hasRec ? `<button onclick="_superadminDeleteRec('${docId}','${k}');_renderSuperadminRecItems()" style="background:rgba(192,64,64,0.12);border:1px solid rgba(192,64,64,0.4);color:#e05555;border-radius:5px;padding:3px 10px;font-family:'Rajdhani',sans-serif;font-size:0.65rem;font-weight:700;letter-spacing:1px;cursor:pointer;white-space:nowrap;flex-shrink:0">🗑️ মুছুন</button>` : ''}
+          <button onclick="_superadminDeleteRec('${docId}','${k}');_renderSuperadminRecItems()" style="background:rgba(192,64,64,0.12);border:1px solid rgba(192,64,64,0.4);color:#e05555;border-radius:5px;padding:3px 10px;font-family:'Rajdhani',sans-serif;font-size:0.65rem;font-weight:700;letter-spacing:1px;cursor:pointer;white-space:nowrap;flex-shrink:0">🗑️ মুছুন</button>
         </div>
       `;
     }).join('')}
@@ -4428,6 +4455,17 @@ async function loadMembersFromFirebase() {
             MEMBERS[idx] = data;
             filtered = [...MEMBERS];
             applyFilters();
+            // modal খোলা থাকলে ছবি live আপডেট করো
+            if (window._profileCurrentDocId === change.doc.id && data.ph) {
+              if (window._profileCurrentMember) window._profileCurrentMember.ph = data.ph;
+              const photoImg = document.querySelector('.modal-photo img');
+              if (photoImg) {
+                photoImg.src = data.ph;
+              } else {
+                const photoWrap = document.querySelector('.modal-photo');
+                if (photoWrap) photoWrap.innerHTML = `<img src="${data.ph}" alt="" style="width:100%;height:100%;object-fit:cover">`;
+              }
+            }
           }
         } else if (change.type === 'added') {
           const exists = MEMBERS.some(m => m._id === change.doc.id);
@@ -5496,19 +5534,18 @@ async function generateMemberReport(m) {
   const courseStr = lang === 'bn' ? (m.cr_bn || '') : (m.cr_en || '');
   const courseArr = courseStr ? courseStr.split(/[,،]/).map(s => s.trim()).filter(Boolean) : [];
   const courseResults = m.courseResults || {};
-  const gradeLabels = { alpha: L('আলফা','Alpha'), bplus: 'B+', b: 'B', bminus: 'B-' };
   const courseRows = courseArr.map((c, i) => {
     const res = courseResults['course_' + i] || '';
     const pos = courseResults['pos_' + i] || '';
-    const resLabel = gradeLabels[res] || res;
+    const resLabel = res ? gradeLabel(res) : '';
     return `<tr>` +
       `<td width="40%" style="width:40%;max-width:40%;padding:5px 10px;border-bottom:1px solid #eee;font-size:11.5px;color:#222;word-break:break-word;vertical-align:top">${i+1}. ${c}</td>` +
       `<td width="60%" style="width:60%;max-width:60%;padding:5px 10px;border-bottom:1px solid #eee;font-size:11.5px;color:#555;white-space:nowrap;vertical-align:top">${resLabel}${pos?' | স্থান: '+pos:''}</td>` +
       `</tr>`;
   }).join('');
 
-  // Build recommendations (numbered, all courses)
-  const recItems = _computeCourseRecommendationItems(m);
+  // Build recommendations (only courses with rec)
+  const recItems = _computeCourseRecommendationItems(m).filter(it => it.hasRec);
   const recRows = recItems.map((it, i) =>
     `<tr><td style="padding:5px 10px;border-bottom:1px solid #eee;font-size:11.5px;color:#222;vertical-align:top;word-break:break-word">${i+1}. ${it.courseName}</td>` +
     `<td style="padding:5px 10px;border-bottom:1px solid #eee;font-size:11.5px;color:#555;vertical-align:top;word-break:break-word">${it.recText}</td></tr>`

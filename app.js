@@ -5,6 +5,13 @@
 ══════════════════════════════════════════ */
 let db, auth, storage, fbApp;
 let currentUser = null;
+
+/* ── Grade label helper (language-aware) ── */
+const _GRADE_BN = { pass:'পাস', alpha:'আলপা', bplusyplus:'বি+ওয়াই+', bplusy:'বি+ওয়াই', byplus:'বিওয়াই+', by:'বিওয়াই', bplus:'বি+', b:'বি', bminus:'বি মাইনাস', fail:'ফেল' };
+const _GRADE_EN = { pass:'Pass', alpha:'Alpha', bplusyplus:'B+Y+', bplusy:'B+Y', byplus:'BY+', by:'BY', bplus:'B+', b:'B', bminus:'B-', fail:'Fail' };
+function gradeLabel(id) {
+  return (appLang !== 'en' ? _GRADE_BN[id] : _GRADE_EN[id]) || id || '';
+}
 let currentMemberData = null;
 let currentEditField = null;
 let userRole = 'member'; // 'member' | 'subadmin' | 'admin' | 'superadmin'
@@ -3026,19 +3033,15 @@ function renderCourses() {
     return;
   }
 
-  const RESULT_LABELS_RC = { pass:'পাস/Pass', alpha:'Alpha', bplus:'B+', b:'B', bminus:'B-', fail:'ফেল/Fail' };
+  const RESULT_LABELS_RC = { pass:gradeLabel("pass"), alpha:gradeLabel("alpha"), bplusyplus:gradeLabel("bplusyplus"), bplusy:gradeLabel("bplusy"), byplus:gradeLabel("byplus"), by:gradeLabel("by"), bplus:gradeLabel("bplus"), b:gradeLabel("b"), bminus:gradeLabel("bminus"), fail:gradeLabel("fail") };
   const html = courses.map((cObj) => {
     const i = cObj.idx;
     const course = cObj.name;
     const courseAlt = cObj.alt;
     const resultKey = 'course_' + i;
     const currentResult = results[resultKey] || '';
-    const grades = [
-      { id: 'alpha', label: 'Alpha' },
-      { id: 'bplus', label: 'B+' },
-      { id: 'b', label: 'B' },
-      { id: 'bminus', label: 'B-' },
-    ];
+    const grades = ['pass','alpha','bplusyplus','bplusy','byplus','by','bplus','b','bminus','fail']
+      .map(id => ({ id, label: gradeLabel(id) }));
     const isLocked = !!currentResult;
     const currentPos = results['pos_' + i] || '';
     const isPosLocked = !!currentPos;
@@ -3123,7 +3126,7 @@ function renderCoursesInto(targetId) {
 
 async function setCourseResult(idx, grade, btn) {
   const resultKey = 'course_' + idx;
-  const RLBL = { pass:'পাস', alpha:'Alpha', bplus:'B+', b:'B', bminus:'B-', fail:'ফেল' };
+  const RLBL = { pass:gradeLabel("pass"), alpha:gradeLabel("alpha"), bplusyplus:gradeLabel("bplusyplus"), bplusy:gradeLabel("bplusy"), byplus:gradeLabel("byplus"), by:gradeLabel("by"), bplus:gradeLabel("bplus"), b:gradeLabel("b"), bminus:gradeLabel("bminus"), fail:gradeLabel("fail") };
 
   const existing = currentMemberData.courseResults?.[resultKey];
   if (existing) {
@@ -3355,12 +3358,7 @@ function editCourseByIdx(idx) {
       <label class="form-label">${isBn ? 'ফলাফল' : 'Result'}</label>
       <select class="form-input" id="editCourseResult" style="background:var(--bg3)">
         <option value="">— ${isBn ? 'নির্বাচন করুন' : 'Select'} —</option>
-        <option value="pass" ${curRes==='pass'?'selected':''} >${isBn?'পাস':'Pass'}</option>
-        <option value="alpha" ${curRes==='alpha'?'selected':''}>Alpha</option>
-        <option value="bplus" ${curRes==='bplus'?'selected':''}>B+</option>
-        <option value="b" ${curRes==='b'?'selected':''}>B</option>
-        <option value="bminus" ${curRes==='bminus'?'selected':''}>B-</option>
-        <option value="fail" ${curRes==='fail'?'selected':''} >${isBn?'ফেল':'Fail'}</option>
+        ${ ['pass','alpha','bplusyplus','bplusy','byplus','by','bplus','b','bminus','fail'].map(id=>`<option value="${id}" ${curRes===id?'selected':''}>${gradeLabel(id)}</option>`).join('') }
       </select>
     </div>
     <div class="form-group">
@@ -3398,12 +3396,7 @@ function openAddCourse() {
       <label class="form-label">${isBn ? 'ফলাফল' : 'Result'}</label>
       <select class="form-input" id="newCourseResult" style="background:var(--bg3)">
         <option value="">— ${isBn ? 'নির্বাচন করুন' : 'Select'} —</option>
-        <option value="pass">${isBn ? 'পাস' : 'Pass'}</option>
-        <option value="alpha">Alpha</option>
-        <option value="bplus">B+</option>
-        <option value="b">B</option>
-        <option value="bminus">B-</option>
-        <option value="fail">${isBn ? 'ফেল' : 'Fail'}</option>
+        ${ ['pass','alpha','bplusyplus','bplusy','byplus','by','bplus','b','bminus','fail'].map(id=>`<option value="${id}">${gradeLabel(id)}</option>`).join('') }
       </select>
     </div>
     <div class="form-group">
@@ -3504,7 +3497,7 @@ function renderCoursesWithPending(pendingList) {
   if (!pending.length) return;
 
   const isBn = appLang !== 'en';
-  const RLBL = { pass: isBn ? 'পাস' : 'Pass', alpha:'Alpha', bplus:'B+', b:'B', bminus:'B-', fail: isBn ? 'ফেল' : 'Fail' };
+  const RLBL = { pass:gradeLabel("pass"), alpha:gradeLabel("alpha"), bplusyplus:gradeLabel("bplusyplus"), bplusy:gradeLabel("bplusy"), byplus:gradeLabel("byplus"), by:gradeLabel("by"), bplus:gradeLabel("bplus"), b:gradeLabel("b"), bminus:gradeLabel("bminus"), fail:gradeLabel("fail") };
 
   const box = document.getElementById('coursesList');
   let extraHtml = '';
@@ -5793,7 +5786,7 @@ function renderAdminCourseFields() {
     return;
   }
 
-  const grades = [{id:'alpha',label:'Alpha'},{id:'bplus',label:'B+'},{id:'b',label:'B'},{id:'bminus',label:'B-'}];
+  const grades = ['pass','alpha','bplusyplus','bplusy','byplus','by','bplus','b','bminus','fail'].map(id=>({id,label:gradeLabel(id)}));
   document.getElementById('adminCoursesFields').innerHTML = courses.map((course, i) => {
     const currentResult = results['course_' + i] || '';
     const currentPos = results['pos_' + i] || '';
@@ -6065,7 +6058,7 @@ async function showStatDetail(type) {
       fakeBox.id = '_tmpPendingBox';
       // renderPendingList কল করো
       const allIds = snap.docs.map(d => d.id);
-      const PLBL2 = { pass:'পাস', alpha:'Alpha', bplus:'B+', b:'B', bminus:'B-', fail:'ফেল' };
+      const PLBL2 = { pass:gradeLabel("pass"), alpha:gradeLabel("alpha"), bplusyplus:gradeLabel("bplusyplus"), bplusy:gradeLabel("bplusy"), byplus:gradeLabel("byplus"), by:gradeLabel("by"), bplus:gradeLabel("bplus"), b:gradeLabel("b"), bminus:gradeLabel("bminus"), fail:gradeLabel("fail") };
       // inline render
       if (!snap.docs.length) { body.innerHTML = '<div style="text-align:center;padding:20px;color:var(--success);font-size:0.85rem">✅ কোনো অপেক্ষমাণ অনুরোধ নেই</div>'; document.body.removeChild(tmpDiv); return; }
       body.innerHTML = `<button onclick="approveAllPending()" style="width:100%;padding:10px;background:linear-gradient(135deg,var(--success),#2a8a3a);border:none;border-radius:10px;color:#fff;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:0.85rem;letter-spacing:1px;cursor:pointer;margin-bottom:12px">✅ সব অনুমোদন করুন (${snap.docs.length})</button>`;
@@ -6334,7 +6327,7 @@ function renderPendingList(docs) {
     return;
   }
 
-  const PLBL = { pass:'পাস', alpha:'Alpha', bplus:'B+', b:'B', bminus:'B-', fail:'ফেল' };
+  const PLBL = { pass:gradeLabel("pass"), alpha:gradeLabel("alpha"), bplusyplus:gradeLabel("bplusyplus"), bplusy:gradeLabel("bplusy"), byplus:gradeLabel("byplus"), by:gradeLabel("by"), bplus:gradeLabel("bplus"), b:gradeLabel("b"), bminus:gradeLabel("bminus"), fail:gradeLabel("fail") };
 
   // সদস্য অনুযায়ী গ্রুপ করো
   const groups = {};
