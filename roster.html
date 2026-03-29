@@ -1040,7 +1040,7 @@ function fmtTags(str,cls=''){
     .map(s=>`<span class="tag ${cls}">${s}</span>`).join('');
 }
 
-function fmtCoursesWithResults(str, results) {
+function fmtCoursesWithResults(str, results, superadminDocId='') {
   if(!str) return '';
   const grades = { alpha:'Alpha', bplus:'B+', b:'B', bminus:'B-' };
   const gradeColor = { alpha:'#3fb950', bplus:'#388bfd', b:'#c8a94a', bminus:'#d29922' };
@@ -1055,13 +1055,15 @@ function fmtCoursesWithResults(str, results) {
 
       const safeCourse = _escapeHtml(course);
       const safeRec = _escapeHtml(String(rec).trim());
+      const delCourseBtn = superadminDocId ? `<button onclick="event.stopPropagation();_superadminDeleteCourse('${superadminDocId}',${i});this.closest('[id^=pcourse_]')?.remove()" style="background:rgba(192,64,64,0.1);border:1px solid rgba(192,64,64,0.3);color:#e05555;border-radius:4px;padding:1px 7px;font-size:0.58rem;font-family:'Rajdhani',sans-serif;font-weight:700;cursor:pointer;flex-shrink:0">🗑️</button>` : '';
 
       return `
-        <div style="padding:8px 10px;background:rgba(0,0,0,0.04);border-radius:8px;border:1px solid var(--border2)">
+        <div id="pcourse_${i}" style="padding:8px 10px;background:rgba(0,0,0,0.04);border-radius:8px;border:1px solid var(--border2)">
           <div style="display:flex;align-items:center;gap:8px">
             <span style="flex:1;font-size:0.85rem">${safeCourse}</span>
             ${resultLabel ? `<span style="font-family:'Rajdhani',sans-serif;font-size:0.7rem;font-weight:700;padding:2px 8px;border-radius:10px;border:1px solid ${resultColor}40;background:${resultColor}18;color:${resultColor}">${resultLabel}</span>` : ''}
             ${pos ? `<span style="font-family:'Rajdhani',sans-serif;font-size:0.7rem;color:var(--accent);font-weight:700">🏆 ${pos}তম</span>` : ''}
+            ${delCourseBtn}
           </div>
           ${safeRec ? `<div style="margin-top:6px;padding:4px 8px;background:rgba(255,255,255,0.03);border:1px solid var(--border2);border-radius:8px;font-size:0.72rem;color:var(--text2);font-style:italic;line-height:1.6">💬 ${safeRec}</div>` : ''}
         </div>
@@ -1069,38 +1071,61 @@ function fmtCoursesWithResults(str, results) {
     }).join('') + '</div>';
 }
 
+function fmtTagsWithDelete(str, cls='', superadminDocId='', fieldName='') {
+  if(!str) return '';
+  const items = str.split(/[,،]/).map(s=>s.trim()).filter(s=>s&&s.toLowerCase()!=='no'&&s!=='নাই'&&s!=='না');
+  if (!superadminDocId) return items.map(s=>`<span class="tag ${cls}">${s}</span>`).join('');
+  return items.map((s, i) => `
+    <span style="display:inline-flex;align-items:center;gap:4px;margin:2px" id="ptag_${fieldName}_${i}">
+      <span class="tag ${cls}">${s}</span>
+      <button onclick="event.stopPropagation();_profileDeleteTagItem('${superadminDocId}','${fieldName}',${i},'ptag_${fieldName}_${i}')" style="background:rgba(192,64,64,0.1);border:1px solid rgba(192,64,64,0.3);color:#e05555;border-radius:4px;padding:0px 5px;font-size:0.55rem;font-family:'Rajdhani',sans-serif;font-weight:700;cursor:pointer">🗑️</button>
+    </span>
+  `).join('');
+}
+
 function _computeCourseRecommendationItems(m) {
-  if (!m || !m.courseResults || typeof m.courseResults !== 'object') return [];
-  const crRaw = lang === 'bn' ? (m.cr_bn || '') : (m.cr_en || '');
-  const crArr = crRaw.split(',').map(s => s.trim()).filter(Boolean);
+  // কোর্স না থাকলে কিছু নেই
+  const crBn = (m?.cr_bn || '').split(',').map(s => s.trim()).filter(Boolean);
+  const crEn = (m?.cr_en || '').split(',').map(s => s.trim()).filter(Boolean);
+  const maxLen = Math.max(crBn.length, crEn.length);
+  if (!maxLen) return [];
 
-  const keys = Object.keys(m.courseResults)
-    .filter(k => k.startsWith('rec_'))
-    .sort((a, b) => parseInt(a.replace('rec_', ''), 10) - parseInt(b.replace('rec_', ''), 10));
+  const cr = (m && typeof m.courseResults === 'object' && m.courseResults) ? m.courseResults : {};
 
+  // প্রতিটি কোর্সের জন্য এক একটি item তৈরি করো
   const items = [];
-  keys.forEach(k => {
-    const idx = parseInt(k.replace('rec_', ''), 10);
-    const courseName = crArr[idx] || (lang === 'bn' ? ('কোর্স ' + (idx + 1)) : ('Course ' + (idx + 1)));
-    const recText = m.courseResults[k];
-    if (recText) items.push({ courseName, recText });
-  });
+  for (let i = 0; i < maxLen; i++) {
+    const nameFromBn = crBn[i] || '';
+    const nameFromEn = crEn[i] || '';
+    const courseName = (lang === 'bn' ? nameFromBn || nameFromEn : nameFromEn || nameFromBn)
+      || nameFromBn || nameFromEn || (lang === 'bn' ? 'অজানা কোর্স' : 'Unknown Course');
+    const recKey = 'rec_' + i;
+    const recText = cr[recKey] ? String(cr[recKey]) : '';
+    items.push({ courseName, recText, recKey, hasRec: !!cr[recKey] });
+  }
   return items;
 }
 
 function computeProfileRecommendationHtml(m) {
   const items = _computeCourseRecommendationItems(m);
   if (!items.length) return '';
-  return items.map((it, i) => {
-    const num = i + 1;
-    return `${num}. ${_escapeHtml(it.courseName)}: ${_escapeHtml(String(it.recText))}`;
-  }).join('<br>');
+  const noRec = lang === 'bn' ? 'কোন সুপারিশ নাই' : 'No recommendation';
+  const anyHasRec = items.some(it => it.hasRec);
+  if (!anyHasRec) return `<span style="color:var(--text3);font-style:italic">${noRec}</span>`;
+  return items.map((it, i) =>
+    `${i + 1}. ${_escapeHtml(it.courseName)}: <span style="color:${it.hasRec?'var(--accent3)':'var(--text3);font-style:italic'}">${it.hasRec ? _escapeHtml(it.recText) : noRec}</span>`
+  ).join('<br>');
 }
 
 function computeProfileRecommendationText(m) {
   const items = _computeCourseRecommendationItems(m);
   if (!items.length) return '';
-  return items.map((it, i) => `${i + 1}. ${it.courseName}: ${String(it.recText)}`).join('\n');
+  const noRec = lang === 'bn' ? 'কোন সুপারিশ নাই' : 'No recommendation';
+  const anyHasRec = items.some(it => it.hasRec);
+  if (!anyHasRec) return noRec;
+  return items.map((it, i) =>
+    `${i + 1}. ${it.courseName}: ${it.hasRec ? it.recText : noRec}`
+  ).join('\n');
 }
 
 /* ─── POPULATE FILTERS ─── */
@@ -1314,6 +1339,7 @@ function renderCard(m,idx){
   const eduShort=(edu||'—').replace('HSC (Higher Secondary)','HSC').replace('SSC (Secondary)','SSC').replace('উচ্চ মাধ্যমিক (এইচএসসি)','এইচএসসি').replace('মাধ্যমিক (এসএসসি)','এসএসসি').replace('ডিগ্রী/অনার্স','ডিগ্রী').replace('Degree/Honours','Degree');
   const blank = isBlankMember(m);
   const canEdit = webCurrentUser && (webUserRole === 'admin' || webUserRole === 'superadmin');
+  const canDelete = webCurrentUser && webUserRole === 'superadmin';
 
   const blankBadge = blank
     ? `<span style="font-family:'Rajdhani',sans-serif;font-size:0.6rem;font-weight:700;letter-spacing:1px;
@@ -1333,10 +1359,16 @@ function renderCard(m,idx){
     ${blank ? `
     <div style="padding:10px 14px 14px;text-align:center">
       <div style="font-size:0.75rem;color:var(--text3);margin-bottom:8px"># ${m.no||'—'} · ${L('নিবন্ধন বাকি','Registration pending')}</div>
+      <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap">
       ${canEdit ? `<button onclick="event.stopPropagation();openRosterEditModal(filtered[${idx}])"
         style="background:rgba(210,153,34,0.12);border:1px solid rgba(210,153,34,0.35);color:#c8a94a;
         border-radius:7px;padding:6px 14px;font-family:'Rajdhani',sans-serif;font-size:0.7rem;
         font-weight:700;letter-spacing:1px;cursor:pointer">${L('✏️ তথ্য পূরণ করুন','✏️ Fill Details')}</button>` : ''}
+      ${canDelete ? `<button onclick="event.stopPropagation();openDeleteMemberModal(filtered[${idx}])"
+        style="background:rgba(192,64,64,0.12);border:1px solid rgba(192,64,64,0.35);color:#e05555;
+        border-radius:7px;padding:6px 12px;font-family:'Rajdhani',sans-serif;font-size:0.7rem;
+        font-weight:700;letter-spacing:1px;cursor:pointer">🗑️ ${L('ডিলিট','Delete')}</button>` : ''}
+      </div>
     </div>` : `
     <div class="card-body">
       <div class="info-item"><span class="lbl">${L('রক্তের গ্রুপ','Blood Group')}</span><span class="val blood">${m.bl||'—'}</span></div>
@@ -1349,6 +1381,8 @@ function renderCard(m,idx){
     <div class="card-footer">
       <span class="co-tag">${co||'—'}</span>
       <span class="sena-no"># ${m.no||'—'}</span>
+      ${canDelete?`<button onclick="event.stopPropagation();openDeleteMemberModal(filtered[${idx}])" title="সদস্য ডিলিট করুন"
+        style="margin-left:auto;background:rgba(192,64,64,0.12);border:1px solid rgba(192,64,64,0.35);color:#e05555;border-radius:6px;padding:3px 9px;font-family:'Rajdhani',sans-serif;font-size:0.68rem;font-weight:700;letter-spacing:1px;cursor:pointer;line-height:1.4">🗑️</button>`:''}
     </div>`}
   </div>`;
 }
@@ -1360,6 +1394,7 @@ function renderListRow(m,idx){
     ? (m.bn||m.en||(blank?L('(অপূর্ণ)','(Incomplete)'):'—'))
     : (m.en||m.bn||(blank?'(Incomplete)':'—'));
   const nm2=lang==='bn'?(m.en||''):(m.bn||'');
+  const canDelete = webCurrentUser && webUserRole === 'superadmin';
   return `<div class="list-row${blank?' list-row-blank':''}" onclick="showModal(${idx})"
     style="${blank?'border-left:3px solid rgba(210,153,34,0.5);opacity:0.8':''}">
     ${listAvatarHtml(m)}
@@ -1373,6 +1408,8 @@ function renderListRow(m,idx){
     <div class="list-cell">${dist||'—'}</div>
     <div class="list-cell co-tag">${co||'—'}</div>
     <div class="list-cell sena-no"># ${m.no||'—'}</div>
+    ${canDelete?`<div class="list-cell"><button onclick="event.stopPropagation();openDeleteMemberModal(filtered[${idx}])" title="সদস্য ডিলিট করুন"
+      style="background:rgba(192,64,64,0.12);border:1px solid rgba(192,64,64,0.35);color:#e05555;border-radius:6px;padding:3px 10px;font-family:'Rajdhani',sans-serif;font-size:0.68rem;font-weight:700;letter-spacing:1px;cursor:pointer">🗑️</button></div>`:''}
   </div>`;
 }
 
@@ -1435,6 +1472,8 @@ function showModal(target){
   const nm1=lang==='bn'?(m.bn||m.en||'—'):(m.en||m.bn||'—');
   const nm2=lang==='bn'?(m.en||''):(m.bn||'');
   const profileRecHtml = computeProfileRecommendationHtml(m);
+  // কোর্স থাকলেই সুপারিশ section দেখাবে (rec না থাকলেও "কোন সুপারিশ নাই" দেখাবে)
+  const hasCourses = !!(m.cr_bn || m.cr_en);
 
   // Promo rows
   const pKeys=['p1','p2','p3','p4','p5'];
@@ -1461,6 +1500,13 @@ function showModal(target){
   const res=lang==='bn'?m.res_bn:m.res_en;
   const gn=lang==='bn'?m.gn_bn:m.gn_en;
 
+  const profileDocId = normalizeMemberDocId(m._id || m.id || m.no || m.armyNo);
+  window._profileCurrentDocId = profileDocId;
+  window._profileCurrentMember = m;
+  const dBtn = webUserRole === 'superadmin'
+    ? (f, id) => `<button onclick="event.stopPropagation();_profileDeleteField('${profileDocId}',[${(Array.isArray(f)?f:[f]).map(x=>"'"+x+"'").join(",")}],'${id}')" style="background:rgba(192,64,64,0.1);border:1px solid rgba(192,64,64,0.3);color:#e05555;border-radius:4px;padding:1px 7px;font-size:0.58rem;font-family:'Rajdhani',sans-serif;font-weight:700;cursor:pointer;margin-left:6px;vertical-align:middle;flex-shrink:0">🗑️</button>`
+    : () => '';
+
   document.getElementById('modalContent').innerHTML=`
     <div class="modal-header">
       ${avatarHtml(m,'lg')}
@@ -1484,18 +1530,18 @@ function showModal(target){
       <div class="sec">
         <div class="sec-title">${L('ব্যক্তিগত তথ্য','Personal Information')}</div>
         <div class="dg">
-          <div class="di"><div class="lbl">${L('সেনা নম্বর','Army No.')}</div><div class="val">${m.no||'—'}</div></div>
-          <div class="di"><div class="lbl">${L('লিঙ্গ','Gender')}</div><div class="val">${gn||'—'}</div></div>
-          <div class="di"><div class="lbl">${L('জন্ম তারিখ','Date of Birth')}</div><div class="val">${fmtDateAge(m.dob)}</div></div>
-          <div class="di"><div class="lbl">${L('রক্তের গ্রুপ','Blood Group')}</div><div class="val blood" style="font-size:1rem;">${m.bl||'—'}</div></div>
-          <div class="di"><div class="lbl">${L('শিক্ষাগত যোগ্যতা','Education')}</div><div class="val">${edu||'—'}</div></div>
-          <div class="di"><div class="lbl">${L('জেলা','District')}</div><div class="val">${m.dist||dist||'—'}</div></div>
-          <div class="di"><div class="lbl">NID</div><div class="val">${m.nid||'—'}</div></div>
-          <div class="di"><div class="lbl">${L('মোবাইল','Mobile No.')}</div><div class="val">${m.mb||'—'}</div></div>
-          <div class="di"><div class="lbl">${L('NID মোবাইল','NID Mobile')}</div><div class="val">${m.nm||'—'}</div></div>
-          <div class="di"><div class="lbl">${L('হোয়াটসঅ্যাপ','WhatsApp')}</div><div class="val">${m.wa||'—'}</div></div>
-          <div class="di"><div class="lbl">${L('জরুরি যোগাযোগ','Emergency Contact')}</div><div class="val">${m.em||'—'}</div></div>
-          <div class="di full"><div class="lbl">${L('স্থায়ী ঠিকানা','Permanent Address')}</div><div class="val">${m.ad||'—'}</div></div>
+          <div class="di" id="pdi_no"><div class="lbl">${L('সেনা নম্বর','Army No.')}</div><div class="val">${m.no||'—'}</div></div>
+          <div class="di" id="pdi_gn"><div class="lbl">${L('লিঙ্গ','Gender')}</div><div class="val" style="display:flex;align-items:center">${gn||'—'}${dBtn(['gn_bn','gn_en'],'pdi_gn')}</div></div>
+          <div class="di" id="pdi_dob"><div class="lbl">${L('জন্ম তারিখ','Date of Birth')}</div><div class="val" style="display:flex;align-items:center">${fmtDateAge(m.dob)}${dBtn(['dob'],'pdi_dob')}</div></div>
+          <div class="di" id="pdi_bl"><div class="lbl">${L('রক্তের গ্রুপ','Blood Group')}</div><div class="val blood" style="font-size:1rem;display:flex;align-items:center">${m.bl||'—'}${dBtn(['bl'],'pdi_bl')}</div></div>
+          <div class="di" id="pdi_edu"><div class="lbl">${L('শিক্ষাগত যোগ্যতা','Education')}</div><div class="val" style="display:flex;align-items:center">${edu||'—'}${dBtn(['ed_bn','ed_en'],'pdi_edu')}</div></div>
+          <div class="di" id="pdi_di"><div class="lbl">${L('জেলা','District')}</div><div class="val" style="display:flex;align-items:center">${m.dist||dist||'—'}${dBtn(['di_bn','di_en','dist'],'pdi_di')}</div></div>
+          <div class="di" id="pdi_nid"><div class="lbl">NID</div><div class="val" style="display:flex;align-items:center">${m.nid||'—'}${dBtn(['nid'],'pdi_nid')}</div></div>
+          <div class="di" id="pdi_mb"><div class="lbl">${L('মোবাইল','Mobile No.')}</div><div class="val" style="display:flex;align-items:center">${m.mb||'—'}${dBtn(['mb'],'pdi_mb')}</div></div>
+          <div class="di" id="pdi_nm"><div class="lbl">${L('NID মোবাইল','NID Mobile')}</div><div class="val" style="display:flex;align-items:center">${m.nm||'—'}${dBtn(['nm'],'pdi_nm')}</div></div>
+          <div class="di" id="pdi_wa"><div class="lbl">${L('হোয়াটসঅ্যাপ','WhatsApp')}</div><div class="val" style="display:flex;align-items:center">${m.wa||'—'}${dBtn(['wa'],'pdi_wa')}</div></div>
+          <div class="di" id="pdi_em"><div class="lbl">${L('জরুরি যোগাযোগ','Emergency Contact')}</div><div class="val" style="display:flex;align-items:center">${m.em||'—'}${dBtn(['em'],'pdi_em')}</div></div>
+          <div class="di full" id="pdi_ad"><div class="lbl">${L('স্থায়ী ঠিকানা','Permanent Address')}</div><div class="val" style="display:flex;align-items:flex-start;gap:4px">${m.ad||'—'}${dBtn(['ad'],'pdi_ad')}</div></div>
         </div>
       </div>
     </div>
@@ -1533,26 +1579,52 @@ function showModal(target){
       <div class="sec">
         <div class="sec-title">${L('সামরিক তথ্য','Military Information')}</div>
         <div class="dg">
-          <div class="di"><div class="lbl">${L('পদবী','Rank')}</div><div class="val"><span class="rank-badge ${rc(rank)}">${rank||'—'}</span></div></div>
-          <div class="di"><div class="lbl">${L('ট্রেড','Trade')}</div><div class="val">${trade||'—'}</div></div>
-          <div class="di"><div class="lbl">${L('কোম্পানী','Company')}</div><div class="val">${co||'—'}</div></div>
-          <div class="di"><div class="lbl">${L('নিয়োগ','Appointment')}</div><div class="val">${m.niyog||'—'}</div></div>
-          <div class="di"><div class="lbl">${L('ভর্তির তারিখ','Enlistment Date')}</div><div class="val">${fmtDateAge(m.jd)}</div></div>
-          <div class="di"><div class="lbl">${L('শপথের তারিখ','Oath Date')}</div><div class="val">${fmtDateAge(m.oath_date||m.od)}</div></div>
-
-          <div class="di"><div class="lbl">${L('সম্ভাব্য পেনশন','Expected Pension')}</div><div class="val" style="color:var(--warn)">${fmtDateAge(m.pd,true)}</div></div>
-          <div class="di"><div class="lbl">${L('AI ১/২০১৩ বর্ধিত','AI 1/2013 Extended')}</div><div class="val">${ai||'—'}</div></div>
-          ${m.pn&&m.pn.length>2&&!['nil','no','nai','n/a','0'].includes(m.pn.toLowerCase())?`<div class="di full"><div class="lbl">${L('সাজা','Punishment')}</div><div class="val"><span class="tag red">${m.pn}</span></div></div>`:''}
-          ${profileRecHtml?`<div class="di full"><div class="lbl">${L('সুপারিশ','Recommendation')}</div><div class="val" style="color:var(--accent3)">${profileRecHtml}</div></div>`:''}
+          <div class="di" id="pdi_rank"><div class="lbl">${L('পদবী','Rank')}</div><div class="val" style="display:flex;align-items:center;gap:6px"><span class="rank-badge ${rc(rank)}">${rank||'—'}</span>${dBtn(['r_bn','r_en'],'pdi_rank')}</div></div>
+          <div class="di" id="pdi_trade"><div class="lbl">${L('ট্রেড','Trade')}</div><div class="val" style="display:flex;align-items:center">${trade||'—'}${dBtn(['tr_bn','tr_en'],'pdi_trade')}</div></div>
+          <div class="di" id="pdi_co"><div class="lbl">${L('কোম্পানী','Company')}</div><div class="val" style="display:flex;align-items:center">${co||'—'}${dBtn(['co_bn','co_en'],'pdi_co')}</div></div>
+          <div class="di" id="pdi_niyog"><div class="lbl">${L('নিয়োগ','Appointment')}</div><div class="val" style="display:flex;align-items:center">${m.niyog||'—'}${dBtn(['niyog'],'pdi_niyog')}</div></div>
+          <div class="di" id="pdi_jd"><div class="lbl">${L('ভর্তির তারিখ','Enlistment Date')}</div><div class="val" style="display:flex;align-items:center">${fmtDateAge(m.jd)}${dBtn(['jd'],'pdi_jd')}</div></div>
+          <div class="di" id="pdi_od"><div class="lbl">${L('শপথের তারিখ','Oath Date')}</div><div class="val" style="display:flex;align-items:center">${fmtDateAge(m.oath_date||m.od)}${dBtn(['od','oath_date'],'pdi_od')}</div></div>
+          <div class="di" id="pdi_pd"><div class="lbl">${L('সম্ভাব্য পেনশন','Expected Pension')}</div><div class="val" style="color:var(--warn);display:flex;align-items:center">${fmtDateAge(m.pd,true)}${dBtn(['pd'],'pdi_pd')}</div></div>
+          <div class="di" id="pdi_ai"><div class="lbl">${L('AI ১/২০১৩ বর্ধিত','AI 1/2013 Extended')}</div><div class="val" style="display:flex;align-items:center">${ai||'—'}${dBtn(['ai_bn','ai_en','ai'],'pdi_ai')}</div></div>
+          ${m.pn&&m.pn.length>2&&!['nil','no','nai','n/a','0'].includes(m.pn.toLowerCase())?`<div class="di full" id="pdi_pn"><div class="lbl">${L('সাজা','Punishment')}</div><div class="val" style="display:flex;align-items:center;gap:6px"><span class="tag red">${m.pn}</span>${dBtn(['pn'],'pdi_pn')}</div></div>`:''}
+          ${hasCourses?`<div class="di full" id="pdi_rec_wrap"><div class="lbl">${L('সুপারিশ','Recommendation')}</div><div class="val">${
+            webUserRole==='superadmin'
+              ? (() => {
+                  const recItems = _computeCourseRecommendationItems(m);
+                  const noRec = lang==='bn' ? 'কোন সুপারিশ নাই' : 'No recommendation';
+                  const anyHasRec = recItems.some(it => it.hasRec);
+                  if (!anyHasRec) return `<span style="color:var(--text3);font-style:italic">${noRec}</span>`;
+                  return recItems.map((it, i) => {
+                    const k = it.recKey;
+                    const delBtn = it.hasRec
+                      ? `<button onclick="event.stopPropagation();_superadminDeleteRec('${profileDocId}','${k}');this.closest('[id^=pdi_rec_]').querySelector('span').textContent='${noRec}';this.remove()" style="background:rgba(192,64,64,0.1);border:1px solid rgba(192,64,64,0.3);color:#e05555;border-radius:4px;padding:1px 7px;font-size:0.58rem;font-family:'Rajdhani',sans-serif;font-weight:700;cursor:pointer;flex-shrink:0">🗑️</button>`
+                      : '';
+                    const recDisplay = it.hasRec
+                      ? `<span style="color:var(--accent3)">${_escapeHtml(it.recText)}</span>`
+                      : `<span style="color:var(--text3);font-style:italic">${noRec}</span>`;
+                    return `<div style="display:flex;align-items:flex-start;gap:6px;margin-bottom:4px" id="pdi_rec_${k}"><span style="flex:1;color:var(--text)">${i+1}. <b>${_escapeHtml(it.courseName)}:</b> ${recDisplay}</span>${delBtn}</div>`;
+                  }).join('');
+                })()
+              : profileRecHtml
+          }</div></div>`:''}
         </div>
       </div>
-      ${promoHtml?`<div class="sec"><div class="sec-title">${L('পদোন্নতির ইতিহাস','Promotion History')}</div><div class="promo-line">${promoHtml}</div></div>`:''}
-      ${(m.prev_units||m.pu)?`<div class="sec"><div class="sec-title">${L('পূর্বের ইউনিট','Previous Units')}</div><div class="val" style="font-size:0.82rem;white-space:pre-line;line-height:1.7;color:var(--text)">${m.prev_units||m.pu}</div></div>`:''}
+      ${promoHtml?`<div class="sec"><div class="sec-title">${L('পদোন্নতির ইতিহাস','Promotion History')}</div><div class="promo-line">${
+        webUserRole==='superadmin'
+          ? ['p1','p2','p3','p4','p5'].map((k,i)=>{
+              if(!m[k])return'';
+              const d=parseDate(m[k]); const yrs=yearsSince(d);
+              return `<div class="promo-item" id="pdi_${k}" style="display:flex;align-items:center;gap:6px"><span>⭐</span><span class="pr-label">${lang==='bn'?PROMO_BN[i]:PROMO_EN[i]}</span><span class="pr-date">${m[k]}</span><span class="pr-yrs">${yrs!==null?'('+yrs+(lang==='bn'?' বছর)':' yrs)'):''}  </span>${dBtn([k],'pdi_'+k)}</div>`;
+            }).join('')
+          : promoHtml
+      }</div></div>`:''}
+      ${(m.prev_units||m.pu)?`<div class="sec" id="pdi_pu_sec"><div class="sec-title" style="display:flex;align-items:center;gap:8px">${L('পূর্বের ইউনিট','Previous Units')}${dBtn(['pu','prev_units'],'pdi_pu_sec')}</div><div class="val" style="font-size:0.82rem;white-space:pre-line;line-height:1.7;color:var(--text)">${m.prev_units||m.pu}</div></div>`:''}
       <div class="sec">
         <div class="sec-title">${L('বাসস্থান','Residence')}</div>
         <div class="dg">
-          <div class="di"><div class="lbl">${L('বাসস্থান অবস্থান','Location')}</div><div class="val">${res||'—'}</div></div>
-          <div class="di"><div class="lbl">${L('মেয়াদকাল','Duration')}</div><div class="val">${m.rt||'—'}</div></div>
+          <div class="di" id="pdi_res"><div class="lbl">${L('বাসস্থান অবস্থান','Location')}</div><div class="val" style="display:flex;align-items:center">${res||'—'}${dBtn(['res_bn','res_en'],'pdi_res')}</div></div>
+          <div class="di" id="pdi_rt"><div class="lbl">${L('মেয়াদকাল','Duration')}</div><div class="val" style="display:flex;align-items:center">${m.rt||'—'}${dBtn(['rt'],'pdi_rt')}</div></div>
         </div>
       </div>
     </div>
@@ -1560,9 +1632,9 @@ function showModal(target){
     <!-- TAB 2: COURSES -->
     <div class="tab-content" id="tab2">
       ${(lang==='bn'?m.cr_bn:m.cr_en)?`<div class="sec"><div class="sec-title">${L('কোর্স ও ক্যাডার','Courses & Cadre')}</div>
-        ${fmtCoursesWithResults(lang==='bn'?m.cr_bn:m.cr_en, m.courseResults||{})}</div>`:''}
-      ${(lang==='bn'?m.dc_bn:m.dc_en)?`<div class="sec"><div class="sec-title">${L('সেনা/ডিভিশন পর্যায়ের কোর্স','Army / Division Level Courses')}</div><div class="tag-list">${fmtTags(lang==='bn'?m.dc_bn:m.dc_en,'gold')}</div></div>`:''}
-      ${(m.license||m.li)?`<div class="sec"><div class="sec-title">${L('লাইসেন্স','Licenses')}</div><div class="tag-list">${fmtTags(m.license||m.li,'green')}</div></div>`:''}
+        ${fmtCoursesWithResults(lang==='bn'?m.cr_bn:m.cr_en, m.courseResults||{}, webUserRole==='superadmin'?profileDocId:'')}</div>`:''}
+      ${(lang==='bn'?m.dc_bn:m.dc_en)?`<div class="sec"><div class="sec-title">${L('সেনা/ডিভিশন পর্যায়ের কোর্স','Army / Division Level Courses')}</div><div class="tag-list">${fmtTagsWithDelete(lang==='bn'?m.dc_bn:m.dc_en,'gold',webUserRole==='superadmin'?profileDocId:'',lang==='bn'?'dc_bn':'dc_en')}</div></div>`:''}
+      ${(m.license||m.li)?`<div class="sec"><div class="sec-title">${L('লাইসেন্স','Licenses')}</div><div class="tag-list">${fmtTagsWithDelete(m.license||m.li,'green',webUserRole==='superadmin'?profileDocId:'','li')}</div></div>`:''}
       ${!(lang==='bn'?m.cr_bn:m.cr_en)&&!(lang==='bn'?m.dc_bn:m.dc_en)&&!m.license&&!m.li?`<p style="color:var(--text3);font-size:0.88rem;">${L('কোনো তথ্য নেই','No data available')}</p>`:''}
     </div>
 
@@ -1571,10 +1643,10 @@ function showModal(target){
       <div class="sec">
         <div class="sec-title">${L('বৈবাহিক তথ্য','Marital Information')}</div>
         <div class="dg">
-          <div class="di"><div class="lbl">${L('বৈবাহিক অবস্থা','Marital Status')}</div><div class="val">${ma||m.ma_bn||'—'}</div></div>
-          <div class="di"><div class="lbl">${L('স্ত্রী/স্বামীর নাম','Spouse Name')}</div><div class="val">${m.sp||'—'}</div></div>
-          <div class="di"><div class="lbl">${L('স্ত্রী/স্বামীর জন্ম','Spouse DOB')}</div><div class="val">${fmtDateAge(m.sd)}</div></div>
-          <div class="di"><div class="lbl">${L('বিবাহের তারিখ','Marriage Date')}</div><div class="val">${fmtDateAge(m.wd)}</div></div>
+          <div class="di" id="pdi_ma"><div class="lbl">${L('বৈবাহিক অবস্থা','Marital Status')}</div><div class="val" style="display:flex;align-items:center">${ma||m.ma_bn||'—'}${dBtn(['ma_bn','ma_en'],'pdi_ma')}</div></div>
+          <div class="di" id="pdi_sp"><div class="lbl">${L('স্ত্রী/স্বামীর নাম','Spouse Name')}</div><div class="val" style="display:flex;align-items:center">${m.sp||'—'}${dBtn(['sp'],'pdi_sp')}</div></div>
+          <div class="di" id="pdi_sd"><div class="lbl">${L('স্ত্রী/স্বামীর জন্ম','Spouse DOB')}</div><div class="val" style="display:flex;align-items:center">${fmtDateAge(m.sd)}${dBtn(['sd'],'pdi_sd')}</div></div>
+          <div class="di" id="pdi_wd"><div class="lbl">${L('বিবাহের তারিখ','Marriage Date')}</div><div class="val" style="display:flex;align-items:center">${fmtDateAge(m.wd)}${dBtn(['wd'],'pdi_wd')}</div></div>
         </div>
       </div>
       ${(()=>{
@@ -1582,11 +1654,11 @@ function showModal(target){
         let kRowsDyn = '';
         for(let i=1;i<=9;i++){
           const cn = m['c'+i+'n']; const cd = m['c'+i+'d'];
-          if(cn) kRowsDyn += `<tr><td>${i}</td><td>${cn}</td><td>${fmtDateAge(cd)}</td></tr>`;
+          if(cn) kRowsDyn += `<tr id="pdi_child${i}"><td>${i}</td><td>${cn}</td><td>${fmtDateAge(cd)}</td>${webUserRole==='superadmin'?`<td><button onclick="event.stopPropagation();_profileDeleteField('${profileDocId}',['c${i}n','c${i}d'],'pdi_child${i}')" style="background:rgba(192,64,64,0.1);border:1px solid rgba(192,64,64,0.3);color:#e05555;border-radius:4px;padding:1px 7px;font-size:0.58rem;font-family:'Rajdhani',sans-serif;font-weight:700;cursor:pointer">🗑️</button></td>`:'<td></td>'}</tr>`;
         }
         return kRowsDyn ? `<div class="sec"><div class="sec-title">${L('সন্তানসমূহ','Children')}</div>
           <table class="ctable">
-            <thead><tr><th>#</th><th>${L('নাম','Name')}</th><th>${L('জন্ম তারিখ','Date of Birth')}</th></tr></thead>
+            <thead><tr><th>#</th><th>${L('নাম','Name')}</th><th>${L('জন্ম তারিখ','Date of Birth')}</th>${webUserRole==='superadmin'?`<th></th>`:''}</tr></thead>
             <tbody>${kRowsDyn}</tbody>
           </table></div>` : '';
       })()}
@@ -3100,6 +3172,7 @@ function openRosterEditModal(m) {
         <div>${lbl('সাজা')}${inp('pn',m.pn)}</div>
         ${computedRecText ? `<div>${lbl('সুপারিশ')}${inp('rec',computedRecText)}</div>` : ''}
       </div>
+      ${webUserRole==='superadmin' ? `<div id="superadminRecItems" style="margin-top:8px"></div>` : ''}
       <div>${lbl('পূর্বের ইউনিট')}${ta('pu',m.pu||m.prev_units,'প্রতিটি ইউনিট নতুন লাইনে')}</div>
 
       <div style="font-family:'Rajdhani',sans-serif;font-size:0.7rem;letter-spacing:2px;color:#c8a94a;text-transform:uppercase;margin:16px 0 8px">কোর্স তথ্য</div>
@@ -3107,6 +3180,7 @@ function openRosterEditModal(m) {
         <div>${lbl('কোর্স ও ক্যাডার','cr_bn')}${ta('cr_bn',m.cr_bn,'যেমন: 1.6 km, Pushup ...')}</div>
         <div>${lbl('সেনা/ডিভিশন কোর্স','dc_bn')}${ta('dc_bn',m.dc_bn||m.division_courses,'কমা দিয়ে আলাদা করুন')}</div>
       </div>
+      ${webUserRole==='superadmin' ? `<div id="superadminCourseItems" style="margin-top:8px"></div>` : ''}
 
       <div style="font-family:'Rajdhani',sans-serif;font-size:0.7rem;letter-spacing:2px;color:#c8a94a;text-transform:uppercase;margin:16px 0 8px">পদোন্নতির ইতিহাস</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
@@ -3223,6 +3297,7 @@ function openRosterEditModal(m) {
           <button onclick="deleteRosterEditLeave()" style="flex:1;min-width:180px;padding:12px;background:rgba(192,64,64,0.12);border:1px solid rgba(192,64,64,0.35);border-radius:10px;color:#e05555;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:0.85rem;letter-spacing:1px;cursor:pointer">${L('🗑️ ছুটি মুছুন','🗑️ Delete Leave')}</button>
         </div>
         <div id="editLeaveResult" style="display:none;border-radius:10px;padding:10px 12px;margin-top:12px;font-size:0.82rem"></div>
+        ${webUserRole==='superadmin' ? `<div id="superadminLeaveItems" style="margin-top:8px"></div>` : ''}
       </div>
 
       <!-- EDIT: TRAINING SECTION -->
@@ -3315,6 +3390,7 @@ function openRosterEditModal(m) {
           <button onclick="deleteRosterEditTraining()" style="flex:1;min-width:180px;padding:12px;background:rgba(192,64,64,0.12);border:1px solid rgba(192,64,64,0.35);border-radius:10px;color:#e05555;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:0.85rem;letter-spacing:1px;cursor:pointer">${L('🗑️ ট্রেনিং মুছুন','🗑️ Delete Training')}</button>
         </div>
         <div id="editTrainingResult" style="display:none;border-radius:10px;padding:10px 12px;margin-top:12px;font-size:0.82rem"></div>
+        ${webUserRole==='superadmin' ? `<div id="superadminTrainingItems" style="margin-top:8px"></div>` : ''}
       </div>
 
       <div id="rosterEditResult" style="display:none;border-radius:8px;padding:10px 12px;margin:12px 0;font-size:0.82rem"></div>
@@ -3334,6 +3410,10 @@ function openRosterEditModal(m) {
       initRosterEditLeaveTrainingUI(docId);
       bindEditLeaveTotalDays();
       toggleEditTrainingFields();
+      if (webUserRole === 'superadmin') {
+        _renderSuperadminCourseItems();
+        _renderSuperadminRecItems();
+      }
     } catch(_) {}
   }, 60);
 }
@@ -3430,6 +3510,7 @@ async function initRosterEditLeaveTrainingUI(docId) {
         })
       ].join('');
     }
+    if (webUserRole === 'superadmin') _renderSuperadminLeaveItems(docId);
   } catch(e) {
     if (leaveSelect) leaveSelect.innerHTML = '<option value="">' + (lang === 'bn' ? '❌ লোড ব্যর্থ' : '❌ Load failed') + '</option>';
     _setInlineEditResult(
@@ -3504,6 +3585,7 @@ async function initRosterEditLeaveTrainingUI(docId) {
         })
       ].join('');
     }
+    if (webUserRole === 'superadmin') _renderSuperadminTrainingItems(docId);
   } catch(e) {
     if (trainingSelect) trainingSelect.innerHTML = '<option value="">' + (lang === 'bn' ? '❌ লোড ব্যর্থ' : '❌ Load failed') + '</option>';
     _setInlineEditResult(
@@ -3919,6 +4001,277 @@ async function deleteRosterEditTraining() {
       false
     );
   }
+}
+
+/* ══════════════════════════════════════
+   সুপার অ্যাডমিন — আলাদা আলাদা ডিলিট লিস্ট
+══════════════════════════════════════ */
+
+function _renderSuperadminLeaveItems(docId) {
+  if (webUserRole !== 'superadmin') return;
+  const el = document.getElementById('superadminLeaveItems');
+  if (!el) return;
+  if (!_editRosterLeavesCache.length) { el.innerHTML = ''; return; }
+  el.innerHTML = `<div style="border:1px solid rgba(192,64,64,0.25);border-radius:8px;overflow:hidden;margin-bottom:4px">
+    <div style="font-family:'Rajdhani',sans-serif;font-size:0.62rem;letter-spacing:1px;color:#e05555;text-transform:uppercase;padding:5px 10px;background:rgba(192,64,64,0.07)">🗑️ সকল ছুটি — সুপার অ্যাডমিন ডিলিট</div>
+    ${_editRosterLeavesCache.map(lv => `
+      <div style="display:flex;align-items:center;gap:8px;padding:6px 10px;border-top:1px solid rgba(255,255,255,0.05)">
+        <div style="flex:1;font-size:0.77rem;color:#e6e6e6">${lv.leave_type||'—'} <span style="color:#8b949e;font-size:0.68rem">${lv.from_date||'?'} → ${lv.to_date||'?'} · ${lv.total_days||'?'} দিন</span></div>
+        <button onclick="_superadminDeleteLeave('${docId}','${lv.id}')" style="background:rgba(192,64,64,0.12);border:1px solid rgba(192,64,64,0.4);color:#e05555;border-radius:5px;padding:3px 10px;font-family:'Rajdhani',sans-serif;font-size:0.65rem;font-weight:700;letter-spacing:1px;cursor:pointer;white-space:nowrap">🗑️ মুছুন</button>
+      </div>
+    `).join('')}
+  </div>`;
+}
+
+function _renderSuperadminTrainingItems(docId) {
+  if (webUserRole !== 'superadmin') return;
+  const el = document.getElementById('superadminTrainingItems');
+  if (!el) return;
+  if (!_editRosterTrainingsCache.length) { el.innerHTML = ''; return; }
+  el.innerHTML = `<div style="border:1px solid rgba(192,64,64,0.25);border-radius:8px;overflow:hidden;margin-bottom:4px">
+    <div style="font-family:'Rajdhani',sans-serif;font-size:0.62rem;letter-spacing:1px;color:#e05555;text-transform:uppercase;padding:5px 10px;background:rgba(192,64,64,0.07)">🗑️ সকল ট্রেনিং — সুপার অ্যাডমিন ডিলিট</div>
+    ${_editRosterTrainingsCache.map(t => {
+      const tt = (t.type || t.trainingType || 'unknown').toString().toUpperCase();
+      const dateText = t.date || (t.fromDate && t.toDate ? `${t.fromDate} → ${t.toDate}` : '—');
+      const extra = t.result ? (' · ' + t.result) : (t.marks ? (' · ' + t.marks) : '');
+      return `
+        <div style="display:flex;align-items:center;gap:8px;padding:6px 10px;border-top:1px solid rgba(255,255,255,0.05)">
+          <div style="flex:1;font-size:0.77rem;color:#e6e6e6">${tt} <span style="color:#8b949e;font-size:0.68rem">${dateText}${extra}</span></div>
+          <button onclick="_superadminDeleteTraining('${docId}','${t.id}')" style="background:rgba(192,64,64,0.12);border:1px solid rgba(192,64,64,0.4);color:#e05555;border-radius:5px;padding:3px 10px;font-family:'Rajdhani',sans-serif;font-size:0.65rem;font-weight:700;letter-spacing:1px;cursor:pointer;white-space:nowrap">🗑️ মুছুন</button>
+        </div>
+      `;
+    }).join('')}
+  </div>`;
+}
+
+function _renderSuperadminCourseItems() {
+  if (webUserRole !== 'superadmin') return;
+  const el = document.getElementById('superadminCourseItems');
+  if (!el) return;
+  const taEl = document.getElementById('re_cr_bn');
+  const crBn = taEl ? taEl.value : (window._rosterEditMember?.cr_bn || '');
+  const crArr = crBn.split(',').map(s => s.trim()).filter(Boolean);
+  if (!crArr.length) { el.innerHTML = ''; return; }
+  const docId = _getRosterEditMemberDocId();
+  el.innerHTML = `<div style="border:1px solid rgba(192,64,64,0.25);border-radius:8px;overflow:hidden;margin-bottom:4px">
+    <div style="font-family:'Rajdhani',sans-serif;font-size:0.62rem;letter-spacing:1px;color:#e05555;text-transform:uppercase;padding:5px 10px;background:rgba(192,64,64,0.07)">🗑️ কোর্স তালিকা — সুপার অ্যাডমিন ডিলিট</div>
+    ${crArr.map((c, i) => `
+      <div style="display:flex;align-items:center;gap:8px;padding:6px 10px;border-top:1px solid rgba(255,255,255,0.05)">
+        <div style="flex:1;font-size:0.77rem;color:#e6e6e6"><span style="color:#8b949e;font-size:0.68rem">${i+1}.</span> ${_escapeHtml(c)}</div>
+        <button onclick="_superadminDeleteCourse('${docId}',${i})" style="background:rgba(192,64,64,0.12);border:1px solid rgba(192,64,64,0.4);color:#e05555;border-radius:5px;padding:3px 10px;font-family:'Rajdhani',sans-serif;font-size:0.65rem;font-weight:700;letter-spacing:1px;cursor:pointer;white-space:nowrap">🗑️ মুছুন</button>
+      </div>
+    `).join('')}
+  </div>`;
+}
+
+function _renderSuperadminRecItems() {
+  if (webUserRole !== 'superadmin') return;
+  const el = document.getElementById('superadminRecItems');
+  if (!el) return;
+  const m = window._rosterEditMember;
+  if (!m || !m.courseResults) { el.innerHTML = ''; return; }
+  // _computeCourseRecommendationItems ব্যবহার করি যাতে সঠিক কোর্সের নাম আসে
+  const recItems = _computeCourseRecommendationItems(m);
+  if (!recItems.length) { el.innerHTML = ''; return; }
+  const docId = _getRosterEditMemberDocId();
+  const noRec = lang === 'bn' ? 'কোন সুপারিশ নাই' : 'No recommendation';
+  const anyHasRec = recItems.some(it => it.hasRec);
+  if (!anyHasRec) {
+    el.innerHTML = `<div style="border:1px solid rgba(192,64,64,0.25);border-radius:8px;overflow:hidden;margin-bottom:4px">
+      <div style="font-family:'Rajdhani',sans-serif;font-size:0.62rem;letter-spacing:1px;color:#e05555;text-transform:uppercase;padding:5px 10px;background:rgba(192,64,64,0.07)">🗑️ সুপারিশ তালিকা — সুপার অ্যাডমিন ডিলিট</div>
+      <div style="padding:8px 10px;font-size:0.77rem;color:#484f58;font-style:italic">${noRec}</div>
+    </div>`;
+    return;
+  }
+  el.innerHTML = `<div style="border:1px solid rgba(192,64,64,0.25);border-radius:8px;overflow:hidden;margin-bottom:4px">
+    <div style="font-family:'Rajdhani',sans-serif;font-size:0.62rem;letter-spacing:1px;color:#e05555;text-transform:uppercase;padding:5px 10px;background:rgba(192,64,64,0.07)">🗑️ সুপারিশ তালিকা — সুপার অ্যাডমিন ডিলিট</div>
+    ${recItems.map(it => {
+      const k = it.recKey;
+      const courseName = it.courseName;
+      return `
+        <div style="display:flex;align-items:flex-start;gap:8px;padding:6px 10px;border-top:1px solid rgba(255,255,255,0.05)">
+          <div style="flex:1;font-size:0.77rem;color:#e6e6e6">
+            <span style="color:#8b949e;font-size:0.68rem">${_escapeHtml(courseName)}:</span>
+            ${it.hasRec
+              ? ` <span style="color:#e6e6e6">${_escapeHtml(it.recText)}</span>`
+              : ` <span style="color:#484f58;font-style:italic">${noRec}</span>`}
+          </div>
+          ${it.hasRec ? `<button onclick="_superadminDeleteRec('${docId}','${k}');_renderSuperadminRecItems()" style="background:rgba(192,64,64,0.12);border:1px solid rgba(192,64,64,0.4);color:#e05555;border-radius:5px;padding:3px 10px;font-family:'Rajdhani',sans-serif;font-size:0.65rem;font-weight:700;letter-spacing:1px;cursor:pointer;white-space:nowrap;flex-shrink:0">🗑️ মুছুন</button>` : ''}
+        </div>
+      `;
+    }).join('')}
+  </div>`;
+}
+
+/* ══ প্রোফাইল ভিউ — সুপার অ্যাডমিন আলাদা আলাদা ফিল্ড ডিলিট ══ */
+
+async function _profileDeleteField(docId, fields, elId) {
+  if (webUserRole !== 'superadmin') return;
+  _rosterConfirmSimple(
+    lang === 'bn' ? 'এই তথ্য মুছে ফেলবেন?' : 'Delete this field?',
+    async () => {
+      try {
+        const updateData = {};
+        fields.forEach(f => { updateData[f] = firebase.firestore.FieldValue.delete(); });
+        await db.collection('members').doc(docId).update(updateData);
+        const el = document.getElementById(elId);
+        if (el) el.style.display = 'none';
+        const idx = MEMBERS.findIndex(x => normalizeMemberDocId(x._id||x.id||x.no||x.armyNo) === docId);
+        if (idx !== -1) fields.forEach(f => delete MEMBERS[idx][f]);
+      } catch(e) { alert('❌ ' + (e.message || e.code)); }
+    },
+    { danger: true, title: '🗑️ ফিল্ড মুছুন' }
+  );
+}
+
+async function _profileDeleteLeave(docId, leaveId, elId) {
+  if (webUserRole !== 'superadmin') return;
+  _rosterConfirmSimple(
+    lang === 'bn' ? 'এই ছুটি মুছে ফেলবেন?' : 'Delete this leave?',
+    async () => {
+      try {
+        await db.collection('members').doc(docId).collection('leaves').doc(leaveId).delete();
+        const el = document.getElementById(elId);
+        if (el) el.style.display = 'none';
+      } catch(e) { alert('❌ ' + (e.message || e.code)); }
+    },
+    { danger: true, title: '🗑️ ছুটি মুছুন' }
+  );
+}
+
+async function _profileDeleteTraining(docId, trainingId, elId) {
+  if (webUserRole !== 'superadmin') return;
+  _rosterConfirmSimple(
+    lang === 'bn' ? 'এই ট্রেনিং মুছে ফেলবেন?' : 'Delete this training?',
+    async () => {
+      try {
+        await db.collection('members').doc(docId).collection('training').doc(trainingId).delete();
+        const el = document.getElementById(elId);
+        if (el) el.style.display = 'none';
+      } catch(e) { alert('❌ ' + (e.message || e.code)); }
+    },
+    { danger: true, title: '🗑️ ট্রেনিং মুছুন' }
+  );
+}
+
+async function _profileDeleteTagItem(docId, fieldName, itemIdx, elId) {
+  if (webUserRole !== 'superadmin') return;
+  const m = window._profileCurrentMember;
+  const rawVal = m ? (m[fieldName] || '') : '';
+  const items = rawVal.split(/[,،]/).map(s => s.trim()).filter(Boolean);
+  const itemName = items[itemIdx] || '?';
+  _rosterConfirmSimple(
+    `"${itemName}" মুছে ফেলবেন?`,
+    async () => {
+      try {
+        items.splice(itemIdx, 1);
+        const newVal = items.join(', ');
+        await db.collection('members').doc(docId).update({ [fieldName]: newVal || firebase.firestore.FieldValue.delete() });
+        const el = document.getElementById(elId);
+        if (el) el.style.display = 'none';
+        if (m) m[fieldName] = newVal;
+        const mi = MEMBERS.findIndex(x => normalizeMemberDocId(x._id||x.id||x.no||x.armyNo) === docId);
+        if (mi !== -1) MEMBERS[mi][fieldName] = newVal;
+      } catch(e) { alert('❌ ' + (e.message || e.code)); }
+    },
+    { danger: true, title: '🗑️ আইটেম মুছুন' }
+  );
+}
+
+async function _superadminDeleteLeave(docId, leaveId) {
+  if (webUserRole !== 'superadmin') return;
+  _rosterConfirmSimple(
+    lang === 'bn' ? 'এই ছুটি মুছে ফেলবেন?' : 'Delete this leave?',
+    async () => {
+      try {
+        await db.collection('members').doc(docId).collection('leaves').doc(leaveId).delete();
+        await initRosterEditLeaveTrainingUI(docId);
+      } catch(e) {
+        _setInlineEditResult('editLeaveResult', '❌ ' + (e.message || e.code), false);
+      }
+    },
+    { danger: true, title: '🗑️ ছুটি মুছুন' }
+  );
+}
+
+async function _superadminDeleteTraining(docId, trainingId) {
+  if (webUserRole !== 'superadmin') return;
+  _rosterConfirmSimple(
+    lang === 'bn' ? 'এই ট্রেনিং মুছে ফেলবেন?' : 'Delete this training?',
+    async () => {
+      try {
+        await db.collection('members').doc(docId).collection('training').doc(trainingId).delete();
+        await initRosterEditLeaveTrainingUI(docId);
+        toggleEditTrainingFields();
+      } catch(e) {
+        _setInlineEditResult('editTrainingResult', '❌ ' + (e.message || e.code), false);
+      }
+    },
+    { danger: true, title: '🗑️ ট্রেনিং মুছুন' }
+  );
+}
+
+async function _superadminDeleteCourse(docId, courseIdx) {
+  if (webUserRole !== 'superadmin') return;
+  const taEl = document.getElementById('re_cr_bn');
+  const crBn = taEl ? taEl.value : (window._rosterEditMember?.cr_bn || '');
+  const crArr = crBn.split(',').map(s => s.trim()).filter(Boolean);
+  const courseName = crArr[courseIdx] || ('কোর্স ' + (courseIdx + 1));
+  _rosterConfirmSimple(
+    `"${courseName}" কোর্সটি মুছে ফেলবেন?`,
+    async () => {
+      try {
+        crArr.splice(courseIdx, 1);
+        const newCrBn = crArr.join(', ');
+        if (taEl) taEl.value = newCrBn;
+        const updateData = { cr_bn: newCrBn };
+        const m = window._rosterEditMember;
+        const cr = (m && m.courseResults) ? m.courseResults : {};
+        const maxCheck = Object.keys(cr).filter(k => k.startsWith('course_') || k.startsWith('rec_') || k.startsWith('pos_')).length + 5;
+        for (let i = courseIdx; i <= maxCheck; i++) {
+          const hasNext = cr['course_'+(i+1)] !== undefined || cr['rec_'+(i+1)] !== undefined || cr['pos_'+(i+1)] !== undefined;
+          if (cr['course_'+(i+1)] !== undefined) updateData['courseResults.course_'+i] = cr['course_'+(i+1)];
+          else updateData['courseResults.course_'+i] = firebase.firestore.FieldValue.delete();
+          if (cr['rec_'+(i+1)] !== undefined) updateData['courseResults.rec_'+i] = cr['rec_'+(i+1)];
+          else updateData['courseResults.rec_'+i] = firebase.firestore.FieldValue.delete();
+          if (cr['pos_'+(i+1)] !== undefined) updateData['courseResults.pos_'+i] = cr['pos_'+(i+1)];
+          else updateData['courseResults.pos_'+i] = firebase.firestore.FieldValue.delete();
+          if (!hasNext) break;
+        }
+        await db.collection('members').doc(docId).update(updateData);
+        if (m) { m.cr_bn = newCrBn; }
+        _renderSuperadminCourseItems();
+        _renderSuperadminRecItems();
+      } catch(e) {
+        alert('❌ কোর্স ডিলিট ব্যর্থ: ' + (e.message || e.code));
+      }
+    },
+    { danger: true, title: '🗑️ কোর্স মুছুন' }
+  );
+}
+
+async function _superadminDeleteRec(docId, recKey) {
+  if (webUserRole !== 'superadmin') return;
+  _rosterConfirmSimple(
+    lang === 'bn' ? 'এই সুপারিশটি মুছে ফেলবেন?' : 'Delete this recommendation?',
+    async () => {
+      try {
+        const updateData = {};
+        updateData['courseResults.' + recKey] = firebase.firestore.FieldValue.delete();
+        await db.collection('members').doc(docId).update(updateData);
+        // edit modal member update
+        const m = window._rosterEditMember;
+        if (m && m.courseResults) delete m.courseResults[recKey];
+        // profile modal member update
+        const pm = window._profileCurrentMember;
+        if (pm && pm.courseResults) delete pm.courseResults[recKey];
+        _renderSuperadminRecItems();
+      } catch(e) {
+        alert('❌ সুপারিশ ডিলিট ব্যর্থ: ' + (e.message || e.code));
+      }
+    },
+    { danger: true, title: '🗑️ সুপারিশ মুছুন' }
+  );
 }
 
 async function saveRosterEdit(docId) {
@@ -4423,10 +4776,11 @@ async function loadRosterLeave(docId) {
       ).join('');
 
       const rowsHtml = leaves.map(l =>
-        `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border2)">
+        `<div id="pleave_${l.id}" style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border2)">
           <span style="font-family:'Rajdhani',sans-serif;font-size:0.65rem;font-weight:700;color:${LEAVE_COLOR[l.leave_type] || 'var(--accent)'};min-width:90px;flex-shrink:0">${l.leave_type || '—'}</span>
           <span style="font-size:0.8rem;color:var(--text2);flex:1">${l.from_date || '—'} → ${l.to_date || '—'}</span>
           <span style="font-family:'Rajdhani',sans-serif;font-size:0.78rem;font-weight:700;color:var(--text);flex-shrink:0">${l.total_days || 0} ${lang === 'bn' ? 'দিন' : 'd'}</span>
+          ${webUserRole === 'superadmin' ? `<button onclick="event.stopPropagation();_profileDeleteLeave('${normalizedDocId}','${l.id}','pleave_${l.id}')" style="background:rgba(192,64,64,0.1);border:1px solid rgba(192,64,64,0.3);color:#e05555;border-radius:4px;padding:1px 8px;font-size:0.6rem;font-family:'Rajdhani',sans-serif;font-weight:700;cursor:pointer;flex-shrink:0">🗑️</button>` : ''}
         </div>`
       ).join('');
 
@@ -4590,10 +4944,13 @@ async function loadRosterLeave(docId) {
               ${arr.slice(0, 8).map(d => {
                 const itemTitle = d.date || d.fromDate || d.from_date || '—';
                 return `
-                  <div style="background:rgba(0,0,0,0.03);border:1px solid var(--border2);border-radius:10px;padding:10px 12px;margin-bottom:8px">
+                  <div id="ptrain_${d.id||''}" style="background:rgba(0,0,0,0.03);border:1px solid var(--border2);border-radius:10px;padding:10px 12px;margin-bottom:8px">
                     <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">
                       <div style="font-family:'Rajdhani',sans-serif;font-size:0.86rem;font-weight:700;color:var(--text)">${typeLabelMap[t] || t}</div>
-                      <div style="font-size:0.65rem;color:var(--text3);white-space:nowrap">${itemTitle}</div>
+                      <div style="display:flex;align-items:center;gap:6px">
+                        <div style="font-size:0.65rem;color:var(--text3);white-space:nowrap">${itemTitle}</div>
+                        ${webUserRole === 'superadmin' && d.id ? `<button onclick="event.stopPropagation();_profileDeleteTraining('${normalizedDocId}','${d.id}','ptrain_${d.id}')" style="background:rgba(192,64,64,0.1);border:1px solid rgba(192,64,64,0.3);color:#e05555;border-radius:4px;padding:1px 8px;font-size:0.6rem;font-family:'Rajdhani',sans-serif;font-weight:700;cursor:pointer">🗑️</button>` : ''}
+                      </div>
                     </div>
                     ${renderTrainingItem(d, t)}
                   </div>
